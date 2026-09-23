@@ -40,8 +40,8 @@ constexpr auto quietest = 0.15f;
 constexpr auto loudReach = 120.f;
 
 constexpr auto searchingText =
-    "wasd / arrows to walk  -  space to jump  -  m to moo  -  drag to look  -  q "
-    "to quit";
+    "wasd / hjkl / arrows to walk  -  space to jump  -  m to "
+    "moo  -  drag to look  -  q to quit";
 constexpr auto foundText = "you found her  -  r to play again  -  q to quit";
 constexpr auto endingHeight = 3.1f;
 constexpr auto endingPitch = 0.08f;
@@ -304,18 +304,22 @@ void CowsView::setHeld(std::uint16_t keyCode, bool down)
     switch (keyCode)
     {
         case W:
+        case K:
         case UpArrow:
             walkingForward = down;
             break;
         case S:
+        case J:
         case DownArrow:
             walkingBack = down;
             break;
         case A:
+        case H:
         case LeftArrow:
             walkingLeft = down;
             break;
         case D:
+        case L:
         case RightArrow:
             walkingRight = down;
             break;
