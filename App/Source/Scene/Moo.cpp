@@ -1,7 +1,10 @@
 #include "Moo.h"
 
+#include <ResEmbed/ResEmbed.h>
+
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 using namespace Maths;
 
@@ -11,7 +14,10 @@ namespace
 {
 constexpr auto sampleRate = 44100.0;
 constexpr auto channels = 2;
-constexpr auto tailLength = 0.3f;
+constexpr auto longestCall = 4.5f;
+constexpr auto answerPitch = 1.2f;
+constexpr auto openCutoff = 9000.f;
+constexpr auto muffledCutoff = 900.f;
 
 struct Voice final
 {
@@ -22,64 +28,60 @@ struct Voice final
     float muffle = 0.f;
 };
 
-float envelope(float time)
+Vector<float> loadMoo()
 {
-    auto attack = std::clamp(time / 0.08f, 0.f, 1.f);
-    auto release = std::clamp((mooLength - time) / 0.35f, 0.f, 1.f);
-    return attack * release;
-}
+    auto resource = ResEmbed::get("moo.f32", "Sounds");
+    auto count = resource.size() / sizeof(float);
 
-float fundamental(float time)
-{
-    auto rise = std::clamp(time / 0.2f, 0.f, 1.f);
-    auto fall = std::clamp((time - 0.2f) / (mooLength - 0.2f), 0.f, 1.f);
-    auto glide = 150.f + 22.f * rise - 65.f * fall;
-    return glide * (1.f + 0.015f * std::sin(twoPi * 5.f * time));
-}
-
-float mouth(float time)
-{
-    auto open = std::sin(pi * std::clamp(time / mooLength, 0.f, 1.f));
-    return 350.f + 650.f * open;
-}
-
-void addVoice(float* samples, std::size_t sampleCount, const Voice& voice)
-{
-    auto first = (std::size_t) (voice.start * (float) sampleRate);
-    auto count = (std::size_t) (mooLength * (float) sampleRate);
-    auto phase = 0.f;
-    auto low = 0.f;
-    auto lower = 0.f;
-    auto left = std::sqrt(0.5f * (1.f - voice.pan));
-    auto right = std::sqrt(0.5f * (1.f + voice.pan));
+    auto samples = Vector<float> {};
+    samples.reserve(count);
 
     for (std::size_t index = 0; index < count; ++index)
     {
-        auto time = (float) index / (float) sampleRate;
-        phase += fundamental(time) * voice.pitch / (float) sampleRate;
-        phase -= std::floor(phase);
+        auto sample = 0.f;
+        std::memcpy(&sample, resource.data() + index * sizeof(float), sizeof(float));
+        samples.add(sample);
+    }
 
-        auto saw = 2.f * phase - 1.f;
-        auto cutoff = mouth(time) * (1.f - 0.6f * voice.muffle);
-        auto smoothing = 1.f - std::exp(-twoPi * cutoff / (float) sampleRate);
-        low += (saw - low) * smoothing;
-        lower += (low - lower) * smoothing;
+    return samples;
+}
 
-        auto sample = lower * envelope(time) * voice.volume * 0.5f;
-        auto at = (first + index) * channels;
+float sampleAt(const Vector<float>& moo, float position)
+{
+    auto index = (int) position;
 
-        if (at + 1 >= sampleCount)
-            break;
+    if (index + 1 >= moo.size())
+        return 0.f;
 
-        samples[at] += sample * left;
-        samples[at + 1] += sample * right;
+    auto fraction = position - (float) index;
+    return moo[index] + (moo[index + 1] - moo[index]) * fraction;
+}
+
+void addVoice(float* samples,
+              std::size_t frameCount,
+              const Vector<float>& moo,
+              const Voice& voice)
+{
+    auto first = (std::size_t) (voice.start * (float) sampleRate);
+    auto length = (std::size_t) ((float) moo.size() / voice.pitch);
+    auto cutoff = openCutoff + (muffledCutoff - openCutoff) * voice.muffle;
+    auto smoothing = 1.f - std::exp(-twoPi * cutoff / (float) sampleRate);
+    auto left = std::sqrt(0.5f * (1.f - voice.pan)) * voice.volume;
+    auto right = std::sqrt(0.5f * (1.f + voice.pan)) * voice.volume;
+    auto low = 0.f;
+
+    for (std::size_t index = 0; index < length && first + index < frameCount;
+         ++index)
+    {
+        low += (sampleAt(moo, (float) index * voice.pitch) - low) * smoothing;
+
+        auto* frame = samples + (first + index) * channels;
+        frame[0] += low * left;
+        frame[1] += low * right;
     }
 }
 
-void finished(void*, AudioQueueRef queue, AudioQueueBufferRef buffer)
-{
-    AudioQueueFreeBuffer(queue, buffer);
-}
+void finished(void*, AudioQueueRef, AudioQueueBufferRef) {}
 
 AudioStreamBasicDescription stereoFloat()
 {
@@ -94,15 +96,28 @@ AudioStreamBasicDescription stereoFloat()
     format.mBytesPerPacket = format.mBytesPerFrame;
     return format;
 }
+
+UInt32 bufferBytes()
+{
+    return (UInt32) ((std::size_t) (longestCall * (float) sampleRate) * channels
+                     * sizeof(float));
+}
 } // namespace
 
 MooVoice::MooVoice()
+    : moo(loadMoo())
 {
     auto format = stereoFloat();
 
     if (AudioQueueNewOutput(&format, finished, nullptr, nullptr, nullptr, 0, &queue)
         != noErr)
+    {
         queue = nullptr;
+        return;
+    }
+
+    if (AudioQueueAllocateBuffer(queue, bufferBytes(), &buffer) != noErr)
+        buffer = nullptr;
 }
 
 MooVoice::~MooVoice()
@@ -113,27 +128,27 @@ MooVoice::~MooVoice()
 
 void MooVoice::call(const MooAnswer& answer)
 {
-    if (queue == nullptr)
+    if (queue == nullptr || buffer == nullptr || moo.empty())
         return;
 
-    auto length = mooAnswerDelay + mooLength + tailLength;
-    auto sampleCount = (std::size_t) (length * (float) sampleRate) * channels;
-    auto bytes = (UInt32) (sampleCount * sizeof(float));
-    auto buffer = AudioQueueBufferRef {};
+    AudioQueueStop(queue, true);
 
-    if (AudioQueueAllocateBuffer(queue, bytes, &buffer) != noErr)
-        return;
-
+    auto bytes = bufferBytes();
+    auto frameCount = (std::size_t) bytes / (channels * sizeof(float));
     auto* samples = (float*) buffer->mAudioData;
-    std::fill(samples, samples + sampleCount, 0.f);
+    std::fill(samples, samples + frameCount * channels, 0.f);
 
-    addVoice(samples, sampleCount, {0.f, 1.f, 1.f, 0.f, 0.f});
-    addVoice(samples,
-             sampleCount,
-             {mooAnswerDelay, 1.3f, answer.volume, answer.pan, answer.muffle});
+    addVoice(samples, frameCount, moo, {0.f, 1.f, 1.f, 0.f, 0.f});
+    addVoice(
+        samples,
+        frameCount,
+        moo,
+        {mooAnswerDelay, answerPitch, answer.volume, answer.pan, answer.muffle});
 
-    buffer->mAudioDataByteSize = bytes;
-
+    auto answerEnd =
+        mooAnswerDelay + (float) moo.size() / answerPitch / (float) sampleRate;
+    auto usedFrames = std::min(frameCount, (std::size_t) (answerEnd * sampleRate));
+    buffer->mAudioDataByteSize = (UInt32) (usedFrames * channels * sizeof(float));
     AudioQueueEnqueueBuffer(queue, buffer, 0, nullptr);
     AudioQueueStart(queue, nullptr);
 }

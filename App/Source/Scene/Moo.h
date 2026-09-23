@@ -15,7 +15,7 @@ struct MooAnswer final
     float muffle = 0.f;
 };
 
-// A synthesised moo, and the other cow mooing back from where she is.
+// A recorded moo, and the other cow mooing it back from where she is.
 struct MooVoice final
 {
     MooVoice();
@@ -26,10 +26,12 @@ struct MooVoice final
 
     void call(const MooAnswer& answer);
 
+    Vector<float> moo;
     AudioQueueRef queue = nullptr;
+    AudioQueueBufferRef buffer = nullptr;
 };
 
 // How long after the player's moo she answers, in seconds.
-constexpr auto mooAnswerDelay = 1.1f;
-constexpr auto mooLength = 1.1f;
+constexpr auto mooAnswerDelay = 1.7f;
+constexpr auto mooLength = 1.5f;
 } // namespace Cows

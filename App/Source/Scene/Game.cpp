@@ -28,7 +28,7 @@ constexpr auto warmDistance = 5.f;
 constexpr auto coldBeat = 0.8f;
 constexpr auto warmBeat = 0.25f;
 constexpr auto endingLead = 1.f;
-constexpr auto mooCooldown = 2.5f;
+constexpr auto mooCooldown = 3.2f;
 
 float headingToward(Vec2 direction)
 {

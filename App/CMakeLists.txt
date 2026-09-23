@@ -32,3 +32,8 @@ set_target_properties(Cows PROPERTIES
 
 eacp_set_gui_subsystem(Cows)
 set_default_target_setting(Cows)
+
+res_embed_add(Cows
+        FILES Resources/moo.f32
+        NAMESPACE Sounds
+        CATEGORY Sounds)
