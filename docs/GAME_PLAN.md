@@ -60,3 +60,14 @@ camera's yaw frame.
   both), passes input in `update`, and drives instances from game state.
 - `FooterView` reads the game state for its text (pointer or callback).
 - `RootView` forwards keys it doesn't handle to the scene.
+
+## Obstacles (added)
+
+Fog and bushes alone aren't a search. The meadow gets real obstacles that
+block movement and sight, built from the existing primitives so they match
+the look: trees (capsule trunk + sphere canopies), hedgerows (capsules/barrels
+lying along the ground in lines), hay bales (barrels on their side), rocks
+(squashed spheres). 120–200 of them laid out with a seeded RNG in clusters and
+hedgerow lines, leaving corridors and pockets; the partner spawns in a pocket
+not visible from the origin. Each has a collision circle (x, z, r) and the
+player slides around them. Lives in `Scene/Obstacles.h/.cpp`.
