@@ -5,11 +5,13 @@
 #include "Grass.h"
 #include "Lighting.h"
 #include "Mesh.h"
+#include "Moo.h"
 #include "OrbitCamera.h"
 #include "ShadowMap.h"
 #include "Shaders.h"
 
 #include <functional>
+#include <string>
 
 namespace Cows
 {
@@ -32,6 +34,11 @@ struct CowsView final : GPUView
     float walkTurn() const;
     void returnKeyFocus();
     void restart();
+    void callOut();
+    MooAnswer answerFrom() const;
+    std::string footerText() const;
+    bool hintShowing() const;
+    void addAnswerFlare();
     void steerCamera(float delta);
 
     void gatherInstances(float seconds);
@@ -51,6 +58,9 @@ struct CowsView final : GPUView
     const Mesh& meshFor(Shape shape) const;
 
     Game game;
+    MooVoice mooVoice;
+    std::string hint;
+    bool showedHint = false;
     Lighting lighting;
     OrbitCamera camera;
     ShadowMap shadowMap;

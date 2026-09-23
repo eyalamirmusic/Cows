@@ -28,6 +28,7 @@ constexpr auto warmDistance = 5.f;
 constexpr auto coldBeat = 0.8f;
 constexpr auto warmBeat = 0.25f;
 constexpr auto endingLead = 1.f;
+constexpr auto mooCooldown = 2.5f;
 
 float headingToward(Vec2 direction)
 {
@@ -69,6 +70,7 @@ void Game::reset(std::uint32_t newSeed)
     grounded = true;
     bounce = 0.f;
     sinceFound = 0.f;
+    sinceMoo = 100.f;
     partner = obstacles.hideout;
     partnerHeading =
         twoPi * std::uniform_real_distribution<float> {0.f, 1.f}(random);
@@ -76,6 +78,8 @@ void Game::reset(std::uint32_t newSeed)
 
 void Game::update(float delta, float ahead, float turn, bool jump)
 {
+    sinceMoo += delta;
+
     if (state == State::Found)
     {
         sinceFound += delta;
@@ -127,6 +131,12 @@ void Game::update(float delta, float ahead, float turn, bool jump)
     stageCenter = partner;
     stageHeading = headingToward(normalize(between));
     sinceFound = 0.f;
+}
+
+void Game::moo()
+{
+    if (state == State::Searching && sinceMoo > mooCooldown)
+        sinceMoo = 0.f;
 }
 
 float Game::distance() const

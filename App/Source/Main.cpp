@@ -26,8 +26,7 @@ struct CowsApp final
         root.onKeyUp = [this](const Graphics::KeyEvent& event)
         { scene.keyUp(event); };
 
-        footer.isFound = [this]
-        { return scene.game.state == Cows::Game::State::Found; };
+        footer.text = [this] { return scene.footerText(); };
         scene.onStateChanged = [this] { footer.repaint(); };
     }
 

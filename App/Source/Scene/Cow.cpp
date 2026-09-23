@@ -177,9 +177,9 @@ void addCrown(Vector<CowPart>& parts)
     parts.add(ball(Bone::Head, {1.5f, 2.f, -0.06f}, {0.07f, 0.06f, 0.07f}, tuft));
 }
 
-Mat4 headPose(float hop, float lean)
+Mat4 headPose(float hop, float lean, float moo)
 {
-    auto nod = 0.06f * (hop - 0.5f) - 0.12f * lean;
+    auto nod = 0.06f * (hop - 0.5f) - 0.12f * lean + 0.4f * moo;
     auto tilt = 0.2f * lean;
 
     return about(neckPivot, Mat4::rotationX(tilt) * Mat4::rotationZ(nod));
@@ -287,7 +287,7 @@ void Cow::addTo(SurfaceBatch& batch,
                 const CowPose& cowPose) const
 {
     const auto& world = cowPose.world;
-    auto head = headPose(cowPose.hop, cowPose.lean);
+    auto head = headPose(cowPose.hop, cowPose.lean, cowPose.moo);
     auto tail = tailPose(cowPose.seconds, side);
     auto beat = cowPose.beat;
     auto eye = eyePose(beat);

@@ -24,6 +24,9 @@ struct Game final
     // turns it left (1) or right (-1); `jump` leaps if it is on its feet.
     void update(float delta, float ahead, float turn, bool jump);
 
+    // Moos, if she has not just mooed.
+    void moo();
+
     float distance() const;
 
     // 0 far away from her, 1 right beside her.
@@ -54,6 +57,7 @@ struct Game final
     Maths::Vec3 stageCenter;
     float stageHeading = 0.f;
     float sinceFound = 0.f;
+    float sinceMoo = 100.f;
 };
 
 std::uint32_t clockSeed();

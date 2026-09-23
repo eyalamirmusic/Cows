@@ -31,6 +31,7 @@ struct CowPose final
     float lean = 0.f;
     float beat = 0.f;
     float glow = 1.f;
+    float moo = 0.f;
     float seconds = 0.f;
 };
 

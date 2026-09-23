@@ -9,6 +9,7 @@ add_executable(Cows
         Source/Scene/Instances.cpp
         Source/Scene/KissHearts.cpp
         Source/Scene/Mesh.cpp
+        Source/Scene/Moo.cpp
         Source/Scene/Obstacles.cpp
         Source/Scene/OrbitCamera.cpp
         Source/Scene/Overlay.cpp
@@ -19,7 +20,7 @@ add_executable(Cows
         Source/Scene/TitleFont.cpp)
 
 target_include_directories(Cows PRIVATE Source)
-target_link_libraries(Cows PRIVATE eacp-gpu)
+target_link_libraries(Cows PRIVATE eacp-gpu "-framework AudioToolbox")
 
 set(BUNDLE_ID "com.eyalamir.cows")
 

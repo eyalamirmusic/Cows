@@ -32,6 +32,17 @@ constexpr auto searchHeight = 2.2f;
 constexpr auto startYaw = -halfPi;
 constexpr auto chaseRate = 4.f;
 constexpr auto contactReach = 0.4f;
+constexpr auto hintTime = 4.f;
+constexpr auto flareTime = 2.6f;
+constexpr auto flareHeight = 22.f;
+constexpr auto flareHearts = 6;
+constexpr auto quietest = 0.15f;
+constexpr auto loudReach = 120.f;
+
+constexpr auto searchingText =
+    "wasd / arrows to walk  -  space to jump  -  m to moo  -  drag to look  -  q "
+    "to quit";
+constexpr auto foundText = "you found her  -  r to play again  -  q to quit";
 constexpr auto endingHeight = 3.1f;
 constexpr auto endingPitch = 0.08f;
 constexpr auto endingDistance = 11.f;
@@ -112,6 +123,43 @@ float easeInOut(float amount)
     return t * t * (3.f - 2.f * t);
 }
 
+float mooShape(float sinceMoo)
+{
+    if (sinceMoo < 0.f || sinceMoo > mooLength)
+        return 0.f;
+
+    return std::sin(pi * sinceMoo / mooLength);
+}
+
+Vec2 flat(Vec3 vector)
+{
+    auto ground = Vec2 {vector.x, vector.z};
+    auto size = length(ground);
+    return size > 0.f ? ground / size : Vec2 {};
+}
+
+std::string distanceWord(float distance)
+{
+    if (distance < 20.f)
+        return "close by";
+
+    if (distance < 50.f)
+        return "not far";
+
+    return "far off";
+}
+
+std::string directionWord(float ahead, float across)
+{
+    if (ahead > 0.7f)
+        return "ahead of you";
+
+    if (ahead < -0.7f)
+        return "behind you";
+
+    return across > 0.f ? "to your right" : "to your left";
+}
+
 float startTime()
 {
     if (auto* start = std::getenv("COWS_TIME"))
@@ -187,6 +235,12 @@ void CowsView::update(Threads::FrameTime time)
     if (wasSearching && game.state == Game::State::Found)
         onStateChanged();
 
+    if (hintShowing() != showedHint)
+    {
+        showedHint = hintShowing();
+        onStateChanged();
+    }
+
     steerCamera(delta);
 }
 
@@ -219,6 +273,14 @@ void CowsView::steerCamera(float delta)
 
 void CowsView::keyDown(const Graphics::KeyEvent& event)
 {
+    if (event.keyCode == Graphics::KeyCode::M)
+    {
+        if (!event.isRepeat)
+            callOut();
+
+        return;
+    }
+
     if (event.keyCode == Graphics::KeyCode::R)
     {
         if (!event.isRepeat)
@@ -273,6 +335,67 @@ float CowsView::walkAhead() const
 float CowsView::walkTurn() const
 {
     return (walkingLeft ? 1.f : 0.f) - (walkingRight ? 1.f : 0.f);
+}
+
+void CowsView::callOut()
+{
+    auto before = game.sinceMoo;
+    game.moo();
+
+    if (game.sinceMoo == before)
+        return;
+
+    auto toHer = flat(game.partner - camera.eye());
+    auto ahead = dot(toHer, flat(camera.forward()));
+    auto across = dot(toHer, flat(camera.right()));
+
+    hint = "she moos back, " + distanceWord(game.distance()) + ", "
+           + directionWord(ahead, across);
+    mooVoice.call(answerFrom());
+}
+
+MooAnswer CowsView::answerFrom() const
+{
+    auto toHer = flat(game.partner - camera.eye());
+
+    auto answer = MooAnswer {};
+    answer.pan = dot(toHer, flat(camera.right()));
+    answer.muffle = std::clamp(-dot(toHer, flat(camera.forward())), 0.f, 1.f);
+    answer.volume = std::clamp(1.f - game.distance() / loudReach, quietest, 1.f);
+    return answer;
+}
+
+bool CowsView::hintShowing() const
+{
+    return game.state == Game::State::Searching && game.sinceMoo >= mooAnswerDelay
+           && game.sinceMoo < mooAnswerDelay + hintTime;
+}
+
+std::string CowsView::footerText() const
+{
+    if (game.state == Game::State::Found)
+        return foundText;
+
+    return hintShowing() ? hint : searchingText;
+}
+
+void CowsView::addAnswerFlare()
+{
+    auto since = game.sinceMoo - mooAnswerDelay;
+
+    if (since < 0.f || since > flareTime)
+        return;
+
+    auto fade = 1.f - since / flareTime;
+    auto color = Palette::linear(Palette::heart) * (0.9f * fade);
+
+    for (auto heart = 0; heart < flareHearts; ++heart)
+    {
+        auto lift =
+            flareHeight * (since / flareTime) * (1.f - 0.12f * (float) heart);
+        auto at = game.partner + Vec3 {0.f, 2.5f + lift, 0.f};
+        glows.add(makeGlow(at, 2.4f - 0.2f * (float) heart, color));
+    }
 }
 
 void CowsView::restart()
@@ -365,6 +488,7 @@ void CowsView::gatherInstances(float seconds)
                                     seconds,
                                     game.beatClock,
                                     0.6f + 1.4f * warmth);
+        poses[0].moo = mooShape(game.sinceMoo);
         poses[1] = cows[1].freePose(game.partner,
                                     game.partnerHeading,
                                     game.hopClock,
@@ -372,6 +496,8 @@ void CowsView::gatherInstances(float seconds)
                                     seconds,
                                     game.beatClock,
                                     2.f * warmth * warmth);
+        poses[1].moo = mooShape(game.sinceMoo - mooAnswerDelay);
+        addAnswerFlare();
     }
     else
     {

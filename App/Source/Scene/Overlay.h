@@ -3,6 +3,7 @@
 #include "Common.h"
 
 #include <functional>
+#include <string>
 
 namespace Cows
 {
@@ -12,7 +13,7 @@ struct FooterView final : Graphics::View
 {
     void paint(Graphics::Context& g) override;
 
-    std::function<bool()> isFound = [] { return false; };
+    std::function<std::string()> text = [] { return std::string {}; };
 
     Graphics::Font font {Graphics::FontOptions().withName("Menlo").withSize(13.f)};
 };
