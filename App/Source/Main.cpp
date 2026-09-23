@@ -20,6 +20,15 @@ struct CowsApp final
     {
         root.addSubview(scene);
         root.addSubview(footer);
+
+        root.onKeyDown = [this](const Graphics::KeyEvent& event)
+        { scene.keyDown(event); };
+        root.onKeyUp = [this](const Graphics::KeyEvent& event)
+        { scene.keyUp(event); };
+
+        footer.isFound = [this]
+        { return scene.game.state == Cows::Game::State::Found; };
+        scene.onStateChanged = [this] { footer.repaint(); };
     }
 
     Cows::RootView root;

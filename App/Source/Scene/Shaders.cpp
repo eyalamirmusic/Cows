@@ -172,7 +172,8 @@ void GrassShader::define()
     auto placement = instanceInput(&BladeInstance::placement, 1);
     auto look = instanceInput(&BladeInstance::look, 1);
 
-    auto base = float3(placement.x(), 0.f, placement.y());
+    auto base = float3(
+        placement.x() + patchOffset.x(), 0.f, placement.y() + patchOffset.y());
     auto facing = placement.z();
     auto height = placement.w();
     auto along = shape.y();

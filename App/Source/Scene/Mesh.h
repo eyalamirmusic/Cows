@@ -37,6 +37,13 @@ MeshData makeHorn(int segments);
 
 MeshData makePlane(float size);
 
+// A unit box, x and z from -0.5 to 0.5, y from 0 to 1.
+MeshData makeBox();
+
+// A ramp on the same footprint, its top rising from y = 0 at x = -0.5 to y = 1
+// at x = 0.5.
+MeshData makeWedge();
+
 void append(MeshData& mesh, const MeshData& part, const Maths::Mat4& transform = {});
 
 // Turns every triangle to face the way its vertex normals do, so a procedural

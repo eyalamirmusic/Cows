@@ -14,6 +14,7 @@ constexpr auto maxPitch = 1.3f;
 constexpr auto minDistance = 5.f;
 constexpr auto maxDistance = 40.f;
 constexpr Vec3 worldUp {0.f, 1.f, 0.f};
+constexpr auto followRate = 6.f;
 } // namespace
 
 void OrbitCamera::orbit(float horizontal, float vertical)
@@ -31,6 +32,16 @@ void OrbitCamera::drift(float seconds)
 {
     swayYaw = 0.07f * std::sin(seconds * 0.11f);
     swayPitch = 0.015f * std::sin(seconds * 0.17f + 1.f);
+}
+
+void OrbitCamera::follow(Vec3 goal, float delta)
+{
+    target += (goal - target) * std::min(1.f, delta * followRate);
+}
+
+void OrbitCamera::turnToward(float wantedYaw, float amount)
+{
+    yaw += std::remainder(wantedYaw - yaw, twoPi) * std::clamp(amount, 0.f, 1.f);
 }
 
 Vec3 OrbitCamera::eye() const

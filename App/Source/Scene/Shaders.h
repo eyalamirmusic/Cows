@@ -90,7 +90,13 @@ struct GrassShader final
 
     void define() override;
 
-    void reflectMembers(ShaderVisitor& visitor) override { visitScene(visitor); }
+    void reflectMembers(ShaderVisitor& visitor) override
+    {
+        visitScene(visitor);
+        EACP_GPU_FIELDS(visitor, patchOffset)
+    }
+
+    Uniform<Float2> patchOffset;
 };
 
 // The title, each letter riding its own little loop, a wave travelling

@@ -12,6 +12,11 @@ struct OrbitCamera final
     // A slow idle sway, so the postcard breathes while nobody drags it.
     void drift(float seconds);
 
+    void follow(Maths::Vec3 goal, float delta);
+
+    // Turns `amount` of the way round to `wantedYaw`, the short way.
+    void turnToward(float wantedYaw, float amount);
+
     Maths::Vec3 eye() const;
     Maths::Vec3 forward() const;
     Maths::Vec3 right() const;
@@ -22,7 +27,7 @@ struct OrbitCamera final
 
     Maths::Vec3 target {0.f, 3.1f, 0.f};
     float yaw = 0.f;
-    float pitch = 0.05f;
+    float pitch = 0.22f;
     float distance = 11.f;
     float swayYaw = 0.f;
     float swayPitch = 0.f;

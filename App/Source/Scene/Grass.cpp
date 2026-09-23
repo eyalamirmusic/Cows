@@ -9,9 +9,7 @@ namespace Cows
 {
 namespace
 {
-constexpr auto bladeCount = 110000;
-constexpr auto meadowRadius = 30.f;
-constexpr auto nearestZ = 8.f;
+constexpr auto bladeCount = 14000;
 constexpr auto bladeSegments = 4;
 } // namespace
 
@@ -56,13 +54,8 @@ Vector<BladeInstance> makeMeadow()
 
     while (blades.size() < bladeCount)
     {
-        auto reach = meadowRadius * std::pow(unit(random), 0.8f);
-        auto angle = twoPi * unit(random);
-        auto x = reach * std::cos(angle);
-        auto z = reach * std::sin(angle) - 4.f;
-
-        if (z > nearestZ)
-            continue;
+        auto x = meadowTile * unit(random);
+        auto z = meadowTile * unit(random);
 
         auto clump = 0.5f + 0.5f * std::sin(x * 1.3f + std::sin(z * 0.9f) * 2.f);
         auto height = 0.2f + 0.2f * unit(random) + 0.14f * clump;

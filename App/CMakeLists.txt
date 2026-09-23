@@ -3,11 +3,13 @@ add_executable(Cows
         Source/Scene/Choreography.cpp
         Source/Scene/Cow.cpp
         Source/Scene/CowsView.cpp
+        Source/Scene/Game.cpp
         Source/Scene/Grass.cpp
         Source/Scene/HeartMesh.cpp
         Source/Scene/Instances.cpp
         Source/Scene/KissHearts.cpp
         Source/Scene/Mesh.cpp
+        Source/Scene/Obstacles.cpp
         Source/Scene/OrbitCamera.cpp
         Source/Scene/Overlay.cpp
         Source/Scene/Shaders.cpp

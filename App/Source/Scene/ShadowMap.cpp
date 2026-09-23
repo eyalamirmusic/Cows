@@ -7,9 +7,9 @@ namespace Cows
 namespace
 {
 constexpr auto resolution = 2048;
-constexpr auto halfExtent = 6.5f;
+constexpr auto halfExtent = 14.f;
 constexpr auto lightDistance = 30.f;
-constexpr Vec3 focus {0.f, 1.2f, 0.5f};
+constexpr Vec3 focusOffset {0.f, 1.2f, 0.5f};
 
 TextureDescriptor describeTarget()
 {
@@ -28,8 +28,10 @@ ShadowMap::ShadowMap()
 {
 }
 
-Mat4 ShadowMap::lightViewProjection(const Vec3& towardLight) const
+Mat4 ShadowMap::lightViewProjection(const Vec3& towardLight,
+                                    const Vec3& around) const
 {
+    auto focus = Vec3 {around.x, 0.f, around.z} + focusOffset;
     auto eye = focus + normalize(towardLight) * lightDistance;
     auto view = Mat4::lookAt(eye, focus, {0.f, 1.f, 0.f});
     auto projection = Mat4::orthographic(

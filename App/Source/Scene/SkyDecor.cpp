@@ -56,8 +56,13 @@ float wrapped(float x)
 }
 } // namespace
 
-void addSun(SurfaceBatch& batch, Vector<GlowInstance>& glows, float seconds)
+void addSun(SurfaceBatch& batch,
+            Vector<GlowInstance>& glows,
+            float seconds,
+            Vec3 origin)
 {
+    auto center = origin + sunCenter;
+
     auto pulse = Choreography::sunPulse(seconds);
     auto yellow = Palette::linear(Palette::sun);
 
@@ -67,7 +72,7 @@ void addSun(SurfaceBatch& batch, Vector<GlowInstance>& glows, float seconds)
 
     batch.add(
         Shape::Sphere,
-        makeInstance(Mat4::translation(sunCenter) * Mat4::scale(sunRadius), core));
+        makeInstance(Mat4::translation(center) * Mat4::scale(sunRadius), core));
 
     auto ray = core;
     ray.emission = 1.1f + 0.4f * pulse;
@@ -77,7 +82,7 @@ void addSun(SurfaceBatch& batch, Vector<GlowInstance>& glows, float seconds)
         auto angle = twoPi * (float) index / (float) rayCount + raySpin * seconds;
         auto cardinal = index % 2 == 0;
         auto length = (cardinal ? 2.3f : 1.6f) * (0.9f + 0.18f * pulse);
-        auto model = Mat4::translation(sunCenter) * Mat4::rotationZ(angle)
+        auto model = Mat4::translation(center) * Mat4::rotationZ(angle)
                      * Mat4::translation({0.f, sunRadius + 0.75f, 0.f})
                      * Mat4::scale({2.2f, length, 2.2f});
 
@@ -87,11 +92,11 @@ void addSun(SurfaceBatch& batch, Vector<GlowInstance>& glows, float seconds)
     auto halo = Vec3 {1.f, 0.85f, 0.35f} * (0.28f + 0.14f * pulse);
     auto inner = Vec3 {1.f, 0.9f, 0.2f} * (0.25f + 0.15f * pulse);
 
-    glows.add(makeGlow(sunCenter + Vec3 {0.f, 0.f, 2.f}, 15.f + 1.5f * pulse, halo));
-    glows.add(makeGlow(sunCenter + Vec3 {0.f, 0.f, 2.5f}, 6.5f, inner));
+    glows.add(makeGlow(center + Vec3 {0.f, 0.f, 2.f}, 15.f + 1.5f * pulse, halo));
+    glows.add(makeGlow(center + Vec3 {0.f, 0.f, 2.5f}, 6.5f, inner));
 }
 
-void addClouds(SurfaceBatch& batch, float seconds)
+void addClouds(SurfaceBatch& batch, float seconds, Vec3 origin)
 {
     auto material = Material {Palette::linear(Palette::cloud)};
     material.softness = 1.f;
@@ -100,12 +105,12 @@ void addClouds(SurfaceBatch& batch, float seconds)
     for (const auto& cloud: clouds)
     {
         auto x = wrapped(cloud.start + cloudDrift * seconds);
-        auto origin = Vec3 {x, cloud.height, cloudDepth};
+        auto at = origin + Vec3 {x, cloud.height, cloudDepth};
 
         for (const auto& puff: puffs)
         {
             auto radius = puff.radius * cloud.scale;
-            auto model = Mat4::translation(origin + puff.offset * cloud.scale)
+            auto model = Mat4::translation(at + puff.offset * cloud.scale)
                          * Mat4::scale({radius, radius * 0.86f, radius * 0.8f});
 
             batch.add(Shape::Sphere, makeInstance(model, material));
@@ -113,7 +118,7 @@ void addClouds(SurfaceBatch& batch, float seconds)
     }
 }
 
-void addHills(SurfaceBatch& batch)
+void addHills(SurfaceBatch& batch, Vec3 origin)
 {
     struct Hill final
     {
@@ -135,10 +140,10 @@ void addHills(SurfaceBatch& batch)
         material.softness = 0.4f;
         material.gloss = 0.f;
 
-        batch.add(
-            Shape::Sphere,
-            makeInstance(Mat4::translation(hill.center) * Mat4::scale(hill.size),
-                         material));
+        batch.add(Shape::Sphere,
+                  makeInstance(Mat4::translation(origin + hill.center)
+                                   * Mat4::scale(hill.size),
+                               material));
     }
 }
 } // namespace Cows::SkyDecor

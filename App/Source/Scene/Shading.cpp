@@ -7,8 +7,8 @@ namespace
 constexpr auto shadowTexel = 1.f / 2048.f;
 constexpr auto shadowSpread = 3.f;
 constexpr auto shadowBias = 0.0015f;
-constexpr auto hazeStart = 24.f;
-constexpr auto hazeDensity = 0.012f;
+constexpr auto hazeStart = 12.f;
+constexpr auto hazeDensity = 0.055f;
 constexpr auto hazeFalloff = 0.09f;
 constexpr auto shoulder = 0.8f;
 

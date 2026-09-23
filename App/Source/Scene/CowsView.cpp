@@ -4,6 +4,7 @@
 #include "Palette.h"
 #include "SkyDecor.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 
@@ -23,6 +24,20 @@ constexpr auto titleText = "cowsinlove.com";
 constexpr Vec3 titleCenter {0.f, 9.6f, -16.f};
 constexpr auto titleScale = 1.12f;
 constexpr Vec3 kissPoint {0.f, 1.75f, 0.f};
+constexpr auto titleDrop = 5.f;
+constexpr auto titleDelay = 0.6f;
+constexpr auto titleRiseTime = 2.4f;
+
+constexpr auto searchHeight = 2.2f;
+constexpr auto startYaw = -halfPi;
+constexpr auto chaseRate = 4.f;
+constexpr auto contactReach = 0.4f;
+constexpr auto endingHeight = 3.1f;
+constexpr auto endingPitch = 0.08f;
+constexpr auto endingDistance = 11.f;
+constexpr auto settleTime = 3.f;
+constexpr auto settleRate = 2.f;
+constexpr auto grassTiles = 2;
 
 constexpr CornerVertex fullScreenTriangle[3] = {
     {{-1.f, -1.f}},
@@ -91,6 +106,12 @@ Vector<Cow> makeCouple()
     return cows;
 }
 
+float easeInOut(float amount)
+{
+    auto t = std::clamp(amount, 0.f, 1.f);
+    return t * t * (3.f - 2.f * t);
+}
+
 float startTime()
 {
     if (auto* start = std::getenv("COWS_TIME"))
@@ -112,6 +133,8 @@ CowsView::CowsView()
     , horn(makeHorn(24))
     , heart(makeHeart())
     , barrel(makeBarrel(48))
+    , box(makeBox())
+    , wedge(makeWedge())
     , ground(makePlane(groundSize))
     , title(makeTitle(titleText))
     , cowParts(makeCowParts())
@@ -146,20 +169,125 @@ CowsView::CowsView()
     glowShader.setVertices(glowQuad);
     glowShader.prepare(glowPipeline(samples));
 
+    camera.yaw = startYaw + game.playerHeading;
+    camera.target = game.player + Vec3 {0.f, searchHeight, 0.f};
+
     setHandlesMouseEvents(true);
     setContinuous(true);
 }
 
 void CowsView::update(Threads::FrameTime time)
 {
-    if (!frozen)
-        elapsed += (float) time.delta;
+    auto delta = frozen ? 0.f : (float) time.delta;
+    elapsed += delta;
+
+    auto wasSearching = game.state == Game::State::Searching;
+    game.update(delta, walkAhead(), walkTurn(), jumping);
+
+    if (wasSearching && game.state == Game::State::Found)
+        onStateChanged();
+
+    steerCamera(delta);
+}
+
+void CowsView::steerCamera(float delta)
+{
+    if (game.state == Game::State::Searching)
+    {
+        camera.follow(game.player + Vec3 {0.f, searchHeight, 0.f}, delta);
+        camera.swayYaw = 0.f;
+        camera.swayPitch = 0.f;
+
+        if (walkAhead() != 0.f || walkTurn() != 0.f)
+            camera.turnToward(game.playerHeading + startYaw,
+                              std::min(1.f, delta * chaseRate));
+
+        return;
+    }
+
+    camera.follow(game.stageCenter + Vec3 {0.f, endingHeight, 0.f}, delta);
+    camera.drift(game.sinceFound);
+
+    if (game.sinceFound > settleTime)
+        return;
+
+    auto amount = std::min(1.f, delta * settleRate);
+    camera.turnToward(game.stageHeading, amount);
+    camera.pitch += (endingPitch - camera.pitch) * amount;
+    camera.distance += (endingDistance - camera.distance) * amount;
+}
+
+void CowsView::keyDown(const Graphics::KeyEvent& event)
+{
+    if (event.keyCode == Graphics::KeyCode::R)
+    {
+        if (!event.isRepeat)
+            restart();
+
+        return;
+    }
+
+    setHeld(event.keyCode, true);
+}
+
+void CowsView::keyUp(const Graphics::KeyEvent& event)
+{
+    setHeld(event.keyCode, false);
+}
+
+void CowsView::setHeld(std::uint16_t keyCode, bool down)
+{
+    using namespace Graphics::KeyCode;
+
+    switch (keyCode)
+    {
+        case W:
+        case UpArrow:
+            walkingForward = down;
+            break;
+        case S:
+        case DownArrow:
+            walkingBack = down;
+            break;
+        case A:
+        case LeftArrow:
+            walkingLeft = down;
+            break;
+        case D:
+        case RightArrow:
+            walkingRight = down;
+            break;
+        case Space:
+            jumping = down;
+            break;
+        default:
+            break;
+    }
+}
+
+float CowsView::walkAhead() const
+{
+    return (walkingForward ? 1.f : 0.f) - (walkingBack ? 1.f : 0.f);
+}
+
+float CowsView::walkTurn() const
+{
+    return (walkingLeft ? 1.f : 0.f) - (walkingRight ? 1.f : 0.f);
+}
+
+void CowsView::restart()
+{
+    game.reset(clockSeed());
+    camera.yaw = startYaw;
+    camera.target = game.player + Vec3 {0.f, searchHeight, 0.f};
+    onStateChanged();
 }
 
 void CowsView::render(Frame& frame)
 {
     gatherInstances(elapsed);
-    lightViewProjection = shadowMap.lightViewProjection(lighting.keyDirection);
+    lightViewProjection =
+        shadowMap.lightViewProjection(lighting.keyDirection, groundFocus());
 
     drawShadows(frame);
 
@@ -183,11 +311,28 @@ void CowsView::render(Frame& frame)
     drawSky(pass, aspect);
     drawGround(pass);
     drawBatch(pass, surfaceShader, backdropBatch);
+    drawBatch(pass, surfaceShader, game.obstacles.batch);
     drawBatch(pass, surfaceShader, cowBatch);
     drawGrass(pass);
     drawTitle(pass);
     drawBatch(pass, translucentShader, heartBatch);
     drawGlows(pass, viewProjection);
+}
+
+void CowsView::mouseDown(const Graphics::MouseEvent&)
+{
+    returnKeyFocus();
+}
+
+void CowsView::mouseUp(const Graphics::MouseEvent&)
+{
+    returnKeyFocus();
+}
+
+void CowsView::returnKeyFocus()
+{
+    if (auto* root = getParent())
+        root->focus();
 }
 
 void CowsView::mouseDragged(const Graphics::MouseEvent& event)
@@ -203,21 +348,60 @@ void CowsView::mouseWheel(const Graphics::MouseEvent& event)
 
 void CowsView::gatherInstances(float seconds)
 {
-    camera.drift(seconds);
-
     cowBatch.clear();
     backdropBatch.clear();
     heartBatch.clear();
     glows.clear();
 
-    for (const auto& cow: cows)
-        cow.addTo(cowBatch, glows, cowParts, seconds);
+    CowPose poses[2];
 
-    addKissHearts(heartBatch, glows, seconds, kissPoint);
+    if (game.state == Game::State::Searching)
+    {
+        auto warmth = game.warmth();
+        poses[0] = cows[0].freePose(game.player,
+                                    game.playerHeading,
+                                    game.hopClock,
+                                    game.bounce,
+                                    seconds,
+                                    game.beatClock,
+                                    0.6f + 1.4f * warmth);
+        poses[1] = cows[1].freePose(game.partner,
+                                    game.partnerHeading,
+                                    game.hopClock,
+                                    0.f,
+                                    seconds,
+                                    game.beatClock,
+                                    2.f * warmth * warmth);
+    }
+    else
+    {
+        auto ending = game.endingSeconds();
+        auto stage = game.stage();
 
-    SkyDecor::addSun(backdropBatch, glows, seconds);
-    SkyDecor::addClouds(backdropBatch, seconds);
-    SkyDecor::addHills(backdropBatch);
+        for (auto index = 0; index < 2; ++index)
+            poses[index] = cows[index].pose(ending, stage);
+
+        addKissHearts(heartBatch, glows, ending, transformPoint(stage, kissPoint));
+    }
+
+    for (auto index = 0; index < 2; ++index)
+    {
+        cows[index].addTo(cowBatch, glows, cowParts, poses[index]);
+        contacts[index] = cows[index].contact(poses[index]);
+
+        if (poses[index].world.column(3).y > contactReach)
+            contacts[index].z = 0.f;
+    }
+
+    auto origin = groundFocus();
+    SkyDecor::addSun(backdropBatch, glows, seconds, origin);
+    SkyDecor::addClouds(backdropBatch, seconds, origin);
+    SkyDecor::addHills(backdropBatch, origin);
+}
+
+Vec3 CowsView::groundFocus() const
+{
+    return {camera.target.x, 0.f, camera.target.z};
 }
 
 void CowsView::setSceneUniforms(SceneUniforms& uniforms, const Mat4& viewProjection)
@@ -239,6 +423,7 @@ void CowsView::drawShadows(Frame& frame)
     auto pass = frame.beginPass(shadowMap.texture, descriptor);
     shadowCaster.lightViewProjection = lightViewProjection;
     drawBatch(pass, shadowCaster, cowBatch);
+    drawBatch(pass, shadowCaster, game.obstacles.batch);
 }
 
 void CowsView::drawSky(RenderPass& pass, float aspect)
@@ -250,15 +435,16 @@ void CowsView::drawSky(RenderPass& pass, float aspect)
     skyShader.cameraRight = camera.right();
     skyShader.cameraUp = camera.up();
     skyShader.lensScale = Vec2 {halfHeight * aspect, halfHeight};
-    skyShader.towardSun = normalize(SkyDecor::sunCenter - camera.eye());
+    skyShader.towardSun =
+        normalize(groundFocus() + SkyDecor::sunCenter - camera.eye());
 
     pass.draw(skyShader);
 }
 
 void CowsView::drawGround(RenderPass& pass)
 {
-    groundShader.firstContact = cows[0].contact(elapsed);
-    groundShader.secondContact = cows[1].contact(elapsed);
+    groundShader.firstContact = contacts[0];
+    groundShader.secondContact = contacts[1];
 
     pass.bind(groundShader, ground.vertices);
     pass.drawIndexed(ground.indices, ground.indexCount);
@@ -266,16 +452,38 @@ void CowsView::drawGround(RenderPass& pass)
 
 void CowsView::drawGrass(RenderPass& pass)
 {
-    pass.drawInstanced(grassShader, meadow.size());
+    auto focus = groundFocus();
+    auto corner = Vec2 {std::round(focus.x / meadowTile) * meadowTile,
+                        std::round(focus.z / meadowTile) * meadowTile};
+
+    for (auto x = -grassTiles; x < grassTiles; ++x)
+        for (auto z = -grassTiles; z < grassTiles; ++z)
+        {
+            grassShader.patchOffset =
+                corner + Vec2 {(float) x * meadowTile, (float) z * meadowTile};
+            pass.drawInstanced(grassShader, meadow.size());
+        }
 }
 
 void CowsView::drawTitle(RenderPass& pass)
 {
-    titleShader.placement = Mat4::translation(titleCenter) * Mat4::rotationX(-0.08f)
-                            * Mat4::scale(titleScale);
+    if (game.state != Game::State::Found)
+        return;
+
+    titleShader.placement = titlePlacement();
     titleShader.titleColor = Palette::linear(Palette::title);
 
     pass.draw(titleShader);
+}
+
+Mat4 CowsView::titlePlacement() const
+{
+    auto rise =
+        std::max(easeInOut((game.sinceFound - titleDelay) / titleRiseTime), 0.01f);
+    auto lift = Vec3 {0.f, -titleDrop * (1.f - rise), 0.f};
+
+    return game.stage() * Mat4::translation(titleCenter + lift)
+           * Mat4::rotationX(-0.08f) * Mat4::scale(titleScale * rise);
 }
 
 void CowsView::drawGlows(RenderPass& pass, const Mat4& viewProjection)
@@ -323,6 +531,10 @@ const Mesh& CowsView::meshFor(Shape shape) const
             return heart;
         case Shape::Barrel:
             return barrel;
+        case Shape::Box:
+            return box;
+        case Shape::Wedge:
+            return wedge;
         case Shape::Sphere:
             break;
     }

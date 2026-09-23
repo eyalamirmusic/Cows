@@ -1,12 +1,15 @@
 #pragma once
 
 #include "Cow.h"
+#include "Game.h"
 #include "Grass.h"
 #include "Lighting.h"
 #include "Mesh.h"
 #include "OrbitCamera.h"
 #include "ShadowMap.h"
 #include "Shaders.h"
+
+#include <functional>
 
 namespace Cows
 {
@@ -17,10 +20,22 @@ struct CowsView final : GPUView
     void update(Threads::FrameTime time) override;
     void render(Frame& frame) override;
 
+    void mouseDown(const Graphics::MouseEvent& event) override;
+    void mouseUp(const Graphics::MouseEvent& event) override;
     void mouseDragged(const Graphics::MouseEvent& event) override;
     void mouseWheel(const Graphics::MouseEvent& event) override;
+    void keyDown(const Graphics::KeyEvent& event) override;
+    void keyUp(const Graphics::KeyEvent& event) override;
+
+    void setHeld(std::uint16_t keyCode, bool down);
+    float walkAhead() const;
+    float walkTurn() const;
+    void returnKeyFocus();
+    void restart();
+    void steerCamera(float delta);
 
     void gatherInstances(float seconds);
+    Maths::Vec3 groundFocus() const;
     void setSceneUniforms(SceneUniforms& uniforms,
                           const Maths::Mat4& viewProjection);
 
@@ -29,11 +44,13 @@ struct CowsView final : GPUView
     void drawGround(RenderPass& pass);
     void drawGrass(RenderPass& pass);
     void drawTitle(RenderPass& pass);
+    Maths::Mat4 titlePlacement() const;
     void drawGlows(RenderPass& pass, const Maths::Mat4& viewProjection);
     void drawBatch(RenderPass& pass, ShaderProgram& shader, SurfaceBatch& batch);
 
     const Mesh& meshFor(Shape shape) const;
 
+    Game game;
     Lighting lighting;
     OrbitCamera camera;
     ShadowMap shadowMap;
@@ -44,6 +61,8 @@ struct CowsView final : GPUView
     Mesh horn;
     Mesh heart;
     Mesh barrel;
+    Mesh box;
+    Mesh wedge;
     Mesh ground;
     TitleMesh title;
 
@@ -64,8 +83,16 @@ struct CowsView final : GPUView
     SurfaceBatch backdropBatch;
     SurfaceBatch heartBatch;
     Vector<GlowInstance> glows;
+    Maths::Vec3 contacts[2];
+
+    std::function<void()> onStateChanged = [] {};
 
     float elapsed = 0.f;
     bool frozen = false;
+    bool walkingForward = false;
+    bool walkingBack = false;
+    bool walkingLeft = false;
+    bool walkingRight = false;
+    bool jumping = false;
 };
 } // namespace Cows

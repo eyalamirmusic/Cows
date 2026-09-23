@@ -27,7 +27,9 @@ struct Blade final
 
 Blade makeBlade();
 
-// The meadow's blades, thickest round the cows and thinning out toward the
-// horizon.
+constexpr auto meadowTile = 24.f;
+
+// One square tile of the meadow, meadowTile on a side from the origin, laid
+// down again and again round the player.
 Vector<BladeInstance> makeMeadow();
 } // namespace Cows

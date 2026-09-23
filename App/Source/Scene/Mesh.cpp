@@ -1,6 +1,7 @@
 #include "Mesh.h"
 
 #include <cmath>
+#include <initializer_list>
 
 using namespace Maths;
 
@@ -8,6 +9,33 @@ namespace Cows
 {
 namespace
 {
+void addFace(MeshData& mesh, Vec3 inside, std::initializer_list<Vec3> corners)
+{
+    auto points = Vector<Vec3> {};
+
+    for (const auto& corner: corners)
+        points.add(corner);
+
+    auto normal = normalize(cross(points[1] - points[0], points[2] - points[0]));
+    auto center = Vec3 {};
+
+    for (const auto& point: points)
+        center += point / (float) points.size();
+
+    if (dot(normal, center - inside) < 0.f)
+        normal = -normal;
+
+    auto base = (std::uint32_t) mesh.vertices.size();
+
+    for (const auto& point: points)
+        mesh.vertices.add({point, normal});
+
+    for (auto corner = 1; corner + 1 < points.size(); ++corner)
+        mesh.indices.add({base,
+                          base + (std::uint32_t) corner,
+                          base + (std::uint32_t) corner + 1});
+}
+
 Buffer makeVertexBuffer(const MeshData& data)
 {
     auto bytes = (std::int64_t) sizeof(Vertex) * data.vertices.size();
@@ -158,6 +186,84 @@ MeshData makeHorn(int segments)
     }
 
     return makeLathe(profile, segments);
+}
+
+MeshData makeBox()
+{
+    auto mesh = MeshData {};
+
+    addFace(mesh,
+            {0.f, 0.5f, 0.f},
+            {{-0.5f, 1.f, 0.5f},
+             {0.5f, 1.f, 0.5f},
+             {0.5f, 1.f, -0.5f},
+             {-0.5f, 1.f, -0.5f}});
+    addFace(mesh,
+            {0.f, 0.5f, 0.f},
+            {{-0.5f, 0.f, -0.5f},
+             {0.5f, 0.f, -0.5f},
+             {0.5f, 0.f, 0.5f},
+             {-0.5f, 0.f, 0.5f}});
+    addFace(mesh,
+            {0.f, 0.5f, 0.f},
+            {{0.5f, 0.f, -0.5f},
+             {0.5f, 1.f, -0.5f},
+             {0.5f, 1.f, 0.5f},
+             {0.5f, 0.f, 0.5f}});
+    addFace(mesh,
+            {0.f, 0.5f, 0.f},
+            {{-0.5f, 0.f, 0.5f},
+             {-0.5f, 1.f, 0.5f},
+             {-0.5f, 1.f, -0.5f},
+             {-0.5f, 0.f, -0.5f}});
+    addFace(mesh,
+            {0.f, 0.5f, 0.f},
+            {{-0.5f, 0.f, 0.5f},
+             {0.5f, 0.f, 0.5f},
+             {0.5f, 1.f, 0.5f},
+             {-0.5f, 1.f, 0.5f}});
+    addFace(mesh,
+            {0.f, 0.5f, 0.f},
+            {{0.5f, 0.f, -0.5f},
+             {-0.5f, 0.f, -0.5f},
+             {-0.5f, 1.f, -0.5f},
+             {0.5f, 1.f, -0.5f}});
+
+    windOutward(mesh);
+    return mesh;
+}
+
+MeshData makeWedge()
+{
+    auto mesh = MeshData {};
+
+    addFace(mesh,
+            {0.2f, 0.3f, 0.f},
+            {{-0.5f, 0.f, 0.5f},
+             {0.5f, 1.f, 0.5f},
+             {0.5f, 1.f, -0.5f},
+             {-0.5f, 0.f, -0.5f}});
+    addFace(mesh,
+            {0.2f, 0.3f, 0.f},
+            {{-0.5f, 0.f, -0.5f},
+             {0.5f, 0.f, -0.5f},
+             {0.5f, 0.f, 0.5f},
+             {-0.5f, 0.f, 0.5f}});
+    addFace(mesh,
+            {0.2f, 0.3f, 0.f},
+            {{0.5f, 0.f, -0.5f},
+             {0.5f, 1.f, -0.5f},
+             {0.5f, 1.f, 0.5f},
+             {0.5f, 0.f, 0.5f}});
+    addFace(mesh,
+            {0.2f, 0.3f, 0.f},
+            {{-0.5f, 0.f, 0.5f}, {0.5f, 0.f, 0.5f}, {0.5f, 1.f, 0.5f}});
+    addFace(mesh,
+            {0.2f, 0.3f, 0.f},
+            {{0.5f, 0.f, -0.5f}, {-0.5f, 0.f, -0.5f}, {0.5f, 1.f, -0.5f}});
+
+    windOutward(mesh);
+    return mesh;
 }
 
 MeshData makePlane(float size)
