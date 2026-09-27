@@ -27,6 +27,8 @@ constexpr Vec3 kissPoint {0.f, 1.75f, 0.f};
 constexpr auto titleDrop = 5.f;
 constexpr auto titleDelay = 0.6f;
 constexpr auto titleRiseTime = 2.4f;
+constexpr auto titleHold = 1.5f;
+constexpr auto loopTime = titleDelay + titleRiseTime + titleHold;
 
 constexpr auto searchHeight = 2.2f;
 constexpr auto startYaw = -halfPi;
@@ -42,7 +44,7 @@ constexpr auto loudReach = 120.f;
 constexpr auto searchingText =
     "wasd / hjkl / arrows to walk  -  space to jump  -  m to "
     "moo  -  drag to look  -  q to quit";
-constexpr auto foundText = "you found her  -  r to play again  -  q to quit";
+constexpr auto foundText = "you found her  -  q to quit";
 constexpr auto searchingTouchText = "find her  -  drag to look  -  moo for a hint";
 constexpr auto foundTouchText = "you found her";
 constexpr auto endingHeight = 3.1f;
@@ -245,6 +247,9 @@ void CowsView::update(Threads::FrameTime time)
 
     if (wasSearching && game.state == Game::State::Found)
         onStateChanged();
+
+    if (game.state == Game::State::Found && game.sinceFound > loopTime)
+        restart();
 
     if (hintShowing() != showedHint)
     {
@@ -487,6 +492,27 @@ void CowsView::framePortrait(float aspect)
     framedPortrait = true;
     camera.distance = portraitDistance;
     camera.pitch = portraitPitch;
+}
+
+void CowsView::mouseDown(const Graphics::MouseEvent&)
+{
+    returnKeyFocus();
+}
+
+void CowsView::mouseUp(const Graphics::MouseEvent&)
+{
+    returnKeyFocus();
+}
+
+void CowsView::returnKeyFocus()
+{
+    if (auto* root = getParent())
+        root->focus();
+}
+
+void CowsView::mouseDragged(const Graphics::MouseEvent& event)
+{
+    camera.orbit(event.delta.x * orbitSpeed, event.delta.y * orbitSpeed);
 }
 
 void CowsView::mouseWheel(const Graphics::MouseEvent& event)

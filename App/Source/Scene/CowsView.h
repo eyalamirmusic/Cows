@@ -22,6 +22,9 @@ struct CowsView final : GPUView
     void update(Threads::FrameTime time) override;
     void render(Frame& frame) override;
 
+    void mouseDown(const Graphics::MouseEvent& event) override;
+    void mouseUp(const Graphics::MouseEvent& event) override;
+    void mouseDragged(const Graphics::MouseEvent& event) override;
     void mouseWheel(const Graphics::MouseEvent& event) override;
     void keyDown(const Graphics::KeyEvent& event) override;
     void keyUp(const Graphics::KeyEvent& event) override;
@@ -32,6 +35,7 @@ struct CowsView final : GPUView
     void setStick(float ahead, float turn);
     void jump();
     void look(float horizontal, float vertical);
+    void returnKeyFocus();
     void restart();
     void callOut();
     MooAnswer answerFrom() const;

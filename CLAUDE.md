@@ -14,7 +14,12 @@ Cows is a 3D GPU recreation of the "cows in love" terminal animation
 (`ssh ssh.cowsinlove.com`), built on [eacp](https://github.com/eyalamirmusic/eacp)
 and its shader EDSL. It is one app target, `Cows`, under `App/`.
 
-- `App/Source/Main.cpp` — the window: scene, footer overlay, root view
+- `App/Source/Main.cpp` — runs `CowsApp`
+- `App/Source/CowsApp` — the window: scene, footer overlay, root view; ends
+  by attaching the platform
+- `App/Source/macOS`, `App/Source/iOS` — one `Platform.h` each: window size, and
+  on iOS the touch HUD and audio session; CMake puts the
+  current platform's directory on the include path, so no platform macros
 - `App/Source/Scene/Common.h` — `using namespace eacp` and `eacp::GPU`, included
   by all graphics code
 - `App/Source/Scene/CowsView` — the `GPUView`: gathers instances, shadow pass,
@@ -34,7 +39,7 @@ and its shader EDSL. It is one app target, `Cows`, under `App/`.
 - `App/Source/Scene/ShadowMap` — the key light's depth target
 - `App/Source/Scene/Overlay` — footer text, and q / Esc to quit
 - `App/Source/Scene/TouchControls` — on-screen stick, Moo / Jump / Again, drag
-  to look, pinch to zoom; `TouchSurface-iOS.mm` feeds it multi-touch on iOS
+  to look, pinch to zoom; `iOS/TouchSurface.mm` feeds it multi-touch on iOS
 - `App/Source/Scene/OrbitCamera` — drag to orbit, scroll to zoom, idle drift
 
 `COWS_TIME=<seconds>` starts the clock there and `COWS_FREEZE=1` stops it, for
@@ -55,6 +60,9 @@ Use `$HOME`, not `~`: CMake does not expand `~`.
 
 iOS: `tools/ios.sh sim [shot.png]` builds `build-ios/` and runs it on the "Cows iPhone"
 simulator; `tools/ios.sh device` signs with `COWS_TEAM` (default: Jamie's Personal Team) and runs it on the phone.
+
+Shortcuts in the `justfile`: `just macos`, `just sim-ios [shot.png]`,
+`just ios [udid]` (defaults to pond), `just shot`, `just devices`.
 
 ## Code Style
 

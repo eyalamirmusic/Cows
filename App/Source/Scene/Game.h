@@ -7,7 +7,7 @@
 namespace Cows
 {
 // Find the other cow: the player walks, jumps and climbs the meadow until the
-// two meet up on her roof, and the postcard's kiss plays as the ending.
+// two meet up where she hides, and the postcard's kiss plays as the ending.
 struct Game final
 {
     enum class State

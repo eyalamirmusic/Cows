@@ -30,9 +30,18 @@ struct Block final
 
 // The meadow's clutter: groves of trees, hedgerows with gaps in them, hay
 // bales, rocks, crates and barns with ramps and platforms up to their roofs,
-// laid out from a seed. The other cow waits on one of the roofs.
+// laid out from a seed. The other cow hides somewhere among them.
 struct Obstacles final
 {
+    enum class Hiding
+    {
+        Roof,
+        Stack,
+        Grove,
+        Hedge,
+        Meadow
+    };
+
     explicit Obstacles(std::uint32_t seed = 1u);
 
     // Moves a circle of `radius` with its feet at `feet` out of everything too
@@ -48,5 +57,6 @@ struct Obstacles final
     Vector<Collider> colliders;
     Vector<Block> blocks;
     Maths::Vec3 hideout;
+    Hiding hiding = Hiding::Roof;
 };
 } // namespace Cows

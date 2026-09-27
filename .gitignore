@@ -18,3 +18,5 @@ compile_commands.json
 *.xcworkspace
 xcuserdata
 *.DS_Store
+docs/shots
+docs/shots

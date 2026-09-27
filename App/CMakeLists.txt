@@ -1,5 +1,6 @@
 add_executable(Cows
         Source/Main.cpp
+        Source/CowsApp.cpp
         Source/Scene/Choreography.cpp
         Source/Scene/Cow.cpp
         Source/Scene/CowsView.cpp
@@ -21,11 +22,16 @@ add_executable(Cows
         Source/Scene/TouchControls.cpp)
 
 if (IOS)
-    target_sources(Cows PRIVATE Source/Scene/TouchSurface-iOS.mm)
+    set(COWS_PLATFORM Source/iOS)
+    target_sources(Cows PRIVATE
+            Source/iOS/Platform.cpp
+            Source/iOS/TouchSurface.mm)
     target_link_libraries(Cows PRIVATE "-framework AVFoundation")
+else ()
+    set(COWS_PLATFORM Source/macOS)
 endif ()
 
-target_include_directories(Cows PRIVATE Source)
+target_include_directories(Cows PRIVATE Source ${COWS_PLATFORM})
 target_link_libraries(Cows PRIVATE eacp-gpu "-framework AudioToolbox")
 
 set(BUNDLE_ID "com.tamber.cows")

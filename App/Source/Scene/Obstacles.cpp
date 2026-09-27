@@ -2,6 +2,7 @@
 #include "Palette.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <random>
 
@@ -26,6 +27,15 @@ constexpr auto barnSpacing = 26.f;
 constexpr auto nearestHideout = 50.f;
 constexpr auto furthestHideout = 75.f;
 constexpr auto structureMargin = 2.5f;
+constexpr auto hidingKinds = 5;
+constexpr auto nearestHiding = 25.f;
+constexpr auto hidingRoom = 1.2f;
+constexpr auto meadowRoom = 3.f;
+constexpr auto meadowTries = 24;
+constexpr auto groveRing = 3.5f;
+constexpr auto groveReach = 5.f;
+constexpr auto groveTrees = 2;
+constexpr auto hedgeShelter = 2.6f;
 
 constexpr std::uint32_t leafColors[] = {0x2f8f3a, 0x3a9a40, 0x2c7a30, 0x4aa844};
 constexpr std::uint32_t hedgeColors[] = {0x236b28, 0x2c7a30, 0x307f2c};
@@ -67,7 +77,19 @@ struct Layout final
         return colors[(std::size_t) (unit() * (float) Count) % Count];
     }
 
+    int index(int count)
+    {
+        return std::min((int) (unit() * (float) count), count - 1);
+    }
+
+    void addHiding(Obstacles::Hiding kind, Vec3 at)
+    {
+        hidings[(std::size_t) kind].add(at);
+    }
+
     std::mt19937 random;
+    std::array<Vector<Vec3>, hidingKinds> hidings;
+    Vector<Vec2> trees;
 };
 
 Material matte(std::uint32_t hex, float softness = 0.f, float gloss = 0.05f)
@@ -120,6 +142,7 @@ void addTree(Obstacles& obstacles, Layout& layout, Vec2 at)
     }
 
     obstacles.colliders.add({at, 0.55f});
+    layout.trees.add(at);
 }
 
 void addGrove(Obstacles& obstacles, Layout& layout)
@@ -134,6 +157,15 @@ void addGrove(Obstacles& obstacles, Layout& layout)
         addTree(obstacles,
                 layout,
                 center + Vec2 {std::cos(angle) * reach, std::sin(angle) * reach});
+    }
+
+    layout.addHiding(Obstacles::Hiding::Grove, {center.x, 0.f, center.y});
+
+    for (auto side = 0; side < 6; ++side)
+    {
+        auto angle = twoPi * (float) side / 6.f;
+        auto at = center + Vec2 {std::cos(angle), std::sin(angle)} * groveRing;
+        layout.addHiding(Obstacles::Hiding::Grove, {at.x, 0.f, at.y});
     }
 }
 
@@ -191,6 +223,11 @@ void addHedgerow(Obstacles& obstacles, Layout& layout)
             continue;
 
         addHedgePiece(obstacles, layout, at, heading, color);
+
+        auto across = Vec2 {-direction.y, direction.x};
+        auto behind =
+            at + across * (dot(across, at) < 0.f ? -hedgeShelter : hedgeShelter);
+        layout.addHiding(Obstacles::Hiding::Hedge, {behind.x, 0.f, behind.y});
     }
 }
 
@@ -219,6 +256,7 @@ void addBales(Obstacles& obstacles, Layout& layout)
                          straw));
 
         obstacles.colliders.add({at, 1.05f, radius * 2.f});
+        layout.addHiding(Obstacles::Hiding::Stack, {at.x, radius * 2.f, at.y});
     }
 }
 
@@ -341,7 +379,7 @@ void addBarns(Obstacles& obstacles, Layout& layout)
             spots.add(at);
     }
 
-    obstacles.hideout = {spots[0].x, roofHeight, spots[0].y};
+    layout.addHiding(Obstacles::Hiding::Roof, {spots[0].x, roofHeight, spots[0].y});
 
     for (const auto& spot: spots)
         addBarn(obstacles, spot, (int) (layout.unit() * 4.f) % 4);
@@ -361,9 +399,92 @@ void addCrates(Obstacles& obstacles, Layout& layout)
         addBlock(obstacles, {at, {0.9f, 0.9f}, 1.5f, {}}, wood);
 
         if (layout.unit() < 0.6f)
-            addBlock(
-                obstacles, {at + Vec2 {1.8f, 0.f}, {0.9f, 0.9f}, 3.f, {}}, wood);
+        {
+            auto stacked = at + Vec2 {1.8f, 0.f};
+            addBlock(obstacles, {stacked, {0.9f, 0.9f}, 3.f, {}}, wood);
+            layout.addHiding(Obstacles::Hiding::Stack, {stacked.x, 3.f, stacked.y});
+        }
+        else
+        {
+            layout.addHiding(Obstacles::Hiding::Stack, {at.x, 1.5f, at.y});
+        }
     }
+}
+
+bool hasRoom(const Obstacles& obstacles, Vec3 spot, float margin)
+{
+    auto at = Vec2 {spot.x, spot.z};
+    auto overhead = spot.y + stepUp;
+
+    if (length(at) < nearestHiding || std::abs(at.x) > arenaReach
+        || std::abs(at.y) > arenaReach
+        || std::abs(obstacles.floorAt(at, spot.y) - spot.y) > 0.01f)
+        return false;
+
+    auto blocked = [&](const Collider& collider)
+    {
+        return collider.top > overhead
+               && distance(at, collider.center) < collider.radius + margin;
+    };
+
+    auto walled = [&](const Block& block)
+    { return block.top > overhead && block.contains(at, margin); };
+
+    return std::none_of(
+               obstacles.colliders.begin(), obstacles.colliders.end(), blocked)
+           && std::none_of(obstacles.blocks.begin(), obstacles.blocks.end(), walled);
+}
+
+bool amongTrees(const Layout& layout, Vec3 spot)
+{
+    auto near = std::count_if(
+        layout.trees.begin(),
+        layout.trees.end(),
+        [&](Vec2 tree) { return distance(tree, {spot.x, spot.z}) < groveReach; });
+    return near >= groveTrees;
+}
+
+void addMeadowHidings(const Obstacles& obstacles, Layout& layout)
+{
+    for (auto attempt = 0; attempt < meadowTries; ++attempt)
+    {
+        auto at = layout.spot();
+        auto spot = Vec3 {at.x, 0.f, at.y};
+
+        if (hasRoom(obstacles, spot, meadowRoom))
+            layout.addHiding(Obstacles::Hiding::Meadow, spot);
+    }
+}
+
+void chooseHideout(Obstacles& obstacles, Layout& layout)
+{
+    addMeadowHidings(obstacles, layout);
+
+    auto kinds = Vector<int> {};
+
+    for (auto kind = 0; kind < hidingKinds; ++kind)
+    {
+        auto& spots = layout.hidings[(std::size_t) kind];
+        auto grove = kind == (int) Obstacles::Hiding::Grove;
+        auto roof = kind == (int) Obstacles::Hiding::Roof;
+
+        auto unfit = [&](Vec3 spot)
+        {
+            return !roof
+                   && (!hasRoom(obstacles, spot, hidingRoom)
+                       || (grove && !amongTrees(layout, spot)));
+        };
+        spots.erase(std::remove_if(spots.begin(), spots.end(), unfit), spots.end());
+
+        if (!spots.empty())
+            kinds.add(kind);
+    }
+
+    auto kind = kinds[layout.index(kinds.size())];
+    auto& spots = layout.hidings[(std::size_t) kind];
+
+    obstacles.hiding = (Obstacles::Hiding) kind;
+    obstacles.hideout = spots[layout.index(spots.size())];
 }
 } // namespace
 
@@ -407,6 +528,8 @@ Obstacles::Obstacles(std::uint32_t seed)
 
     for (auto rock = 0; rock < rockCount; ++rock)
         addRock(*this, layout);
+
+    chooseHideout(*this, layout);
 }
 
 Vec2 Obstacles::pushedOut(Vec2 point, float radius, float feet) const

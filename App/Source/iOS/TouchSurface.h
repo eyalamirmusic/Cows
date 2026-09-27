@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TouchControls.h"
+#include "Scene/TouchControls.h"
 
 #include <functional>
 #include <memory>
