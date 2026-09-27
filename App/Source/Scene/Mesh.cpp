@@ -38,13 +38,13 @@ void addFace(MeshData& mesh, Vec3 inside, std::initializer_list<Vec3> corners)
 
 Buffer makeVertexBuffer(const MeshData& data)
 {
-    auto bytes = (std::int64_t) sizeof(Vertex) * data.vertices.size();
+    auto bytes = (int) (sizeof(Vertex) * data.vertices.size());
     return Device::shared().makeBuffer(data.vertices.data(), bytes);
 }
 
 Buffer makeIndexBuffer(const MeshData& data)
 {
-    auto bytes = (std::int64_t) sizeof(std::uint32_t) * data.indices.size();
+    auto bytes = (int) (sizeof(std::uint32_t) * data.indices.size());
     return Device::shared().makeBuffer(
         data.indices.data(), bytes, BufferUsage::Index);
 }

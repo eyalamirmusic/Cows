@@ -22,8 +22,9 @@ include(TargetSetup)
 
 # eacp only runs this for itself when it is the top-level project, so a consumer
 # has to call it or the Apple deployment target is never set. It points the
-# bundle plist template at this project's CMake directory, so the template is
-# pointed back at eacp's own copy straight after rather than vendored here.
+# bundle plist template at this project's CMake directory: macOS is pointed back
+# at eacp's own copy straight after, iOS uses the portrait-only copy vendored
+# here. eacp also forces its own signing team; COWS_IOS_TEAM replaces it.
 if (PROJECT_IS_TOP_LEVEL)
     eacp_default_setup()
 
@@ -31,6 +32,14 @@ if (PROJECT_IS_TOP_LEVEL)
         set(EACP_MACOS_PLIST
                 "${eacp_SOURCE_DIR}/CMake/macOSBundleInfo.plist.in"
                 CACHE INTERNAL "")
+    endif ()
+
+    if (IOS)
+        set(COWS_IOS_TEAM "" CACHE STRING "Apple team that signs the iOS app")
+        set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${COWS_IOS_TEAM}"
+                CACHE STRING "" FORCE)
+        set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Apple Development"
+                CACHE STRING "" FORCE)
     endif ()
 endif ()
 

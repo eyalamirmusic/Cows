@@ -25,6 +25,10 @@ struct OrbitCamera final
     Maths::Mat4 view() const;
     Maths::Mat4 projection(float aspect) const;
 
+    // `fieldOfView`, widened on a narrow view so it still sees `leastWidth`
+    // across.
+    float verticalFieldOfView(float aspect) const;
+
     Maths::Vec3 target {0.f, 3.1f, 0.f};
     float yaw = 0.f;
     float pitch = 0.22f;
@@ -32,6 +36,7 @@ struct OrbitCamera final
     float swayYaw = 0.f;
     float swayPitch = 0.f;
     float fieldOfView = Maths::radians(42.f);
+    float leastWidth = Maths::radians(40.f);
     float nearPlane = 0.1f;
     float farPlane = 400.f;
 };

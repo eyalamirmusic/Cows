@@ -22,9 +22,6 @@ struct CowsView final : GPUView
     void update(Threads::FrameTime time) override;
     void render(Frame& frame) override;
 
-    void mouseDown(const Graphics::MouseEvent& event) override;
-    void mouseUp(const Graphics::MouseEvent& event) override;
-    void mouseDragged(const Graphics::MouseEvent& event) override;
     void mouseWheel(const Graphics::MouseEvent& event) override;
     void keyDown(const Graphics::KeyEvent& event) override;
     void keyUp(const Graphics::KeyEvent& event) override;
@@ -32,7 +29,9 @@ struct CowsView final : GPUView
     void setHeld(std::uint16_t keyCode, bool down);
     float walkAhead() const;
     float walkTurn() const;
-    void returnKeyFocus();
+    void setStick(float ahead, float turn);
+    void jump();
+    void look(float horizontal, float vertical);
     void restart();
     void callOut();
     MooAnswer answerFrom() const;
@@ -40,6 +39,7 @@ struct CowsView final : GPUView
     bool hintShowing() const;
     void addAnswerFlare();
     void steerCamera(float delta);
+    void framePortrait(float aspect);
 
     void gatherInstances(float seconds);
     Maths::Vec3 groundFocus() const;
@@ -104,5 +104,10 @@ struct CowsView final : GPUView
     bool walkingLeft = false;
     bool walkingRight = false;
     bool jumping = false;
+    bool jumpPending = false;
+    float stickAhead = 0.f;
+    float stickTurn = 0.f;
+    bool touchHints = false;
+    bool framedPortrait = false;
 };
 } // namespace Cows

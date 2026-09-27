@@ -7,13 +7,15 @@
 
 namespace Cows
 {
-// The footer line, painted over the scene: how to play while searching, how
-// to play again once she is found.
+// The footer, painted over the scene: how to play while searching, how to
+// play again once she is found. Breaks between phrases when it runs too wide.
 struct FooterView final : Graphics::View
 {
     void paint(Graphics::Context& g) override;
+    Vector<std::string> lines(const std::string& line, float width) const;
 
     std::function<std::string()> text = [] { return std::string {}; };
+    float bottomInset = 0.f;
 
     Graphics::Font font {Graphics::FontOptions().withName("Menlo").withSize(13.f)};
 };

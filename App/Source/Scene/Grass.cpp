@@ -1,6 +1,5 @@
 #include "Grass.h"
 
-#include <cmath>
 #include <random>
 
 using namespace Maths;
@@ -10,7 +9,8 @@ namespace Cows
 namespace
 {
 constexpr auto bladeCount = 14000;
-constexpr auto bladeSegments = 4;
+constexpr auto bladeSegments = 5;
+constexpr auto bladeColumns = 3;
 } // namespace
 
 Blade makeBlade()
@@ -20,26 +20,31 @@ Blade makeBlade()
     for (auto segment = 0; segment < bladeSegments; ++segment)
     {
         auto height = (float) segment / (float) bladeSegments;
-        blade.vertices.add({{-1.f, height}});
-        blade.vertices.add({{1.f, height}});
+
+        for (auto column = 0; column < bladeColumns; ++column)
+            blade.vertices.add({{(float) column - 1.f, height}});
     }
 
     blade.vertices.add({{0.f, 1.f}});
 
-    for (auto segment = 0; segment + 1 < bladeSegments; ++segment)
-    {
-        auto a = (std::uint16_t) (segment * 2);
-        blade.indices.add({a,
-                           (std::uint16_t) (a + 1),
-                           (std::uint16_t) (a + 3),
-                           a,
-                           (std::uint16_t) (a + 3),
-                           (std::uint16_t) (a + 2)});
-    }
+    auto at = [](int segment, int column)
+    { return (std::uint16_t) (segment * bladeColumns + column); };
 
-    auto last = (std::uint16_t) ((bladeSegments - 1) * 2);
-    blade.indices.add(
-        {last, (std::uint16_t) (last + 1), (std::uint16_t) (bladeSegments * 2)});
+    for (auto segment = 0; segment + 1 < bladeSegments; ++segment)
+        for (auto column = 0; column + 1 < bladeColumns; ++column)
+        {
+            auto a = at(segment, column);
+            auto b = at(segment, column + 1);
+            auto c = at(segment + 1, column + 1);
+            auto d = at(segment + 1, column);
+            blade.indices.add({a, b, c, a, c, d});
+        }
+
+    auto tip = (std::uint16_t) (bladeSegments * bladeColumns);
+
+    for (auto column = 0; column + 1 < bladeColumns; ++column)
+        blade.indices.add(
+            {at(bladeSegments - 1, column), at(bladeSegments - 1, column + 1), tip});
 
     return blade;
 }
@@ -57,8 +62,7 @@ Vector<BladeInstance> makeMeadow()
         auto x = meadowTile * unit(random);
         auto z = meadowTile * unit(random);
 
-        auto clump = 0.5f + 0.5f * std::sin(x * 1.3f + std::sin(z * 0.9f) * 2.f);
-        auto height = 0.2f + 0.2f * unit(random) + 0.14f * clump;
+        auto height = 0.2f + 0.2f * unit(random);
         auto width = 0.018f + 0.012f * unit(random);
 
         auto facing = twoPi * unit(random);
@@ -66,8 +70,14 @@ Vector<BladeInstance> makeMeadow()
         auto shade = unit(random);
         auto lean = unit(random) - 0.5f;
 
-        blades.add(
-            BladeInstance {{x, z, facing, height}, {width, phase, shade, lean}});
+        auto twist = 1.8f * (unit(random) - 0.5f);
+        auto fold = 0.35f + 0.65f * unit(random);
+        auto hue = unit(random);
+        auto seed = unit(random);
+
+        blades.add(BladeInstance {{x, z, facing, height},
+                                  {width, phase, shade, lean},
+                                  {twist, fold, hue, seed}});
     }
 
     return blades;

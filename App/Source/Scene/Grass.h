@@ -12,11 +12,13 @@ struct BladeVertex final
     Maths::Vec2 shape;
 };
 
-// placement is (x, z, facing, height); look is (width, sway phase, shade, lean).
+// placement is (x, z, facing, height); look is (width, sway phase, shade,
+// lean); form is (twist, fold, hue, seed).
 struct BladeInstance final
 {
     Maths::Vec4 placement;
     Maths::Vec4 look;
+    Maths::Vec4 form;
 };
 
 struct Blade final

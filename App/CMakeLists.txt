@@ -17,12 +17,18 @@ add_executable(Cows
         Source/Scene/Shading.cpp
         Source/Scene/ShadowMap.cpp
         Source/Scene/SkyDecor.cpp
-        Source/Scene/TitleFont.cpp)
+        Source/Scene/TitleFont.cpp
+        Source/Scene/TouchControls.cpp)
+
+if (IOS)
+    target_sources(Cows PRIVATE Source/Scene/TouchSurface-iOS.mm)
+    target_link_libraries(Cows PRIVATE "-framework AVFoundation")
+endif ()
 
 target_include_directories(Cows PRIVATE Source)
 target_link_libraries(Cows PRIVATE eacp-gpu "-framework AudioToolbox")
 
-set(BUNDLE_ID "com.eyalamir.cows")
+set(BUNDLE_ID "com.tamber.cows")
 
 set_target_properties(Cows PROPERTIES
         MACOSX_BUNDLE TRUE

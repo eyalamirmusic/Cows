@@ -43,12 +43,17 @@ constexpr auto searchingText =
     "wasd / hjkl / arrows to walk  -  space to jump  -  m to "
     "moo  -  drag to look  -  q to quit";
 constexpr auto foundText = "you found her  -  r to play again  -  q to quit";
+constexpr auto searchingTouchText = "find her  -  drag to look  -  moo for a hint";
+constexpr auto foundTouchText = "you found her";
 constexpr auto endingHeight = 3.1f;
 constexpr auto endingPitch = 0.08f;
 constexpr auto endingDistance = 11.f;
 constexpr auto settleTime = 3.f;
 constexpr auto settleRate = 2.f;
 constexpr auto grassTiles = 2;
+constexpr auto foundStartGap = 3.f;
+constexpr auto portraitDistance = 6.5f;
+constexpr auto portraitPitch = 0.26f;
 
 constexpr CornerVertex fullScreenTriangle[3] = {
     {{-1.f, -1.f}},
@@ -220,6 +225,9 @@ CowsView::CowsView()
     camera.yaw = startYaw + game.playerHeading;
     camera.target = game.player + Vec3 {0.f, searchHeight, 0.f};
 
+    if (std::getenv("COWS_FOUND") != nullptr)
+        game.player = game.partner + Vec3 {foundStartGap, 0.f, 0.f};
+
     setHandlesMouseEvents(true);
     setContinuous(true);
 }
@@ -230,7 +238,10 @@ void CowsView::update(Threads::FrameTime time)
     elapsed += delta;
 
     auto wasSearching = game.state == Game::State::Searching;
-    game.update(delta, walkAhead(), walkTurn(), jumping);
+    auto wasGrounded = game.grounded;
+    game.update(delta, walkAhead(), walkTurn(), jumping || jumpPending);
+    if (wasGrounded)
+        jumpPending = false;
 
     if (wasSearching && game.state == Game::State::Found)
         onStateChanged();
@@ -333,12 +344,30 @@ void CowsView::setHeld(std::uint16_t keyCode, bool down)
 
 float CowsView::walkAhead() const
 {
-    return (walkingForward ? 1.f : 0.f) - (walkingBack ? 1.f : 0.f);
+    auto keys = (walkingForward ? 1.f : 0.f) - (walkingBack ? 1.f : 0.f);
+    return std::clamp(keys + stickAhead, -1.f, 1.f);
 }
 
 float CowsView::walkTurn() const
 {
-    return (walkingLeft ? 1.f : 0.f) - (walkingRight ? 1.f : 0.f);
+    auto keys = (walkingLeft ? 1.f : 0.f) - (walkingRight ? 1.f : 0.f);
+    return std::clamp(keys + stickTurn, -1.f, 1.f);
+}
+
+void CowsView::setStick(float ahead, float turn)
+{
+    stickAhead = ahead;
+    stickTurn = turn;
+}
+
+void CowsView::jump()
+{
+    jumpPending = true;
+}
+
+void CowsView::look(float horizontal, float vertical)
+{
+    camera.orbit(horizontal * orbitSpeed, vertical * orbitSpeed);
 }
 
 void CowsView::callOut()
@@ -378,9 +407,12 @@ bool CowsView::hintShowing() const
 std::string CowsView::footerText() const
 {
     if (game.state == Game::State::Found)
-        return foundText;
+        return touchHints ? foundTouchText : foundText;
 
-    return hintShowing() ? hint : searchingText;
+    if (hintShowing())
+        return hint;
+
+    return touchHints ? searchingTouchText : searchingText;
 }
 
 void CowsView::addAnswerFlare()
@@ -427,6 +459,7 @@ void CowsView::render(Frame& frame)
         return;
 
     auto aspect = width / height;
+    framePortrait(aspect);
     auto viewProjection = camera.projection(aspect) * camera.view();
 
     setSceneUniforms(surfaceShader, viewProjection);
@@ -446,25 +479,14 @@ void CowsView::render(Frame& frame)
     drawGlows(pass, viewProjection);
 }
 
-void CowsView::mouseDown(const Graphics::MouseEvent&)
+void CowsView::framePortrait(float aspect)
 {
-    returnKeyFocus();
-}
+    if (framedPortrait || aspect >= 1.f)
+        return;
 
-void CowsView::mouseUp(const Graphics::MouseEvent&)
-{
-    returnKeyFocus();
-}
-
-void CowsView::returnKeyFocus()
-{
-    if (auto* root = getParent())
-        root->focus();
-}
-
-void CowsView::mouseDragged(const Graphics::MouseEvent& event)
-{
-    camera.orbit(event.delta.x * orbitSpeed, event.delta.y * orbitSpeed);
+    framedPortrait = true;
+    camera.distance = portraitDistance;
+    camera.pitch = portraitPitch;
 }
 
 void CowsView::mouseWheel(const Graphics::MouseEvent& event)
@@ -558,7 +580,7 @@ void CowsView::drawShadows(Frame& frame)
 
 void CowsView::drawSky(RenderPass& pass, float aspect)
 {
-    auto halfHeight = std::tan(camera.fieldOfView * 0.5f);
+    auto halfHeight = std::tan(camera.verticalFieldOfView(aspect) * 0.5f);
 
     skyShader.setLighting(lighting);
     skyShader.cameraForward = camera.forward();

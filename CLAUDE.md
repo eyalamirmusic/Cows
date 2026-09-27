@@ -33,6 +33,8 @@ and its shader EDSL. It is one app target, `Cows`, under `App/`.
 - `App/Source/Scene/SkyDecor` — sun, clouds, hills; `Grass` — instanced blades
 - `App/Source/Scene/ShadowMap` — the key light's depth target
 - `App/Source/Scene/Overlay` — footer text, and q / Esc to quit
+- `App/Source/Scene/TouchControls` — on-screen stick, Moo / Jump / Again, drag
+  to look, pinch to zoom; `TouchSurface-iOS.mm` feeds it multi-touch on iOS
 - `App/Source/Scene/OrbitCamera` — drag to orbit, scroll to zoom, idle drift
 
 `COWS_TIME=<seconds>` starts the clock there and `COWS_FREEZE=1` stops it, for
@@ -50,6 +52,9 @@ open build/App/Cows.app
 ```
 
 Use `$HOME`, not `~`: CMake does not expand `~`.
+
+iOS: `tools/ios.sh sim [shot.png]` builds `build-ios/` and runs it on the "Cows iPhone"
+simulator; `tools/ios.sh device` signs with `COWS_TEAM` (default: Jamie's Personal Team) and runs it on the phone.
 
 ## Code Style
 

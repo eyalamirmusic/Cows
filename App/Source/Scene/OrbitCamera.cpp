@@ -77,6 +77,13 @@ Mat4 OrbitCamera::view() const
 
 Mat4 OrbitCamera::projection(float aspect) const
 {
-    return Mat4::perspective(aspect, fieldOfView, nearPlane, farPlane);
+    return Mat4::perspective(
+        aspect, verticalFieldOfView(aspect), nearPlane, farPlane);
+}
+
+float OrbitCamera::verticalFieldOfView(float aspect) const
+{
+    auto fitsWidth = 2.f * std::atan(std::tan(leastWidth * 0.5f) / aspect);
+    return std::max(fieldOfView, fitsWidth);
 }
 } // namespace Cows
