@@ -7,7 +7,8 @@
 # NDK r27, build-tools 35 and platform 35, and eacp's android-mvp branch:
 # EACP=<path> (default ~/projects/eacp-android) builds against that checkout,
 # or, when it is absent, fetches jamierpond/eacp@android-mvp through CPM.
-# COWS_CONFIG=Debug|Release (default Debug) picks the build type, each in its
+# COWS_CONFIG=Release|Debug (default Release; Debug is 5 fps while a finger
+# moves, the HUD repaint alone ~400 ms) picks the build type, each in its
 # own build dir. COWS_ENV="COWS_PROFILE=1 COWS_SEED=3" is set as the
 # debug.cows.env property the app reads its COWS_* settings from.
 set -euo pipefail
@@ -21,7 +22,7 @@ eacp="${EACP:-$HOME/projects/eacp-android}"
 avd="${COWS_AVD:-cows}"
 package="${COWS_BUNDLE_ID:-com.cowsinlove.cows}"
 adb="$sdk/platform-tools/adb"
-config="${COWS_CONFIG:-Debug}"
+config="${COWS_CONFIG:-Release}"
 build=build-android
 [[ $config == Debug ]] || build="build-android-$(echo "$config" | tr '[:upper:]' '[:lower:]')"
 
@@ -80,7 +81,7 @@ case "${1:-}" in
         run
         ;;
     *)
-        sed -n '2,12p' "$0"
+        sed -n '2,13p' "$0"
         exit 1
         ;;
 esac

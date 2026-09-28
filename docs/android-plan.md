@@ -271,7 +271,11 @@ gitignored, as for the other shots.
 `just sim-android [shot.png]` (= `tools/android.sh sim`): configures
 `build-android/` against `EACP=~/projects/eacp-android` (NDK, arm64-v8a,
 android-33), builds `Cows-apk`, boots the `cows` AVD if nothing is attached,
-installs and launches `com.cowsinlove.cows`. `COWS_EACP_TAG` in
+installs and launches `com.cowsinlove.cows`. It builds Release into
+`build-android-release/` by default; `COWS_CONFIG=Debug` builds `build-android/`
+(-O0: fine idle, but ~5 fps while a finger moves, since each HUD repaint takes
+~400 ms). `COWS_ENV="COWS_PROFILE=1 COWS_SEED=3"` passes settings to the app
+through the `debug.cows.env` property. `COWS_EACP_TAG` in
 `CMake/Findeacp.cmake` can pin a fetched eacp revision once `android-mvp` is
 pushed; until then the local worktree (`CPM_eacp_SOURCE`) is the only way.
 

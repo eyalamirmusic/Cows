@@ -12,7 +12,8 @@ macos:
 sim-ios shot="":
     tools/ios.sh sim {{shot}}
 
-# Build and run on the "cows" Android emulator, optionally saving a screenshot.
+# Build (Release; COWS_CONFIG=Debug for Debug) and run on the "cows" Android
+# emulator, optionally saving a screenshot.
 sim-android shot="":
     tools/android.sh sim {{shot}}
 
