@@ -38,6 +38,8 @@ set_target_properties(Cows PROPERTIES
         XCODE_ATTRIBUTE_MARKETING_VERSION ${PROJECT_VERSION})
 
 if (ANDROID)
+    set(EACP_ANDROID_MANIFEST_TEMPLATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/Android/AndroidManifest.xml.in")
     eacp_add_android_apk(Cows
             PACKAGE ${COWS_BUNDLE_ID}
             LABEL "Cows In Love"

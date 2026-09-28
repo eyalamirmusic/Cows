@@ -34,11 +34,11 @@ test:
     cmake --build build
     ctest --test-dir build --output-on-failure
 
-# Render the icons and store art (Deploy/Art, Deploy/Steam/Store, app icons).
+# Render the icons and store art (Deploy/Art, Steam, MSIX, Google Play, app icons).
 store-art:
     tools/store-art.sh
 
-# Render the Steam and App Store screenshots.
+# Render the Steam, App Store and Google Play screenshots.
 screenshots:
     tools/screenshots.sh
 
@@ -49,6 +49,10 @@ release-macos:
 # App Store archive and export (COWS_TEAM; --upload sends it to App Store Connect).
 release-ios *args:
     tools/release-ios.sh {{args}}
+
+# Google Play .aab, Release arm64 + x86_64, signed with the upload key (--install runs it on the emulator).
+release-android *args:
+    tools/release-android.sh {{args}}
 
 # Windows x64 Release build on the Windows box, staged for Steam.
 release-windows:

@@ -173,6 +173,11 @@ void renderAll()
     icon.clutter = false;
     renderEnding("icon", 1024, 1024, icon);
 
+    auto adaptive = icon;
+    adaptive.distance = 5.6f;
+    adaptive.lift = 0.3f;
+    renderEnding("icon-adaptive", 1024, 1024, adaptive);
+
     auto wide = Framing {};
     wide.title = false;
     wide.distance = 12.f;
@@ -203,6 +208,9 @@ void renderAll()
 // CowsArt mac <dir>      the Mac App Store screenshots, 2880x1800
 // CowsArt ios-6.9 <dir>  the App Store 6.9" iPhone screenshots, 1320x2868
 // CowsArt ios-6.5 <dir>  the App Store 6.5" iPhone screenshots, 1284x2778
+// CowsArt play-phone <dir>  Google Play phone screenshots, 1080x1920
+// CowsArt play-7 <dir>      Google Play 7" tablet screenshots, 1440x2560
+// CowsArt play-10 <dir>     Google Play 10" tablet screenshots, 2160x3840
 int main(int argc, char* argv[])
 {
     auto mode = std::string {argc > 1 ? argv[1] : "art"};
@@ -221,6 +229,12 @@ int main(int argc, char* argv[])
                 renderScreenshots(directory, iPhone69);
             else if (mode == "ios-6.5")
                 renderScreenshots(directory, iPhone65);
+            else if (mode == "play-phone")
+                renderScreenshots(directory, playPhone);
+            else if (mode == "play-7")
+                renderScreenshots(directory, playTablet7);
+            else if (mode == "play-10")
+                renderScreenshots(directory, playTablet10);
             else
                 std::fprintf(stderr, "unknown mode %s\n", mode.c_str());
         });

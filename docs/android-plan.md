@@ -270,7 +270,7 @@ gitignored, as for the other shots.
 
 `just sim-android [shot.png]` (= `tools/android.sh sim`): configures
 `build-android/` against `EACP=~/projects/eacp-android` (NDK, arm64-v8a,
-android-33), builds `Cows-apk`, boots the `cows` AVD if nothing is attached,
+android-29), builds `Cows-apk`, boots the `cows` AVD if nothing is attached,
 installs and launches `com.cowsinlove.cows`. It builds Release into
 `build-android-release/` by default; `COWS_CONFIG=Debug` builds `build-android/`
 (-O0: fine idle, but ~5 fps while a finger moves, since each HUD repaint takes
@@ -323,6 +323,36 @@ pushed; until then the local worktree (`CPM_eacp_SOURCE`) is the only way.
 - App: shared library on Android, APK via `eacp_add_android_apk`, launcher
   icon from the iOS icon at five densities (`Apps/CowsInLove/Android/res`).
 
+### Google Play (branch `play-store`)
+
+`just release-android` (`tools/release-android.sh`) builds Release
+arm64-v8a and x86_64 `.so`s (both build and run; the Release .so is 5.9 MB
+stripped), and packages a signed `.aab` without Gradle: `aapt2 link
+--proto-format`, the base module zip, `bundletool build-bundle` 1.18.3 with
+`Deploy/Google-Play/BundleConfig.json` (uncompressed native libs, 16 KB
+aligned; the .so is linked with 16 KB pages through
+`ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES`), symbol tables in `BUNDLE-METADATA`,
+`jarsigner` with the upload key. `--install` validates, installs through
+`bundletool --local-testing` and launches (`docs/shots/play-aab.png`).
+
+- Manifest: Cows' own template, `Apps/CowsInLove/Android/AndroidManifest.xml.in`
+  (eacp's plus `isGame`, `appCategory="game"`, `allowBackup="false"`,
+  `hasFragileUserData="false"`, touchscreen and portrait features, every
+  screen size). versionName = project version, versionCode =
+  `COWS_BUILD_NUMBER`, targetSdk 35.
+- **minSdk 29** (Android 10): eacp's frame pacing calls
+  `AChoreographer_postFrameCallback64`, API 29; nothing else in the .so needs
+  more than 24. The real floor is the Vulkan 1.3 `uses-feature`, which Play
+  filters on. `tools/android.sh` builds at 29 too.
+- `allowBackup="false"`: the game saves nothing; the only file it writes is
+  the Vulkan pipeline cache.
+- Icon: adaptive only (minSdk ≥ 26), from the CowsArt icon render framed for
+  the 66dp safe zone, sky background, monochrome hearts. The legacy PNGs are
+  gone.
+- Listing, Data safety, IARC and target audience answers:
+  `Deploy/Google-Play/Metadata/store-listing.md`. Tablets supported, with
+  tablet screenshots.
+
 ### Deviations from the other platforms, on purpose
 
 - HUD text is DroidSansMono (synthetic bold for Menlo-Bold), not Menlo.
@@ -337,11 +367,7 @@ pushed; until then the local worktree (`CPM_eacp_SOURCE`) is the only way.
    the background) — Cows needs a hook to its `SamplePlayer`.
 2. Real devices: Adreno/Mali Vulkan 1.3 behaviour, `preTransform` on a rotated
    device (Cows is portrait-locked, so IDENTITY in practice), 16 KB pages.
-3. x86_64 build for Intel hosts' emulators; a Release build (the Debug .so is
-   ~60 MB, glslang included).
-4. Play: AAB (bundletool over the same pieces, or Gradle), upload key,
-   `Deploy/Google-Play/` listing and screenshots, targetSdk 35 checks.
-5. eacp upstreaming: split `OS::Android` out of `OS::Linux`, a portable
+3. eacp upstreaming: split `OS::Android` out of `OS::Linux`, a portable
    multi-touch API on `View`, eacp `Text` on Android (FreeType + HarfBuzz +
    an `AFontMatcher` resolver), a second `android_main` in one process.
 
@@ -352,5 +378,5 @@ pushed; until then the local worktree (`CPM_eacp_SOURCE`) is the only way.
 | MVP, triangle-equivalent, Cows rendering | done |
 | Input/audio/lifecycle polish (audio pause, real-device insets, rotation) | 1–2 d |
 | Real-device testing (2–3 phones), perf, Release size | 1–2 d |
-| Play packaging (AAB, signing, listing, review) | 2–3 d |
+| Play packaging (AAB, signing, listing) | done; review is Jamie's upload |
 | eacp upstream review/cleanup of `android-mvp` | 2–4 d |
