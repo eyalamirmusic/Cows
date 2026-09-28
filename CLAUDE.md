@@ -10,6 +10,11 @@ the current conversation.
 
 ## Project Overview
 
+Cows In Love exists to stress-test [eacp](https://github.com/eyalamirmusic/eacp),
+our app framework: can we make awesome 3D games with eacp and ship them on every
+serious platform (macOS, Windows, iOS, Android, Steam, the app stores)? Every
+gap it exposes is an eacp fix first and a workaround second.
+
 Cows is a 3D GPU recreation of the "cows in love" terminal animation
 (`ssh ssh.cowsinlove.com`), built on [eacp](https://github.com/eyalamirmusic/eacp)
 and its shader EDSL. Game-independent code lives in static libraries under
@@ -136,6 +141,20 @@ simulator; `tools/ios.sh device` signs with `COWS_TEAM` (default: Jamie's Person
 
 Shortcuts in the `justfile`: `just macos`, `just sim-ios [shot.png]`,
 `just ios [udid]` (defaults to pond), `just shot`, `just devices`, `just test`.
+
+## Rendering Rule
+
+Everything on screen goes through eacp's GPU path: `GPUView` for the scene,
+`GPUWidgets` paths for shapes, the `Text` glyph atlas and `TextRenderer` for
+text. Never add a CPU-rasterised tier (a software 2D context, an overlay painted
+into an image and uploaded as a texture) to get a platform working; that is a
+regression, not a port. A platform without a glyph rasteriser gets a
+`GlyphRasterizer-<Platform>` in eacp over the platform's own text engine
+(CoreText, DirectWrite, `android.graphics` over JNI), not a new dependency such
+as FreeType. Gaps found this way are eacp fixes first; a Cows-side workaround is
+the last resort and is called out as one. This is today's position, not
+dogma: eacp may grow a CPU tier one day, but for now `GPUView` is the way
+because it performs better and ports further.
 
 ## Code Style
 
