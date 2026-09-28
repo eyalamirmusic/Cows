@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <eacp/Core/Utils/Environment.h>
 #include <cstdlib>
 #include <functional>
 
@@ -142,7 +143,7 @@ Vector<Shot> shots()
 
 void setEnv(const char* name, int value)
 {
-    setenv(name, std::to_string(value).c_str(), 1);
+    eacp::setEnv(name, std::to_string(value));
 }
 
 void render(const Shot& shot, const std::string& directory, const Screen& screen)

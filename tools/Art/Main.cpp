@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <eacp/Core/Utils/Environment.h>
 #include <cstdlib>
 #include <functional>
 #include <string>
@@ -159,8 +160,8 @@ void saveLogo(const std::string& name, int width, int height)
 
 void renderAll()
 {
-    setenv("COWS_SEED", std::to_string(openMeadowSeed()).c_str(), 1);
-    unsetenv("COWS_STAGE");
+    setEnv("COWS_SEED", std::to_string(openMeadowSeed()));
+    setEnv("COWS_STAGE", "");
 
     auto icon = Framing {};
     icon.sinceFound = 1.05f;

@@ -4,29 +4,16 @@
 
 #include <NanoTest/NanoTest.h>
 
-#include <cstdlib>
+#include <eacp/Core/Utils/Environment.h>
 
 using namespace nano;
 using namespace Cows;
 
 namespace
 {
-void setEnv(const char* name, const char* value)
-{
-#if defined(_WIN32)
-    _putenv_s(name, value);
-#else
-    setenv(name, value, 1);
-#endif
-}
-
 void unsetEnv(const char* name)
 {
-#if defined(_WIN32)
-    _putenv_s(name, "");
-#else
-    unsetenv(name);
-#endif
+    setEnv(name, "");
 }
 
 Level levelOf(const Stages& stages, std::uint32_t seed = 3)

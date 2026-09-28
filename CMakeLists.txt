@@ -5,11 +5,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# getenv is the portable call; MSVC deprecates it in favour of _dupenv_s.
-if (MSVC)
-    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-endif ()
-
 if (APPLE)
     enable_language(OBJCXX)
     set(CMAKE_XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME NO)

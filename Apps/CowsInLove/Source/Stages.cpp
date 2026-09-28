@@ -2,8 +2,9 @@
 #include "Levels/LevelGenerator.h"
 #include "Templates.h"
 
+#include <eacp/Core/Utils/Environment.h>
+
 #include <chrono>
-#include <cstdlib>
 
 namespace Cows
 {
@@ -18,12 +19,12 @@ std::uint32_t clockSeed()
 
 int firstStage(int count)
 {
-    auto* fixed = std::getenv("COWS_STAGE");
+    auto fixed = getEnvValue("COWS_STAGE");
 
-    if (fixed == nullptr)
+    if (fixed.empty())
         return 0;
 
-    auto stage = (int) std::strtol(fixed, nullptr, 10);
+    auto stage = std::stoi(fixed);
     return ((stage % count) + count) % count;
 }
 } // namespace
@@ -36,9 +37,8 @@ Stages::Stages()
 
 std::uint32_t Stages::firstSeed() const
 {
-    auto* fixed = std::getenv("COWS_SEED");
-    return fixed != nullptr ? (std::uint32_t) std::strtoul(fixed, nullptr, 10)
-                            : clockSeed();
+    auto fixed = getEnvValue("COWS_SEED");
+    return fixed.empty() ? clockSeed() : (std::uint32_t) std::stoul(fixed);
 }
 
 std::uint32_t Stages::nextSeed() const

@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <eacp/Core/Utils/Environment.h>
 #include <cstdlib>
 
 using namespace Maths;
@@ -138,8 +139,8 @@ std::string directionWord(float ahead, float across)
 
 float startTime()
 {
-    if (auto* start = std::getenv("COWS_TIME"))
-        return std::strtof(start, nullptr);
+    if (auto start = getEnv("COWS_TIME"))
+        return std::stof(*start);
 
     return 0.f;
 }
@@ -163,7 +164,7 @@ CowsView::CowsView()
     , cowParts(makeCowParts())
     , cows(makeCouple())
     , elapsed(startTime())
-    , frozen(std::getenv("COWS_FREEZE") != nullptr)
+    , frozen(!getEnvValue("COWS_FREEZE").empty())
 {
     setSampleCount(msaaSamples);
     setDepth(true);
@@ -198,7 +199,7 @@ CowsView::CowsView()
     camera.yaw = startYaw + game.playerHeading;
     camera.target = game.player + Vec3 {0.f, searchHeight, 0.f};
 
-    if (std::getenv("COWS_FOUND") != nullptr)
+    if (!getEnvValue("COWS_FOUND").empty())
         game.player = game.partner + Vec3 {Ending::foundStartGap, 0.f, 0.f};
 
     setHandlesMouseEvents(true);
