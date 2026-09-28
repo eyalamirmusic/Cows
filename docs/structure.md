@@ -7,7 +7,7 @@ PNGs to `docs/shots/tests/`.
 
 ```
 Lib/cowsinlove_Engine       <- eacp-gpu            Render, Camera, UI, Platform
-Lib/cowsinlove_AudioEngine  <- eacp                sample playback
+Lib/cowsinlove_AudioEngine  <- eacp, MakeASound    sample playback
 Lib/cowsinlove_Actors       <- Engine, AudioEngine Animation, Cow, Props, Sky
 Lib/cowsinlove_World        <- Actors              Level, Terrain, Levels
 Lib/cowsinlove_Game         <- World              Game, Ending, Input, Title
@@ -26,10 +26,11 @@ Lib/
                Palette
     Camera/    OrbitCamera
     UI/        Overlay (footer), TouchControls
-    Platform/  macOS/, iOS/: Platform per platform (iOS: TouchSurface); the
-               current one is on the include path
+    Platform/  macOS/ (also Windows), iOS/: Platform per platform (iOS:
+               TouchSurface); the current one is on the include path
 
-  cowsinlove_AudioEngine/         SamplePlayer: the sample player half of Moo
+  cowsinlove_AudioEngine/         SamplePlayer: the sample player half of Moo;
+                                  output through MakeASound on every platform
 
   cowsinlove_Actors/              a thing in the world: model + behaviour
     Animation/ Choreography: the original's timings (sway, kiss, heartbeat,

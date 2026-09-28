@@ -36,11 +36,13 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     `Platform/iOS/TouchSurface.mm` feeds it multi-touch on iOS
   - `Platform/macOS`, `Platform/iOS` — one `Platform` each, knowing nothing
     about the game: `touch`, and `attach(root, touchControls, footer)` (a no-op on
-    macOS; on iOS the audio session, the touch controls and their touch surface, and the
+    macOS, which Windows uses too; on iOS the audio session, the touch controls and their touch surface, and the
     safe area). CMake puts the current platform's directory on Engine's
     PUBLIC include path, so it is `#include "Platform.h"` and no macros
 - `Lib/cowsinlove_AudioEngine/SamplePlayer` — plays a mono float sample through
-  the output device, mixed as panned, pitched, muffled voices
+  the output device, mixed as panned, pitched, muffled voices; the device is
+  opened with MakeASound (`CMake/FindMakeASound.cmake`, miniaudio underneath),
+  output only, on every platform
 - `Lib/cowsinlove_Actors` — the things in the world, each with its model,
   collision shape and behaviour. Links Engine and AudioEngine.
   - `Animation/Choreography` — every timing of the original (sway/kiss, hops,
@@ -100,6 +102,11 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   platform (the app has no platform directories or branches)
 - `Apps/CowsInLove/Source/Scene/CowsView` — the `GPUView`: gathers instances,
   shadow pass, main pass, camera steering, mouse; forwards keys to `Input`
+- `tools/Art` — `CowsArt`, a macOS tool that renders the icon, key art, logo
+  and store screenshots from the game's own views; `tools/store-art.sh` and
+  `tools/screenshots.sh` drive it. `tools/release-*.sh`, `release-msix.ps1`
+  and `steam-upload.sh` build and package each store; `Deploy/README.md` is
+  the runbook
 - `Tests/Engine`, `Tests/AudioEngine`, `Tests/Actors`, `Tests/World`,
   `Tests/Game` — one NanoTest executable per library, and `Tests/CowsInLove`
   for the app's content; run with `ctest --test-dir build` or `just test`.
