@@ -3,8 +3,10 @@
 # Renders the game's key art with the CowsArt tool (tools/Art) into
 # Deploy/Art/Renders, then cuts every icon and store image from it with
 # ImageMagick: the app icons in Apps/CowsInLove/Resources, the Steam store and
-# library art in Deploy/Steam/Store and the MSIX tiles in
-# Deploy/Microsoft-Store/Assets.
+# library art in Deploy/Steam/Store, the MSIX tiles in
+# Deploy/Microsoft-Store/Assets, the Android adaptive icon in
+# Apps/CowsInLove/Android/res and the Google Play icon and feature graphic in
+# Deploy/Google-Play/Store.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -125,4 +127,38 @@ for size in 16 24 32 48 256; do
         "$msix/Square44x44Logo.targetsize-${size}_altform-unplated.png"
 done
 
-ls -1 "$store" "$resources" "$msix" >&2
+# Android adaptive icon (API 26+, and minSdk is 29, so no legacy PNGs): 108dp
+# layers at five densities. The foreground is the icon framed wider, so the two
+# cows and the hearts sit inside the 66dp safe circle; the background is the
+# sky colour; the monochrome layer (themed icons) is the rising hearts, keyed
+# out of the icon render by colour.
+android=Apps/CowsInLove/Android/res
+magick "$renders/icon.png" -alpha off -crop 1024x540+0+0 +repage \
+    -fx '(r>0.6 && g<0.45 && r-g>0.35) ? 1 : 0' -colorspace gray \
+    -morphology Open Disk:3 -morphology Close Disk:6 -trim +repage \
+    -resize 520x520 -background black -gravity center -extent 1024x1024 \
+    "$work/hearts-mask.png"
+magick -size 1024x1024 xc:white "$work/hearts-mask.png" -alpha off \
+    -compose copy-opacity -composite "$work/monochrome.png"
+
+for density in mdpi:108 hdpi:162 xhdpi:216 xxhdpi:324 xxxhdpi:432; do
+    dir="$android/drawable-${density%%:*}"
+    size="${density##*:}"
+    mkdir -p "$dir"
+    magick "$renders/icon-adaptive.png" -resize "${size}x${size}" -alpha off \
+        -strip "PNG24:$dir/ic_launcher_foreground.png"
+    magick "$work/monochrome.png" -resize "${size}x${size}" -strip \
+        "PNG32:$dir/ic_launcher_monochrome.png"
+done
+
+# Google Play listing: the 512 hi-res icon (32-bit PNG, opaque; Play rounds
+# the corners) and the 1024x500 feature graphic (no alpha).
+play=Deploy/Google-Play/Store
+mkdir -p "$play"
+magick "$renders/icon.png" -resize 512x512 -background white -alpha remove \
+    -strip "PNG32:$play/icon_512.png"
+capsule "$wide" 1024 500 center 72 6 "$work/feature.png"
+magick "$work/feature.png" -background white -alpha remove -alpha off \
+    "PNG24:$play/feature_graphic_1024x500.png"
+
+ls -1 "$store" "$resources" "$msix" "$android" "$play" >&2
