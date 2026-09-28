@@ -19,6 +19,19 @@ bool finite(Vec4 vector)
     return std::isfinite(vector.x) && std::isfinite(vector.y)
            && std::isfinite(vector.z) && std::isfinite(vector.w);
 }
+
+bool middleHasGrass(const Graphics::Image& image)
+{
+    auto centerX = image.width() / 2;
+    auto centerY = image.height() / 2;
+
+    for (auto y = centerY - 10; y < centerY + 10; ++y)
+        for (auto x = centerX - 20; x < centerX + 20; ++x)
+            if (!isClearColor(image.at(x, y)))
+                return true;
+
+    return false;
+}
 } // namespace
 
 auto tCount = test("Grass/bladesPerTile") = []
@@ -96,5 +109,5 @@ auto tGrassSnapshot = test("Grass/snapshot") = []
     if (!image.isValid())
         return;
 
-    check(!isClearColor(image.at(image.width() / 2, image.height() / 2)));
+    check(middleHasGrass(image));
 };

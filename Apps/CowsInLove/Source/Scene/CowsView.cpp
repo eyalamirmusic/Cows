@@ -359,12 +359,12 @@ void CowsView::addAnswerFlare()
     auto fade = 1.f - since / flareTime;
     auto color = Palette::linear(Palette::heart) * (0.9f * fade);
 
-    for (auto heart = 0; heart < flareHearts; ++heart)
+    for (auto flare = 0; flare < flareHearts; ++flare)
     {
         auto lift =
-            flareHeight * (since / flareTime) * (1.f - 0.12f * (float) heart);
+            flareHeight * (since / flareTime) * (1.f - 0.12f * (float) flare);
         auto at = game.partner + Vec3 {0.f, 2.5f + lift, 0.f};
-        glows.add(makeGlow(at, 2.4f - 0.2f * (float) heart, color));
+        glows.add(makeGlow(at, 2.4f - 0.2f * (float) flare, color));
     }
 }
 

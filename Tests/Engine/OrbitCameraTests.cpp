@@ -10,9 +10,9 @@ using namespace Maths;
 
 namespace
 {
-bool near(float a, float b, float tolerance = 1e-4f)
+bool near(float a, float b, float margin = 1e-4f)
 {
-    return std::abs(a - b) <= tolerance;
+    return std::abs(a - b) <= margin;
 }
 } // namespace
 

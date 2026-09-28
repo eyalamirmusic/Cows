@@ -14,9 +14,9 @@ constexpr auto walkSpeed = 7.f;
 constexpr auto turnSpeed = 2.4f;
 constexpr auto frame = 0.01f;
 
-bool near(float a, float b, float tolerance = 1e-3f)
+bool near(float a, float b, float margin = 1e-3f)
 {
-    return std::abs(a - b) < tolerance;
+    return std::abs(a - b) < margin;
 }
 
 Game openField()

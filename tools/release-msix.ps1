@@ -67,6 +67,10 @@ Copy-Item -Recurse 'Deploy\Microsoft-Store\Assets' (Join-Path $layout 'Assets')
 $config = Join-Path $out 'priconfig.xml'
 & $makepri createconfig /cf $config /dq en-US /pv 10.0.0 /o | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'makepri createconfig failed' }
+# One .msix, not a bundle: keep every scale in resources.pri rather than
+# splitting resource packs that nothing installs.
+(Get-Content $config -Raw) -replace '(?s)\s*<packaging>.*?</packaging>', '' |
+    Set-Content -Encoding UTF8 $config
 & $makepri new /pr $layout /cf $config /mn (Join-Path $layout 'AppxManifest.xml') `
     /of (Join-Path $layout 'resources.pri') /o
 if ($LASTEXITCODE -ne 0) { throw 'makepri failed' }
