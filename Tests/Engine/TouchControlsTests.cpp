@@ -17,21 +17,32 @@ struct Phone final
 {
     Phone()
     {
-        controls.onJump = [this] { ++jumps; };
-        controls.onMoo = [this] { ++moos; };
-        controls.onRestart = [this] { ++restarts; };
-        controls.onStick = [this](float ahead, float turn)
+        controls.onControl = [this](const ControlEvent& event)
         {
-            stickAhead = ahead;
-            stickTurn = turn;
+            switch (event.kind)
+            {
+                case ControlEvent::Kind::Steer:
+                    stickAhead = event.x;
+                    stickTurn = event.y;
+                    break;
+                case ControlEvent::Kind::Jump:
+                    ++jumps;
+                    break;
+                case ControlEvent::Kind::Moo:
+                    ++moos;
+                    break;
+                case ControlEvent::Kind::Restart:
+                    ++restarts;
+                    break;
+                case ControlEvent::Kind::Look:
+                    lookX = event.x;
+                    lookY = event.y;
+                    break;
+                case ControlEvent::Kind::Zoom:
+                    zoom = event.x;
+                    break;
+            }
         };
-        controls.onLook = [this](float x, float y)
-        {
-            lookX = x;
-            lookY = y;
-        };
-        controls.onZoom = [this](float amount) { zoom = amount; };
-        controls.found = [this] { return found; };
         controls.setBounds({0.f, 0.f, 400.f, 800.f});
 
         // Off-screen, setBounds does not lay the view out; do it here.
@@ -39,7 +50,6 @@ struct Phone final
     }
 
     TouchControls controls;
-    bool found = false;
     int jumps = 0;
     int moos = 0;
     int restarts = 0;
@@ -75,7 +85,7 @@ auto tRoleAt = test("TouchControls/roleAt") = []
 auto tRoleAtOnceFound = test("TouchControls/roleAtOnceFound") = []
 {
     auto phone = Phone {};
-    phone.found = true;
+    phone.controls.showAgain = true;
     const auto& controls = phone.controls;
 
     check(controls.roleAt(controls.jumpCenter) == Role::Again);
@@ -107,7 +117,7 @@ auto tButtonsFireOnDown = test("TouchControls/buttonsFireOnDown") = []
 auto tAgainRestarts = test("TouchControls/againRestarts") = []
 {
     auto phone = Phone {};
-    phone.found = true;
+    phone.controls.showAgain = true;
 
     phone.controls.pointerDown(1, phone.controls.jumpCenter);
 

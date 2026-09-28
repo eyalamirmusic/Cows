@@ -12,7 +12,9 @@ struct Platform final
 {
     static constexpr auto touch = true;
 
-    void attach(Graphics::View& root, TouchControls& hud, FooterView& footer);
+    void attach(Graphics::View& root,
+                TouchControls& touchControls,
+                FooterView& footer);
 
     std::unique_ptr<TouchSurface> surface;
 };

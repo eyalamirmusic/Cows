@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Render/Common.h"
+#include "UI/ControlEvent.h"
 
 #include <functional>
 
@@ -57,16 +58,9 @@ struct TouchControls final : Graphics::View
                     const std::string& label,
                     bool down);
 
-    std::function<bool()> found = [] { return false; };
-    std::function<void(float ahead, float turn)> onStick = [](float, float) {};
-    std::function<void()> onJump = [] {};
-    std::function<void()> onMoo = [] {};
-    std::function<void()> onRestart = [] {};
-    std::function<void(float x, float y)> onLook = [](float, float) {};
-    std::function<void(float amount)> onZoom = [](float) {};
-    std::function<void(const Graphics::MouseEvent&)> onWheel =
-        [](const Graphics::MouseEvent&) {};
+    std::function<void(const ControlEvent&)> onControl = [](const ControlEvent&) {};
 
+    bool showAgain = false;
     Graphics::Insets safeArea;
     Vector<Pointer> pointers;
     Graphics::Point stickHome;

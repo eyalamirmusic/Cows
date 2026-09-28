@@ -94,7 +94,7 @@ TouchControls::Role TouchControls::roleAt(Point position) const
     auto bounds = getLocalBounds();
     auto onJump = distance(position, jumpCenter) < jumpRadius + touchSlop;
 
-    if (found())
+    if (showAgain)
         return onJump ? Role::Again : Role::Look;
 
     if (onJump)
@@ -150,13 +150,13 @@ void TouchControls::pointerDown(int id, Point position)
             stickCenter = knob = position;
             break;
         case Role::Jump:
-            onJump();
+            onControl({ControlEvent::Kind::Jump});
             break;
         case Role::Moo:
-            onMoo();
+            onControl({ControlEvent::Kind::Moo});
             break;
         case Role::Again:
-            onRestart();
+            onControl({ControlEvent::Kind::Restart});
             break;
         case Role::Look:
             break;
@@ -181,12 +181,13 @@ void TouchControls::pointerMoved(int id, Point position)
             auto before = distance(pointer->position, other->position);
             auto after = distance(position, other->position);
             if (before > 1.f && after > 1.f)
-                onZoom(std::log(after / before));
+                onControl({ControlEvent::Kind::Zoom, std::log(after / before)});
         }
         else
         {
-            onLook(position.x - pointer->position.x,
-                   position.y - pointer->position.y);
+            onControl({ControlEvent::Kind::Look,
+                       position.x - pointer->position.x,
+                       position.y - pointer->position.y});
         }
     }
 
@@ -217,19 +218,21 @@ void TouchControls::moveStick(Point position)
         offset = {offset.x * ringRadius / reach, offset.y * ringRadius / reach};
 
     knob = stickCenter + offset;
-    onStick(shaped(-offset.y / ringRadius), shaped(-offset.x / ringRadius));
+    onControl({ControlEvent::Kind::Steer,
+               shaped(-offset.y / ringRadius),
+               shaped(-offset.x / ringRadius)});
     repaint();
 }
 
 void TouchControls::releaseStick()
 {
     stickCenter = knob = stickHome;
-    onStick(0.f, 0.f);
+    onControl({ControlEvent::Kind::Steer});
 }
 
 void TouchControls::paint(Graphics::Context& g)
 {
-    if (found())
+    if (showAgain)
     {
         drawButton(g, jumpCenter, jumpRadius, "Again", pressed(Role::Again));
         return;
@@ -294,6 +297,6 @@ void TouchControls::mouseUp(const Graphics::MouseEvent&)
 
 void TouchControls::mouseWheel(const Graphics::MouseEvent& event)
 {
-    onWheel(event);
+    onControl({ControlEvent::Kind::Zoom, wheelZoom(event)});
 }
 } // namespace Cows

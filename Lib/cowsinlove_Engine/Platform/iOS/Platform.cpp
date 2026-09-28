@@ -2,18 +2,20 @@
 
 namespace Cows
 {
-void Platform::attach(Graphics::View& root, TouchControls& hud, FooterView& footer)
+void Platform::attach(Graphics::View& root,
+                      TouchControls& touchControls,
+                      FooterView& footer)
 {
     setUpAudioSession();
     makeSeeThrough(footer);
-    makeSeeThrough(hud);
-    root.addSubview(hud);
+    makeSeeThrough(touchControls);
+    root.addSubview(touchControls);
 
-    surface = std::make_unique<TouchSurface>(root, hud);
-    surface->onSafeAreaChanged = [&footer, &hud](Graphics::Insets insets)
+    surface = std::make_unique<TouchSurface>(root, touchControls);
+    surface->onSafeAreaChanged = [&footer, &touchControls](Graphics::Insets insets)
     {
-        hud.safeArea = insets;
-        hud.resized();
+        touchControls.safeArea = insets;
+        touchControls.resized();
         footer.bottomInset = insets.bottom;
         footer.repaint();
     };

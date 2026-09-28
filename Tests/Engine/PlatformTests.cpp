@@ -11,14 +11,14 @@ auto tPlatformHasNoTouch =
 auto tPlatformAttachAddsNoSubview = test("Platform/attachAddsNoSubview") = []
 {
     auto root = RootView {};
-    auto hud = TouchControls {};
+    auto touchControls = TouchControls {};
     auto footer = FooterView {};
     root.addSubview(footer);
 
     auto before = root.getSubviews().size();
     auto platform = Cows::Platform {};
-    platform.attach(root, hud, footer);
+    platform.attach(root, touchControls, footer);
 
     check(root.getSubviews().size() == before);
-    check(hud.getParent() == nullptr);
+    check(touchControls.getParent() == nullptr);
 };

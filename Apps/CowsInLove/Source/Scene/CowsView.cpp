@@ -18,8 +18,6 @@ namespace
 constexpr auto msaaSamples = 4;
 constexpr auto groundSize = 600.f;
 constexpr auto orbitSpeed = 0.006f;
-constexpr auto lineZoom = 0.1f;
-constexpr auto preciseZoom = 0.01f;
 
 constexpr auto searchHeight = 2.2f;
 constexpr auto startYaw = -halfPi;
@@ -291,9 +289,29 @@ void CowsView::keyUp(const Graphics::KeyEvent& event)
     input.setHeld(event.keyCode, false);
 }
 
-void CowsView::look(float horizontal, float vertical)
+void CowsView::control(const ControlEvent& event)
 {
-    camera.orbit(horizontal * orbitSpeed, vertical * orbitSpeed);
+    switch (event.kind)
+    {
+        case ControlEvent::Kind::Steer:
+            input.setStick(event.x, event.y);
+            break;
+        case ControlEvent::Kind::Jump:
+            input.jump();
+            break;
+        case ControlEvent::Kind::Moo:
+            callOut();
+            break;
+        case ControlEvent::Kind::Restart:
+            restart();
+            break;
+        case ControlEvent::Kind::Look:
+            camera.orbit(event.x * orbitSpeed, event.y * orbitSpeed);
+            break;
+        case ControlEvent::Kind::Zoom:
+            camera.zoom(event.x);
+            break;
+    }
 }
 
 void CowsView::callOut()
@@ -421,8 +439,7 @@ void CowsView::mouseDragged(const Graphics::MouseEvent& event)
 
 void CowsView::mouseWheel(const Graphics::MouseEvent& event)
 {
-    auto scale = event.preciseScrolling ? preciseZoom : lineZoom;
-    camera.zoom(event.delta.y * scale);
+    camera.zoom(wheelZoom(event));
 }
 
 void CowsView::gatherInstances(float seconds)

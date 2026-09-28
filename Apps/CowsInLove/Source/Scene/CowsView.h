@@ -13,6 +13,7 @@
 #include "Camera/OrbitCamera.h"
 #include "Render/ShadowMap.h"
 #include "Render/Shaders.h"
+#include "UI/ControlEvent.h"
 
 #include <functional>
 #include <string>
@@ -33,7 +34,7 @@ struct CowsView final : GPUView
     void keyDown(const Graphics::KeyEvent& event) override;
     void keyUp(const Graphics::KeyEvent& event) override;
 
-    void look(float horizontal, float vertical);
+    void control(const ControlEvent& event);
     void returnKeyFocus();
     void restart();
     void callOut();

@@ -31,10 +31,12 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `Camera/OrbitCamera` — drag to orbit, scroll to zoom, idle drift
   - `UI/Overlay` — footer text, and q / Esc to quit
   - `UI/TouchControls` — on-screen stick, Moo / Jump / Again, drag to look,
-    pinch to zoom; `Platform/iOS/TouchSurface.mm` feeds it multi-touch on iOS
+    pinch to zoom; reports everything through one `onControl` callback as a
+    `ControlEvent` (`UI/ControlEvent.h`), and shows Again when `showAgain`;
+    `Platform/iOS/TouchSurface.mm` feeds it multi-touch on iOS
   - `Platform/macOS`, `Platform/iOS` — one `Platform` each, knowing nothing
-    about the game: `touch`, and `attach(root, hud, footer)` (a no-op on
-    macOS; on iOS the audio session, the HUD and its touch surface, and the
+    about the game: `touch`, and `attach(root, touchControls, footer)` (a no-op on
+    macOS; on iOS the audio session, the touch controls and their touch surface, and the
     safe area). CMake puts the current platform's directory on Engine's
     PUBLIC include path, so it is `#include "Platform.h"` and no macros
 - `Lib/cowsinlove_AudioEngine/SamplePlayer` — plays a mono float sample through
@@ -75,7 +77,7 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
 - `Apps/CowsInLove/Source/Stages` — the content: which level generator each
   round plays (`makeMeadow`) and where the seed comes from (`COWS_SEED`, else
   the clock)
-- `Apps/CowsInLove/Source/CowsApp` — the window: scene, footer, touch HUD,
+- `Apps/CowsInLove/Source/CowsApp` — the window: scene, footer, touch controls,
   root view; wires them the same on every platform and ends by attaching the
   platform (the app has no platform directories or branches)
 - `Apps/CowsInLove/Source/Scene/CowsView` — the `GPUView`: gathers instances,
