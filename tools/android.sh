@@ -5,7 +5,8 @@
 #
 # Needs the Android SDK at $ANDROID_HOME (default ~/Library/Android/sdk) with
 # NDK r27, build-tools 35 and platform 35, and eacp's android-mvp branch:
-# EACP=<path> (default ~/projects/eacp-android) builds against that checkout.
+# EACP=<path> (default ~/projects/eacp-android) builds against that checkout,
+# or, when it is absent, fetches jamierpond/eacp@android-mvp through CPM.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -20,11 +21,15 @@ adb="$sdk/platform-tools/adb"
 build=build-android
 
 build() {
+    local eacp_args=(-DCPM_eacp_SOURCE="$eacp")
+    [[ -d $eacp ]] || eacp_args=(-DCOWS_EACP_REPOSITORY=jamierpond/eacp
+                                 -DCOWS_EACP_TAG=android-mvp)
+
     if [[ ! -f $build/CMakeCache.txt ]]; then
         cmake -G Ninja -B $build -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_TOOLCHAIN_FILE="$ndk/build/cmake/android.toolchain.cmake" \
             -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-33 \
-            -DCPM_eacp_SOURCE="$eacp" -DCOWS_BUILD_TESTS=OFF
+            "${eacp_args[@]}" -DCOWS_BUILD_TESTS=OFF
     fi
     cmake --build $build --target Cows-apk
 }
