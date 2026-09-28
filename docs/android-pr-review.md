@@ -12,6 +12,23 @@ build and run it with one command.
 
 ## Verdict
 
+**Update (2026-09-28, after the rebase): items 4 and 8 are done.**
+`android-mvp` is rebased onto `upstream/develop` (19 commits, head
+`61335b26`, pushed). The conflicts (Core/CMakeLists, View-Linux.h,
+FindVulkanBackend, GPUView-Linux, VulkanContext-Linux, README, CLAUDE.md,
+top-level CMakeLists) were resolved to develop's structure. Android now
+presents through `NativeSurfaceHandle::Kind::Android` and a
+`ViewSurfaceBackend` under the shared `View-Linux.cpp`, so `View-Android.cpp`
+is gone. `EventLoop-Android.cpp` is only the ALooper wait under the shared
+epoll loop. The Vulkan surface code is split into `VulkanSurface-Linux.cpp`
+and `VulkanSurface-Android.cpp`. `OS::Android`/`isAndroid()` exist.
+`FilePath-Android.cpp` replaces the `$HOME`/XDG trick. Below API 34,
+`Process` fails the launch rather than ignoring `workingDirectory`. No
+`__ANDROID__` is left outside `Platform.h` and `-Android` files. The macOS
+ctest failures match plain develop (`DynamicLibrary/unloadWithNoLoop`
+fails on both). HelloGPU and Cows run on the emulator. The original review
+follows.
+
 **Mergeable after fixes, as one PR.** The code is in good shape. It is
 clang-format clean, builds with zero warnings, has fewer comments than the
 existing Linux files, and uses the platform text engine (android.graphics over

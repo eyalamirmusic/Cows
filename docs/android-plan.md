@@ -247,6 +247,15 @@ rebuilt), back quits. Dragging the stick in Release: before (CPU HUD texture)
 CPU a frame — what is left of the dip is the scene while walking, not the
 HUD. Shots: `docs/shots/hud-gpu-android.png`, `hud-gpu-ios.png`,
 `hud-gpu-macos.png`.
+**eacp `android-mvp` is rebased onto `upstream/develop`** (61335b26): Android
+uses develop's `NativeSurfaceHandle::Kind::Android` and `ViewSurfaceBackend`
+under the shared `View-Linux.cpp`, and the Linux epoll loop waiting in the
+ALooper; no `__ANDROID__` is left outside `Platform.h` and `-Android` files.
+Cows needed no change. Develop prints shader float literals exactly now
+(`%g` gave 6 digits), so `hashOf`'s `43758.547f` is no longer `43758.5` and
+the cow's spots and grass pattern differ from the old shots on every platform;
+`43758.5f` in `Shading.cpp` brings the old look back. Shots:
+`docs/shots/android-rebased.png`, `ios-rebased.png`, `macos-rebased.png`.
 Screenshots: `docs/shots/android-mvp.png` (eacp Hello: Vulkan clear following
 the finger; now `android-hello.png`, HelloGPU), `docs/shots/android-cows.png` (the game). `docs/shots` is
 gitignored, as for the other shots.
