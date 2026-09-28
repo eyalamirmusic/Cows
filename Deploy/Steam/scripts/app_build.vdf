@@ -1,0 +1,13 @@
+"AppBuild"
+{
+	"AppID" "@APP_ID@"
+	"Desc" "Cows In Love @VERSION@"
+	"ContentRoot" "@CONTENT@"
+	"BuildOutput" "@OUTPUT@"
+	"SetLive" "@BRANCH@"
+	"Depots"
+	{
+		"@DEPOT_WINDOWS@" "depot_build_windows.vdf"
+		"@DEPOT_MACOS@" "depot_build_macos.vdf"
+	}
+}

@@ -28,3 +28,31 @@ devices:
 test:
     cmake --build build
     ctest --test-dir build --output-on-failure
+
+# Render the icons and store art (Deploy/Art, Deploy/Steam/Store, app icons).
+store-art:
+    tools/store-art.sh
+
+# Render the Steam and App Store screenshots.
+screenshots:
+    tools/screenshots.sh
+
+# Universal macOS build, Developer ID signed and notarized, staged for Steam.
+release-macos:
+    tools/release-macos.sh
+
+# App Store archive and export (COWS_TEAM; --upload sends it to App Store Connect).
+release-ios *args:
+    tools/release-ios.sh {{args}}
+
+# Windows x64 Release build on the Windows box, staged for Steam.
+release-windows:
+    tools/release-windows.sh
+
+# Upload the staged Windows and macOS depots to Steam with steamcmd.
+steam-upload:
+    tools/steam-upload.sh
+
+# Mac App Store archive and export (COWS_TEAM; --upload sends it to App Store Connect).
+release-mas *args:
+    tools/release-mas.sh {{args}}

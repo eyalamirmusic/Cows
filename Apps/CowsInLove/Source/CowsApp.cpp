@@ -11,7 +11,7 @@ Graphics::WindowOptions windowOptions()
     options.height = 800;
     options.minWidth = 640;
     options.minHeight = 400;
-    options.title = "Cows in Love";
+    options.title = "Cows In Love";
     return options;
 }
 } // namespace

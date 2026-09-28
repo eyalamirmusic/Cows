@@ -7,7 +7,7 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 
-bundle_id="com.tamber.cows"
+bundle_id="${COWS_BUNDLE_ID:-com.cowsinlove.cows}"
 sim_name="Cows iPhone"
 sim_type="iPhone 17"
 sim_runtime="com.apple.CoreSimulator.SimRuntime.iOS-26-5"

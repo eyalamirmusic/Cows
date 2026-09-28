@@ -20,3 +20,11 @@ xcuserdata
 *.DS_Store
 docs/shots
 docs/shots
+
+# Release outputs
+Deploy/Apple-iOS/out
+Deploy/Steam/content
+Deploy/Steam/output
+Deploy/Art/Renders
+Deploy/Apple-macOS/out
+Deploy/Microsoft-Store/out
