@@ -10,6 +10,11 @@ the current conversation.
 
 ## Project Overview
 
+Cows In Love exists to stress-test [eacp](https://github.com/eyalamirmusic/eacp),
+our app framework: can we make awesome 3D games with eacp and ship them on every
+serious platform (macOS, Windows, iOS, Android, Steam, the app stores)? Every
+gap it exposes is an eacp fix first and a workaround second.
+
 Cows is a 3D GPU recreation of the "cows in love" terminal animation
 (`ssh ssh.cowsinlove.com`), built on [eacp](https://github.com/eyalamirmusic/eacp)
 and its shader EDSL. Game-independent code lives in static libraries under
