@@ -2,10 +2,11 @@
 
 #include <eacp/Core/Utils/Containers.h>
 
-#include <AudioToolbox/AudioToolbox.h>
+#include <MakeASound/MakeASound.h>
 
 #include <cstddef>
 #include <initializer_list>
+#include <mutex>
 
 namespace Cows
 {
@@ -27,7 +28,8 @@ void addVoice(float* samples,
               const SampleVoice& voice);
 
 // A mono float sample played through the output device, once per voice, in a
-// buffer long enough for `longestSeconds` of sound.
+// buffer long enough for `longestSeconds` of sound. With no device it stays
+// silent.
 struct SamplePlayer final
 {
     static constexpr auto sampleRate = 44100.0;
@@ -43,8 +45,14 @@ struct SamplePlayer final
     void play(const eacp::Vector<float>& sample,
               std::initializer_list<SampleVoice> voices);
 
-    UInt32 bytes = 0;
-    AudioQueueRef queue = nullptr;
-    AudioQueueBufferRef buffer = nullptr;
+    // Fills the device's block from the mix, silence when there is none.
+    void render(MakeASound::AudioCallbackInfo& info);
+
+    std::mutex mutex;
+    eacp::Vector<float> mix;
+    std::size_t usedFrames = 0;
+    std::size_t playedFrames = 0;
+    MakeASound::DeviceManager device;
+    bool open = false;
 };
 } // namespace Cows

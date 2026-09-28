@@ -28,26 +28,17 @@ float sampleAt(const Vector<float>& moo, float position)
     return moo[index] + (moo[index + 1] - moo[index]) * fraction;
 }
 
-void finished(void*, AudioQueueRef, AudioQueueBufferRef) {}
-
-AudioStreamBasicDescription stereoFloat()
+std::size_t mixFrames(float longestSeconds)
 {
-    auto format = AudioStreamBasicDescription {};
-    format.mSampleRate = sampleRate;
-    format.mFormatID = kAudioFormatLinearPCM;
-    format.mFormatFlags = kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked;
-    format.mChannelsPerFrame = channels;
-    format.mBitsPerChannel = 32;
-    format.mBytesPerFrame = channels * sizeof(float);
-    format.mFramesPerPacket = 1;
-    format.mBytesPerPacket = format.mBytesPerFrame;
-    return format;
+    return (std::size_t) (longestSeconds * (float) sampleRate);
 }
 
-UInt32 bufferBytes(float longestSeconds)
+MakeASound::SessionConfig ambientSession()
 {
-    return (UInt32) ((std::size_t) (longestSeconds * (float) sampleRate) * channels
-                     * sizeof(float));
+    auto session = MakeASound::SessionConfig {};
+    session.category = MakeASound::SessionCategory::Ambient;
+    session.options.mixWithOthers = true;
+    return session;
 }
 } // namespace
 
@@ -76,52 +67,75 @@ void addVoice(float* samples,
 }
 
 SamplePlayer::SamplePlayer(float longestSeconds)
-    : bytes(bufferBytes(longestSeconds))
 {
-    auto format = stereoFloat();
+    mix.resize((int) (mixFrames(longestSeconds) * channels));
 
-    if (AudioQueueNewOutput(&format, finished, nullptr, nullptr, nullptr, 0, &queue)
-        != noErr)
-    {
-        queue = nullptr;
+    auto config = device.getDefaultOutputConfig();
+
+    if (!config.output)
         return;
-    }
 
-    if (AudioQueueAllocateBuffer(queue, bytes, &buffer) != noErr)
-        buffer = nullptr;
+    config.sampleRate = (int) sampleRate;
+    device.setSessionConfig(ambientSession());
+    open = device.start(
+               config, [this](MakeASound::AudioCallbackInfo& info) { render(info); })
+           == MakeASound::Error::NoError;
 }
 
 SamplePlayer::~SamplePlayer()
 {
-    if (queue != nullptr)
-        AudioQueueDispose(queue, true);
+    device.stop();
+}
+
+void SamplePlayer::render(MakeASound::AudioCallbackInfo& info)
+{
+    auto output = info.getOutput();
+
+    for (auto channel: output)
+        channel.fill(0.f);
+
+    auto lock = std::unique_lock {mutex, std::try_to_lock};
+
+    if (!lock.owns_lock() || playedFrames >= usedFrames)
+        return;
+
+    auto frames = std::min((std::size_t) info.numSamples, usedFrames - playedFrames);
+    auto outputs = output.getNumChannels();
+
+    for (auto index = 0; index < outputs; ++index)
+    {
+        auto channel = output.getChannel(index);
+        auto source = std::min(index, channels - 1);
+
+        for (std::size_t frame = 0; frame < frames; ++frame)
+            channel[(int) frame] = mix[(int) ((playedFrames + frame) * channels
+                                              + (std::size_t) source)];
+    }
+
+    playedFrames += frames;
 }
 
 void SamplePlayer::play(const Vector<float>& sample,
                         std::initializer_list<SampleVoice> voices)
 {
-    if (queue == nullptr || buffer == nullptr || sample.empty())
+    if (sample.empty())
         return;
 
-    AudioQueueStop(queue, true);
-
-    auto frameCount = (std::size_t) bytes / (channels * sizeof(float));
-    auto* samples = (float*) buffer->mAudioData;
-    std::fill(samples, samples + frameCount * channels, 0.f);
+    auto lock = std::lock_guard {mutex};
+    auto frameCount = (std::size_t) mix.size() / channels;
+    std::fill(mix.begin(), mix.end(), 0.f);
 
     auto end = 0.f;
 
     for (const auto& voice: voices)
     {
-        addVoice(samples, frameCount, sample, voice);
+        addVoice(mix.data(), frameCount, sample, voice);
         end = std::max(
             end,
             voice.start + (float) sample.size() / voice.pitch / (float) sampleRate);
     }
 
-    auto usedFrames = std::min(frameCount, (std::size_t) (end * sampleRate));
-    buffer->mAudioDataByteSize = (UInt32) (usedFrames * channels * sizeof(float));
-    AudioQueueEnqueueBuffer(queue, buffer, 0, nullptr);
-    AudioQueueStart(queue, nullptr);
+    usedFrames = std::min(frameCount, (std::size_t) (end * sampleRate));
+    playedFrames = 0;
 }
 } // namespace Cows

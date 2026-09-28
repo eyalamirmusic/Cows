@@ -3,6 +3,8 @@
 #include <NanoTest/NanoTest.h>
 
 #include <algorithm>
+#include <chrono>
+#include <thread>
 #include <vector>
 
 using namespace nano;
@@ -108,23 +110,66 @@ auto tBufferHoldsLongestSound = test("SamplePlayer/bufferHoldsLongestSound") = [
 {
     auto player = SamplePlayer {2.f};
 
-    check(player.bytes
-          == (UInt32) (2 * (std::size_t) SamplePlayer::sampleRate * channels
-                       * sizeof(float)));
-
-    if (player.buffer != nullptr)
-        check(player.buffer->mAudioDataBytesCapacity >= player.bytes);
+    check((std::size_t) player.mix.size()
+          == 2 * (std::size_t) SamplePlayer::sampleRate * channels);
 };
 
 auto tEmptySampleIsANoOp = test("SamplePlayer/emptySampleIsANoOp") = []
 {
     auto player = SamplePlayer {1.f};
 
-    if (player.buffer == nullptr)
-        return;
-
-    player.buffer->mAudioDataByteSize = 0;
     player.play({}, {{0.f, 1.f, 1.f, 0.f, 0.f}});
 
-    check(player.buffer->mAudioDataByteSize == 0);
+    check(player.usedFrames == 0);
+};
+
+auto tPlayMixesUpToTheLastVoice = test("SamplePlayer/playMixesUpToTheLastVoice") = []
+{
+    auto player = SamplePlayer {1.f};
+
+    player.play(constant(441, 1.f),
+                {{0.f, 1.f, 1.f, 0.f, 0.f}, {0.1f, 1.f, 1.f, 0.f, 0.f}});
+
+    check(player.usedFrames >= 4850 && player.usedFrames <= 4851);
+    check(player.mix[4849 * (int) channels] > 0.f);
+};
+
+auto tRenderPlaysTheMixOnce = test("SamplePlayer/renderPlaysTheMixOnce") = []
+{
+    auto player = SamplePlayer {1.f};
+    player.device.stop();
+    player.play(constant(441, 1.f), {{0.f, 1.f, 1.f, -1.f, 0.f}});
+
+    auto block = std::vector<float>(2 * 512, -1.f);
+    auto info = MakeASound::AudioCallbackInfo {};
+    info.outputBuffer = block.data();
+    info.numOutputs = 2;
+    info.numSamples = 512;
+
+    player.render(info);
+
+    check(block[100] > 0.f);
+    check(block[512 + 100] == 0.f);
+    check(block[511] == 0.f);
+    check(player.playedFrames == player.usedFrames);
+
+    player.render(info);
+    check(std::all_of(block.begin(), block.end(), [](float s) { return s == 0.f; }));
+};
+
+auto tDevicePullsTheMix = test("SamplePlayer/devicePullsTheMix") = []
+{
+    auto player = SamplePlayer {1.f};
+
+    if (!player.open)
+        return;
+
+    player.play(constant(4410, 0.f), {{0.f, 1.f, 1.f, 0.f, 0.f}});
+
+    for (auto wait = 0; wait < 100 && player.playedFrames < player.usedFrames;
+         ++wait)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    auto lock = std::lock_guard {player.mutex};
+    check(player.playedFrames == player.usedFrames);
 };
