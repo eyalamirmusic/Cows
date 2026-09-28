@@ -152,7 +152,9 @@ regression, not a port. A platform without a glyph rasteriser gets a
 `GlyphRasterizer-<Platform>` in eacp over the platform's own text engine
 (CoreText, DirectWrite, `android.graphics` over JNI), not a new dependency such
 as FreeType. Gaps found this way are eacp fixes first; a Cows-side workaround is
-the last resort and is called out as one.
+the last resort and is called out as one. This is today's position, not
+dogma: eacp may grow a CPU tier one day, but for now `GPUView` is the way
+because it performs better and ports further.
 
 ## Code Style
 
