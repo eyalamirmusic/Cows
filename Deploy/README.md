@@ -189,7 +189,7 @@ COWS_ANDROID_KEYSTORE=~/keys/cows-upload.jks COWS_ANDROID_KEY_ALIAS=upload \
 COWS_ANDROID_KEYSTORE_PASSWORD=<password> COWS_BUILD_NUMBER=<n> \
     just release-android
 ```
-This builds Release `libCows.so` for arm64-v8a and x86_64 (minSdk 29, 16 KB
+This builds Release `libCows.so` for arm64-v8a and x86_64 (minSdk 33, 16 KB
 pages, stripped; the symbol tables go into the bundle for Play's native crash
 reports), links the manifest and resources with `aapt2 --proto-format`,
 packages them with `bundletool` 1.18.3 (downloaded once into
@@ -212,7 +212,7 @@ timestamp: that is normal for an upload key.
 Checked on this Mac with a throwaway upload key: the bundle builds (11 MB,
 both ABIs), validates, installs through `--local-testing` on the `cows`
 emulator and runs (`docs/shots/play-aab.png`); the generated APKs pass
-`zipalign -c -P 16` and `aapt2 dump badging` shows minSdk 29, targetSdk 35,
+`zipalign -c -P 16` and `aapt2 dump badging` shows minSdk 33, targetSdk 35,
 isGame, no permissions.
 
 ## Microsoft Store (MSIX)

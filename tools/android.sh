@@ -34,7 +34,7 @@ build() {
     if [[ ! -f $build/CMakeCache.txt ]]; then
         cmake -G Ninja -B $build -DCMAKE_BUILD_TYPE="$config" \
             -DCMAKE_TOOLCHAIN_FILE="$ndk/build/cmake/android.toolchain.cmake" \
-            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-29 \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-33 \
             "${eacp_args[@]}" -DCOWS_BUILD_TESTS=OFF
     fi
     cmake --build $build --target Cows-apk

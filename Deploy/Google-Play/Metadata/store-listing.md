@@ -133,7 +133,7 @@ none.
   manifest), so Play only offers the app to devices whose GPU driver reports
   1.3: most phones from 2022 on (Android 13+ flagships and mid-range Adreno
   7xx, Mali-G7xx, Pixel). Older phones see "not compatible" in Play.
-- Android 10 (API 29) and later, arm64-v8a and x86_64 (Chromebooks, emulators).
+- Android 13 (API 33) and later, arm64-v8a and x86_64 (Chromebooks, emulators).
 - Portrait only. Phones and tablets: the game lays itself out for any
   portrait screen, so tablets are supported and the tablet screenshots are
   provided.

@@ -273,7 +273,7 @@ gitignored, as for the other shots.
 
 `just sim-android [shot.png]` (= `tools/android.sh sim`): configures
 `build-android/` against `EACP=~/projects/eacp-android` (NDK, arm64-v8a,
-android-29), builds `Cows-apk`, boots the `cows` AVD if nothing is attached,
+android-33), builds `Cows-apk`, boots the `cows` AVD if nothing is attached,
 installs and launches `com.cowsinlove.cows`. It builds Release into
 `build-android-release/` by default; `COWS_CONFIG=Debug` builds `build-android/`
 (-O0; slower, but the HUD no longer repaints anything on the CPU). `COWS_ENV="COWS_PROFILE=1 COWS_SEED=3"` passes settings to the app
@@ -341,10 +341,11 @@ aligned; the .so is linked with 16 KB pages through
   `hasFragileUserData="false"`, touchscreen and portrait features, every
   screen size). versionName = project version, versionCode =
   `COWS_BUILD_NUMBER`, targetSdk 35.
-- **minSdk 29** (Android 10): eacp's frame pacing calls
-  `AChoreographer_postFrameCallback64`, API 29; nothing else in the .so needs
-  more than 24. The real floor is the Vulkan 1.3 `uses-feature`, which Play
-  filters on. `tools/android.sh` builds at 29 too.
+- **minSdk 33** (Android 13, August 2022), in line with the macOS and
+  Windows floors. The code needs 29 (`AChoreographer_postFrameCallback64`),
+  and the real device floor is the Vulkan 1.3 `uses-feature` Play filters
+  on, which is mostly Android 13+ phones anyway. `tools/android.sh` builds
+  at 33 too.
 - `allowBackup="false"`: the game saves nothing; the only file it writes is
   the Vulkan pipeline cache.
 - Icon: adaptive only (minSdk ≥ 26), from the CowsArt icon render framed for

@@ -127,7 +127,7 @@ for size in 16 24 32 48 256; do
         "$msix/Square44x44Logo.targetsize-${size}_altform-unplated.png"
 done
 
-# Android adaptive icon (API 26+, and minSdk is 29, so no legacy PNGs): 108dp
+# Android adaptive icon (API 26+, and minSdk is 33, so no legacy PNGs): 108dp
 # layers at five densities. The foreground is the icon framed wider, so the two
 # cows and the hearts sit inside the 66dp safe circle; the background is the
 # sky colour; the monochrome layer (themed icons) is the rising hearts, keyed
