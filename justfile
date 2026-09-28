@@ -12,6 +12,10 @@ macos:
 sim-ios shot="":
     tools/ios.sh sim {{shot}}
 
+# Build and run on the "cows" Android emulator, optionally saving a screenshot.
+sim-android shot="":
+    tools/android.sh sim {{shot}}
+
 # Build, sign and run on a phone (devicectl UDID; defaults to pond).
 ios udid=device:
     COWS_DEVICE={{udid}} tools/ios.sh device

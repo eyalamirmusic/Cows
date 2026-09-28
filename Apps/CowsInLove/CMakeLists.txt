@@ -1,9 +1,16 @@
-add_executable(Cows
+set(COWS_SOURCES
         Source/Main.cpp
         Source/CowsApp.cpp
         Source/Stages.cpp
         Source/Templates.cpp
         Source/Scene/CowsView.cpp)
+
+# On Android the app is the library NativeActivity loads.
+if (ANDROID)
+    add_library(Cows SHARED ${COWS_SOURCES})
+else ()
+    add_executable(Cows ${COWS_SOURCES})
+endif ()
 
 target_include_directories(Cows PRIVATE Source)
 target_link_libraries(Cows PRIVATE cowsinlove_Game)
@@ -30,7 +37,16 @@ set_target_properties(Cows PROPERTIES
         XCODE_ATTRIBUTE_CURRENT_PROJECT_VERSION ${COWS_BUILD_NUMBER}
         XCODE_ATTRIBUTE_MARKETING_VERSION ${PROJECT_VERSION})
 
-if (IOS)
+if (ANDROID)
+    eacp_add_android_apk(Cows
+            PACKAGE ${COWS_BUNDLE_ID}
+            LABEL "Cows In Love"
+            ORIENTATION portrait
+            VERSION_CODE ${COWS_BUILD_NUMBER}
+            VERSION_NAME ${PROJECT_VERSION}
+            RES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Android/res"
+            ICON "@mipmap/ic_launcher")
+elseif (IOS)
     set(assets "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Assets.xcassets")
     set(privacy "${CMAKE_CURRENT_SOURCE_DIR}/Resources/PrivacyInfo.xcprivacy")
     target_sources(Cows PRIVATE "${assets}" "${privacy}")
