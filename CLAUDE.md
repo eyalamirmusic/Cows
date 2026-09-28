@@ -53,20 +53,34 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `Props/Collision` — `Collider` and `Block`; `Props/Scenery` — the batch,
     colliders and blocks props are added to; `Props/Props` — seeded draws,
     `matte`, `addBlock`
-  - `Props/Barn`, `Tree`, `Hedge`, `Bale`, `Crate`, `Rock` — one add function
-    each, taking a `Scenery&` and, where the prop is random, a `std::mt19937&`
+  - `Props/Barn`, `Tree`, `Hedge`, `Bale`, `Crate`, `Rock`, `Log`, `Fence`,
+    `Bridge` — one add function each, taking a `Scenery&` and, where the prop
+    is random, a `std::mt19937&`
+  - `Props/Mover` — a barrel rolling to and fro on a closed-form timeline
+    (`positionAt`, `modelAt`) with a collider that follows it;
+    `makeRollingBale` in `Props/Bale`
 - `Lib/cowsinlove_World` — how actors are laid out and collided with. Links
   Actors.
-  - `Level` — a `Scenery` plus the hideout, and `pushedOut` / `floorAt` /
-    `isFree`; `stepUp`
-  - `Levels/Meadow` — `makeMeadow(seed)`, the seeded meadow layout: where
-    props go and where she hides
-  - `Terrain/Grass` — instanced blades (`makeBlade`, `makeGrassTile()` for
-    one tile); `Terrain/TerrainShaders` — the ground and grass shaders
+  - `Level` — a `Scenery` plus the hideout, `start` / `startHeading`, `gaps`
+    (holes in the ground with a floor depth), `movers` (their `moving` batch
+    rebuilt by `update(seconds)`), `killDepth` and `criticalPath`;
+    `pushedOut` / `floorAt` / `hasGround` / `overGap` / `isFree`; `stepUp`
+  - `Levels/` — level generation (see `docs/structure.md`): `Region` (an xz
+    rectangle), `Layout` (the seeded draws, hiding places, `hasRoom`,
+    `chooseHideout`), `Biome` (`meadowBiome`, `populate`), `Segments/`
+    (`Segment` and `MeadowSegment`, `JumpLineSegment`, `RavineSegment`,
+    `MoverSpawner`), `LevelTemplate`, `LevelGenerator` (`generate(template,
+    seed)`)
+  - `Terrain/Ground` — the ground mesh with the level's gaps cut out
+    (`makeGround`, the plain plane when there are none) and the chasms' rock
+    (`makeChasms`); `Terrain/Grass` — instanced blades (`makeBlade`,
+    `makeGrassTile()` for one tile, `GrassField` for the tile with blades over
+    gaps cut out); `Terrain/TerrainShaders` — the ground and grass shaders
 - `Lib/cowsinlove_Game` — the rules of this game; nothing that owns GPU passes.
   Links World.
   - `Game` — state machine, player movement, found test, moo cooldown, the moo
-    hint, and `footerText`; `reset(seed)` builds the level through its
+    hint, the level's clock (`seconds`, driving its movers), the checkpoint and
+    respawn below `killDepth` (`sinceFell`), and `footerText`; `reset(seed)` builds the level through its
     `makeLevel` hook, which the app sets (the library never names a level)
   - `Ending` — the ending's numbers (title rise, kiss point, camera settle) and
     `titlePlacement`, `loops` (start again after the title)
@@ -74,9 +88,13 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     summed into walk ahead / turn
   - `Title/TitleFont` — the tube-font title; `Title/TitleShader` — its shader
 - `Apps/CowsInLove/Source/Main.cpp` — runs `CowsApp`
-- `Apps/CowsInLove/Source/Stages` — the content: which level generator each
-  round plays (`makeMeadow`) and where the seed comes from (`COWS_SEED`, else
-  the clock)
+- `Apps/CowsInLove/Source/Templates` — the level templates (`meadowTemplate`,
+  `meadowRavineTemplate`: the segment lists and lengths)
+- `Apps/CowsInLove/Source/Stages` — the content: the ordered level templates
+  (meadow, then meadow → ravine → meadow), `advance()` to the next after the
+  ending (wrapping; nothing is saved), `level()` as a `LevelMaker`, where the
+  seed comes from (`COWS_SEED`, else the clock) and the first stage
+  (`COWS_STAGE`, else 0). `r` retries the stage with a fresh seed
 - `Apps/CowsInLove/Source/CowsApp` — the window: scene, footer, touch controls,
   root view; wires them the same on every platform and ends by attaching the
   platform (the app has no platform directories or branches)
@@ -90,8 +108,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   `docs/shots/tests/<name>.png`; snapshot tests skip without a GPU
 
 `COWS_TIME=<seconds>` starts the clock there and `COWS_FREEZE=1` stops it, for
-screenshots; `COWS_SEED=<n>` fixes the level and `COWS_FOUND=1` starts beside
-her (run the binary in `build/Apps/CowsInLove/Cows.app/Contents/MacOS/` directly).
+screenshots; `COWS_SEED=<n>` fixes the level, `COWS_STAGE=<n>` starts on
+stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her (run the binary in `build/Apps/CowsInLove/Cows.app/Contents/MacOS/` directly).
 
 ## Build Commands
 

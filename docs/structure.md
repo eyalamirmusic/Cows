@@ -9,7 +9,7 @@ PNGs to `docs/shots/tests/`.
 Lib/cowsinlove_Engine       <- eacp-gpu            Render, Camera, UI, Platform
 Lib/cowsinlove_AudioEngine  <- eacp                sample playback
 Lib/cowsinlove_Actors       <- Engine, AudioEngine Animation, Cow, Props, Sky
-Lib/cowsinlove_World        <- Actors              Level, Terrain, Levels/Meadow
+Lib/cowsinlove_World        <- Actors              Level, Terrain, Levels
 Lib/cowsinlove_Game         <- World              Game, Ending, Input, Title
 Apps/CowsInLove             <- Game                CowsApp, Scene
 ```
@@ -37,15 +37,36 @@ Lib/
     Cow/       Cow, Moo (the cow's voice, with Resources/moo.f32),
                KissHearts, HeartMesh
     Props/     Collision (Collider, Block), Scenery, Props (shared helpers),
-               Barn, Tree, Hedge, Bale, Crate, Rock   (split out of Obstacles.cpp)
+               Barn, Tree, Hedge, Bale, Crate, Rock   (split out of Obstacles.cpp),
+               Log, Fence, Bridge, Mover (a rolling barrel on a closed-form
+               timeline)
     Sky/       Sun, Clouds, Hills (SkyDecor)
 
   cowsinlove_World/               how actors are laid out and collide
-    Level          the interface: colliders, blocks, floorAt, hideouts
-    Terrain/       Grass (makeBlade, makeGrassTile), TerrainShaders
-    Levels/        reusable generators, each `Level makeX(seed)`: Meadow now,
-                   Farmyard, ... later. Which one a game plays, and with what
-                   seed, is the app's content
+    Level          the interface: colliders, blocks, gaps, movers, start,
+                   killDepth, floorAt, hasGround, update(seconds), hideout
+    Terrain/       Ground (the plane minus gaps, chasm rock), Grass
+                   (makeBlade, makeGrassTile, GrassField), TerrainShaders
+    Levels/        level generation, in the usual segment/prefab vocabulary:
+      Region         an xz rectangle
+      Layout         the seeded draws, the start's clearing, the critical
+                     path, hiding places, hasRoom, chooseHideout (the goal)
+      Biome          what dresses a region: prop counts for the whole arena,
+                     scaled by area. meadowBiome(); populate() is the
+                     populate pass
+      Segments/      Segment: a prefab slice `length` deep with build() and
+                     an optional biome. MeadowSegment (just a biome),
+                     JumpLineSegment (a full-width line of logs or fences),
+                     RavineSegment (gap, bridge on the path, bales from
+                     MoverSpawners)
+      LevelTemplate  the content: segments in order, width, how far the path
+                     may stray, start heading
+      LevelGenerator generate(template, seed): lays segments along -z from
+                     the start, reserves the critical path (start to the last
+                     segment; populate never blocks it), builds each segment,
+                     populates the biomes, picks the goal in the last segment
+                     (no templates ship in World: the segment lists a game
+                     plays, and their seeds, are the app's content)
 
   cowsinlove_Game/                rules, nothing that owns a GPU pass
     Game           state machine, player movement, found test, moo hint,
@@ -58,9 +79,11 @@ Lib/
 
 Apps/CowsInLove/Source/
   Main.cpp, CowsApp.{h,cpp}       app wiring
-  Stages                          the content: which levels are played and
-                                  where their seeds come from (COWS_SEED, else
-                                  the clock; a fresh meadow each round)
+  Stages                          the content: the level templates in order
+                                  (meadow; meadow -> ravine -> meadow), advance
+                                  after each ending (wrapping, nothing saved),
+                                  COWS_STAGE to start elsewhere, and where the
+                                  seeds come from (COWS_SEED, else the clock)
   Scene/CowsView                  the GPUView: gathers instances, shadow pass,
                                   main pass, camera steering, mouse; forwards
                                   keys to Input
@@ -82,10 +105,13 @@ Tests/
   `std::mt19937` and draws from it in the original order, so seeded layouts
   are unchanged. The generator (placement loops, hideouts) is now
   `World/Levels/Meadow.cpp`, and what was `Obstacles` is `World/Level`.
-- **World/Levels/** is a catalogue of reusable generators; a meadow can appear
-  in several stages of one game and in other games. `Level` is the interface
-  `Game` talks to, and the app hands `Game` a `LevelMaker` and a seed, so the
-  seed is the content and the libraries never name a level.
+- **World/Levels/** generates levels from templates: a template is a list of
+  segments (prefab slices), the generator lays them along the path, builds
+  them, populates their biomes and picks the goal. A meadow can appear in
+  several stages of one game and in other games. `Level` is the interface
+  `Game` talks to, and the app hands `Game` a `LevelMaker` (`generate` bound
+  to a template) and a seed, so template and seed are the content and the
+  libraries never name a level.
 - **Game/** holds rules, nothing that owns a GPU pass (the title shader is
   a program the app draws). `Choreography` was planned here
   as the design of *this* game, but Cow, KissHearts and SkyDecor all move to

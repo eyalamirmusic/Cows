@@ -29,6 +29,7 @@ constexpr auto warmBeat = 0.25f;
 constexpr auto endingLead = 1.f;
 constexpr auto mooCooldown = 3.2f;
 constexpr auto hintTime = 4.f;
+constexpr auto fellTime = 2.f;
 
 constexpr auto searchingText =
     "wasd / hjkl / arrows to walk  -  space to jump  -  m to "
@@ -36,6 +37,7 @@ constexpr auto searchingText =
 constexpr auto foundText = "you found her  -  q to quit";
 constexpr auto searchingTouchText = "find her  -  drag to look  -  moo for a hint";
 constexpr auto foundTouchText = "you found her";
+constexpr auto fellText = "back on your feet  -  mind the edge";
 
 float headingToward(Vec2 direction)
 {
@@ -57,8 +59,13 @@ void Game::reset(std::uint32_t newSeed)
     auto random = std::mt19937 {seed};
 
     state = State::Searching;
-    player = {};
-    playerHeading = 0.f;
+    player = level.start;
+    playerHeading = level.startHeading;
+    checkpoint = player;
+    checkpointHeading = playerHeading;
+    sinceFell = 100.f;
+    seconds = 0.f;
+    level.update(seconds);
     verticalSpeed = 0.f;
     grounded = true;
     bounce = 0.f;
@@ -72,6 +79,9 @@ void Game::reset(std::uint32_t newSeed)
 void Game::update(float delta, float ahead, float turn, bool jump)
 {
     sinceMoo += delta;
+    sinceFell += delta;
+    seconds += delta;
+    level.update(seconds);
 
     if (state == State::Found)
     {
@@ -82,7 +92,7 @@ void Game::update(float delta, float ahead, float turn, bool jump)
     auto moving = ahead != 0.f || turn != 0.f;
     playerHeading += turn * turnSpeed * delta;
 
-    if (ahead != 0.f)
+    if (ahead != 0.f || !level.movers.empty())
     {
         auto direction = Vec2 {std::cos(playerHeading), -std::sin(playerHeading)};
         auto speed = walkSpeed * (ahead > 0.f ? ahead : ahead * backSpeed);
@@ -107,6 +117,22 @@ void Game::update(float delta, float ahead, float turn, bool jump)
     {
         player.y = floor;
         verticalSpeed = 0.f;
+
+        if (!level.overGap(ground(player))
+            && !level.onMover(ground(player), player.y))
+        {
+            checkpoint = player;
+            checkpointHeading = playerHeading;
+        }
+    }
+
+    if (level.killDepth < 0.f && player.y < level.killDepth)
+    {
+        player = checkpoint;
+        playerHeading = checkpointHeading;
+        verticalSpeed = 0.f;
+        grounded = true;
+        sinceFell = 0.f;
     }
 
     bounce += ((moving && grounded ? 1.f : 0.f) - bounce)
@@ -159,6 +185,11 @@ bool Game::hintShowing() const
            && sinceMoo < mooAnswerDelay + hintTime;
 }
 
+bool Game::justFell() const
+{
+    return state == State::Searching && sinceFell < fellTime;
+}
+
 std::string footerText(const Game& game, const std::string& hint, bool touchHints)
 {
     if (game.state == Game::State::Found)
@@ -166,6 +197,9 @@ std::string footerText(const Game& game, const std::string& hint, bool touchHint
 
     if (game.hintShowing())
         return hint;
+
+    if (game.justFell())
+        return fellText;
 
     return touchHints ? searchingTouchText : searchingText;
 }

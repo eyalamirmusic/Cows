@@ -22,6 +22,8 @@ struct Game final
 
     // `ahead` walks forward (1) or back (-1) along the cow's heading; `turn`
     // turns it left (1) or right (-1); `jump` leaps if it is on its feet.
+    // Falling below the level's killDepth puts the cow back on its checkpoint:
+    // the last firm ground it stood on.
     void update(float delta, float ahead, float turn, bool jump);
 
     // Moos, if she has not just mooed.
@@ -41,6 +43,9 @@ struct Game final
 
     // Her answer to the player's moo is on screen.
     bool hintShowing() const;
+
+    // The player fell a moment ago and is back on the checkpoint.
+    bool justFell() const;
 
     LevelMaker makeLevel = [](std::uint32_t) { return Level {}; };
 
@@ -63,8 +68,14 @@ struct Game final
     float stageHeading = 0.f;
     float sinceFound = 0.f;
     float sinceMoo = 100.f;
+
+    Maths::Vec3 checkpoint;
+    float checkpointHeading = 0.f;
+    float sinceFell = 100.f;
+    float seconds = 0.f;
 };
 
-// The footer: the controls while searching, `hint` while her answer shows.
+// The footer: the controls while searching, `hint` while her answer shows, a
+// word after a fall.
 std::string footerText(const Game& game, const std::string& hint, bool touchHints);
 } // namespace Cows

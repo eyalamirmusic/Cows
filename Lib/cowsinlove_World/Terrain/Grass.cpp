@@ -1,5 +1,6 @@
 #include "Terrain/Grass.h"
 
+#include <cmath>
 #include <random>
 
 using namespace Maths;
@@ -10,6 +11,35 @@ namespace
 {
 constexpr auto bladeSegments = 5;
 constexpr auto bladeColumns = 3;
+constexpr auto rimMargin = 0.15f;
+
+bool crossesGap(const Vector<Gap>& gaps, Vec2 corner)
+{
+    for (const auto& gap: gaps)
+    {
+        auto near = gap.center - gap.half - Vec2 {rimMargin, rimMargin};
+        auto far = gap.center + gap.half + Vec2 {rimMargin, rimMargin};
+
+        if (corner.x < far.x && corner.x + meadowTile > near.x && corner.y < far.y
+            && corner.y + meadowTile > near.y)
+            return true;
+    }
+
+    return false;
+}
+
+bool nearGap(const Vector<Gap>& gaps, Vec2 point)
+{
+    for (const auto& gap: gaps)
+    {
+        auto offset = absolute(point - gap.center);
+
+        if (offset.x < gap.half.x + rimMargin && offset.y < gap.half.y + rimMargin)
+            return true;
+    }
+
+    return false;
+}
 } // namespace
 
 Blade makeBlade()
@@ -80,5 +110,42 @@ Vector<BladeInstance> makeGrassTile()
     }
 
     return blades;
+}
+
+Vector<BladeInstance>
+    cutTile(const Vector<BladeInstance>& tile, Vec2 corner, const Vector<Gap>& gaps)
+{
+    auto blades = Vector<BladeInstance> {};
+
+    for (const auto& blade: tile)
+    {
+        auto at = corner + Vec2 {blade.placement.x, blade.placement.y};
+
+        if (!nearGap(gaps, at))
+            blades.add(blade);
+    }
+
+    return blades;
+}
+
+void GrassField::layOver(const Level& level)
+{
+    gaps = level.gaps;
+    cutTiles.clear();
+}
+
+const Vector<BladeInstance>& GrassField::tileAt(Vec2 corner)
+{
+    if (!crossesGap(gaps, corner))
+        return tile;
+
+    auto key = std::make_pair((int) std::lround(corner.x / meadowTile),
+                              (int) std::lround(corner.y / meadowTile));
+    auto found = cutTiles.find(key);
+
+    if (found == cutTiles.end())
+        found = cutTiles.emplace(key, cutTile(tile, corner, gaps)).first;
+
+    return found->second;
 }
 } // namespace Cows

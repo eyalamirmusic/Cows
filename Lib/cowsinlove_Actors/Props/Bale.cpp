@@ -27,4 +27,18 @@ void addBale(Scenery& scenery, std::mt19937& random, Vec2 at)
 
     scenery.colliders.add({at, 1.05f, radius * 2.f});
 }
+
+Mover makeRollingBale(Vec2 from, Vec2 to, float period, float phase)
+{
+    auto mover = Mover {};
+    mover.from = from;
+    mover.to = to;
+    mover.period = period;
+    mover.phase = phase;
+    mover.radius = rollingBaleRadius;
+    mover.material = matte(strawColor, 0.2f, 0.1f);
+    mover.collider = {
+        mover.positionAt(0.f), rollingBaleRadius, rollingBaleRadius * 2.f};
+    return mover;
+}
 } // namespace Cows

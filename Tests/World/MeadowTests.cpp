@@ -1,4 +1,5 @@
-#include "Levels/Meadow.h"
+#include "Levels/LevelGenerator.h"
+#include "Fixtures.h"
 #include "Render/Mesh.h"
 #include "Snapshot.h"
 #include "Terrain/TerrainShaders.h"
@@ -15,8 +16,10 @@ using namespace Maths;
 
 namespace
 {
-constexpr auto arenaReach = 86.f;
-constexpr auto nearestHiding = 25.f;
+Level makeMeadow(std::uint32_t seed)
+{
+    return generate(meadowFixture(), seed);
+}
 
 bool same(const Collider& a, const Collider& b)
 {

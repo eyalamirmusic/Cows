@@ -16,7 +16,6 @@ namespace Cows
 namespace
 {
 constexpr auto msaaSamples = 4;
-constexpr auto groundSize = 600.f;
 constexpr auto orbitSpeed = 0.006f;
 
 constexpr auto searchHeight = 2.2f;
@@ -164,7 +163,6 @@ CowsView::CowsView()
     , title(makeTitle(Ending::titleText))
     , cowParts(makeCowParts())
     , cows(makeCouple())
-    , meadow(makeGrassTile())
     , elapsed(startTime())
     , frozen(std::getenv("COWS_FREEZE") != nullptr)
 {
@@ -184,7 +182,8 @@ CowsView::CowsView()
     auto blade = makeBlade();
     grassShader.setVertices(blade.vertices.data(), blade.vertices.size());
     grassShader.setIndices(blade.indices.data(), blade.indices.size());
-    grassShader.setInstances(1, meadow.data(), meadow.size());
+    grassShader.setInstances(1, grass.tile.data(), grass.tile.size());
+    uploadedBlades = &grass.tile;
     grassShader.prepare(solidPipeline(samples, CullMode::None));
 
     titleShader.setVertices(title.vertices.data(), title.vertices.size());
@@ -194,8 +193,9 @@ CowsView::CowsView()
     glowShader.setVertices(glowQuad);
     glowShader.prepare(glowPipeline(samples));
 
-    game.makeLevel = stages.level;
+    game.makeLevel = stages.level();
     game.reset(stages.firstSeed());
+    layTerrain();
 
     camera.yaw = startYaw + game.playerHeading;
     camera.target = game.player + Vec3 {0.f, searchHeight, 0.f};
@@ -214,6 +214,7 @@ void CowsView::update(Threads::FrameTime time)
 
     auto wasSearching = game.state == Game::State::Searching;
     auto wasGrounded = game.grounded;
+    auto fellBefore = game.sinceFell;
     game.update(delta,
                 input.walkAhead(),
                 input.walkTurn(),
@@ -224,12 +225,16 @@ void CowsView::update(Threads::FrameTime time)
     if (wasSearching && game.state == Game::State::Found)
         onStateChanged();
 
-    if (Ending::loops(game))
-        restart();
+    if (game.sinceFell < fellBefore)
+        camera.target = game.player + Vec3 {0.f, searchHeight, 0.f};
 
-    if (game.hintShowing() != showedHint)
+    if (Ending::loops(game))
+        advanceStage();
+
+    if (game.hintShowing() != showedHint || game.justFell() != showedFall)
     {
         showedHint = game.hintShowing();
+        showedFall = game.justFell();
         onStateChanged();
     }
 
@@ -303,7 +308,10 @@ void CowsView::control(const ControlEvent& event)
             callOut();
             break;
         case ControlEvent::Kind::Restart:
-            restart();
+            if (game.state == Game::State::Found)
+                advanceStage();
+            else
+                restart();
             break;
         case ControlEvent::Kind::Look:
             camera.orbit(event.x * orbitSpeed, event.y * orbitSpeed);
@@ -364,9 +372,27 @@ void CowsView::addAnswerFlare()
 void CowsView::restart()
 {
     game.reset(stages.nextSeed());
-    camera.yaw = startYaw;
+    layTerrain();
+    camera.yaw = startYaw + game.playerHeading;
     camera.target = game.player + Vec3 {0.f, searchHeight, 0.f};
     onStateChanged();
+}
+
+void CowsView::advanceStage()
+{
+    stages.advance();
+    game.makeLevel = stages.level();
+    restart();
+}
+
+void CowsView::layTerrain()
+{
+    ground = Mesh {makeGround(game.level, groundSize)};
+    chasms = makeChasms(game.level);
+    grass.layOver(game.level);
+
+    if (uploadedBlades != &grass.tile)
+        uploadedBlades = nullptr;
 }
 
 void CowsView::render(Frame& frame)
@@ -397,8 +423,10 @@ void CowsView::render(Frame& frame)
 
     drawSky(pass, aspect);
     drawGround(pass);
+    drawBatch(pass, surfaceShader, chasms);
     drawBatch(pass, surfaceShader, backdropBatch);
     drawBatch(pass, surfaceShader, game.level.batch);
+    drawBatch(pass, surfaceShader, game.level.moving);
     drawBatch(pass, surfaceShader, cowBatch);
     drawGrass(pass);
     drawTitle(pass);
@@ -524,6 +552,7 @@ void CowsView::drawShadows(Frame& frame)
     shadowCaster.lightViewProjection = lightViewProjection;
     drawBatch(pass, shadowCaster, cowBatch);
     drawBatch(pass, shadowCaster, game.level.batch);
+    drawBatch(pass, shadowCaster, game.level.moving);
 }
 
 void CowsView::drawSky(RenderPass& pass, float aspect)
@@ -556,13 +585,39 @@ void CowsView::drawGrass(RenderPass& pass)
     auto corner = Vec2 {std::round(focus.x / meadowTile) * meadowTile,
                         std::round(focus.z / meadowTile) * meadowTile};
 
+    auto cut = Vector<Vec2> {};
+
     for (auto x = -grassTiles; x < grassTiles; ++x)
         for (auto z = -grassTiles; z < grassTiles; ++z)
         {
-            grassShader.patchOffset =
-                corner + Vec2 {(float) x * meadowTile, (float) z * meadowTile};
-            pass.drawInstanced(grassShader, meadow.size());
+            auto at = corner + Vec2 {(float) x * meadowTile, (float) z * meadowTile};
+            const auto& blades = grass.tileAt(at);
+
+            if (&blades == &grass.tile)
+                drawGrassTile(pass, at, blades);
+            else
+                cut.add(at);
         }
+
+    for (auto at: cut)
+        drawGrassTile(pass, at, grass.tileAt(at));
+}
+
+void CowsView::drawGrassTile(RenderPass& pass,
+                             Vec2 corner,
+                             const Vector<BladeInstance>& blades)
+{
+    if (blades.empty())
+        return;
+
+    if (uploadedBlades != &blades)
+    {
+        grassShader.setInstances(1, blades.data(), blades.size());
+        uploadedBlades = &blades;
+    }
+
+    grassShader.patchOffset = corner;
+    pass.drawInstanced(grassShader, blades.size());
 }
 
 void CowsView::drawTitle(RenderPass& pass)

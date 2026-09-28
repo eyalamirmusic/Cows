@@ -3,6 +3,7 @@ nano_add_executable(CowsInLoveTests
         SOURCES
             StagesTests.cpp
             ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Stages.cpp
+            ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Templates.cpp
             ../Support/TestMain.cpp
         TARGETS cowsinlove_Game)
 

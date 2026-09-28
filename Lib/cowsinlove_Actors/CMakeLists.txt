@@ -6,9 +6,13 @@ add_library(cowsinlove_Actors STATIC
         Cow/Moo.cpp
         Props/Bale.cpp
         Props/Barn.cpp
+        Props/Bridge.cpp
         Props/Collision.cpp
         Props/Crate.cpp
+        Props/Fence.cpp
         Props/Hedge.cpp
+        Props/Log.cpp
+        Props/Mover.cpp
         Props/Props.cpp
         Props/Rock.cpp
         Props/Tree.cpp

@@ -2,6 +2,7 @@ add_executable(Cows
         Source/Main.cpp
         Source/CowsApp.cpp
         Source/Stages.cpp
+        Source/Templates.cpp
         Source/Scene/CowsView.cpp)
 
 target_include_directories(Cows PRIVATE Source)

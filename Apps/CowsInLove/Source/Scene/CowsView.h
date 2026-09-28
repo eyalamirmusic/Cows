@@ -5,6 +5,7 @@
 #include "Stages.h"
 #include "Input.h"
 #include "Terrain/Grass.h"
+#include "Terrain/Ground.h"
 #include "Render/Lighting.h"
 #include "Render/Mesh.h"
 #include "Title/TitleShader.h"
@@ -37,6 +38,8 @@ struct CowsView final : GPUView
     void control(const ControlEvent& event);
     void returnKeyFocus();
     void restart();
+    void advanceStage();
+    void layTerrain();
     void callOut();
     MooAnswer answerFrom() const;
     void addAnswerFlare();
@@ -52,6 +55,9 @@ struct CowsView final : GPUView
     void drawSky(RenderPass& pass, float aspect);
     void drawGround(RenderPass& pass);
     void drawGrass(RenderPass& pass);
+    void drawGrassTile(RenderPass& pass,
+                       Maths::Vec2 corner,
+                       const Vector<BladeInstance>& blades);
     void drawTitle(RenderPass& pass);
     void drawGlows(RenderPass& pass, const Maths::Mat4& viewProjection);
     void drawBatch(RenderPass& pass, ShaderProgram& shader, SurfaceBatch& batch);
@@ -64,6 +70,7 @@ struct CowsView final : GPUView
     MooVoice mooVoice;
     std::string hint;
     bool showedHint = false;
+    bool showedFall = false;
     Lighting lighting;
     OrbitCamera camera;
     ShadowMap shadowMap;
@@ -90,7 +97,9 @@ struct CowsView final : GPUView
 
     Vector<CowPart> cowParts;
     Vector<Cow> cows;
-    Vector<BladeInstance> meadow;
+    GrassField grass;
+    const Vector<BladeInstance>* uploadedBlades = nullptr;
+    SurfaceBatch chasms;
 
     SurfaceBatch cowBatch;
     SurfaceBatch backdropBatch;
