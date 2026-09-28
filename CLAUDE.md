@@ -142,6 +142,18 @@ simulator; `tools/ios.sh device` signs with `COWS_TEAM` (default: Jamie's Person
 Shortcuts in the `justfile`: `just macos`, `just sim-ios [shot.png]`,
 `just ios [udid]` (defaults to pond), `just shot`, `just devices`, `just test`.
 
+## Rendering Rule
+
+Everything on screen goes through eacp's GPU path: `GPUView` for the scene,
+`GPUWidgets` paths for shapes, the `Text` glyph atlas and `TextRenderer` for
+text. Never add a CPU-rasterised tier (a software 2D context, an overlay painted
+into an image and uploaded as a texture) to get a platform working; that is a
+regression, not a port. A platform without a glyph rasteriser gets a
+`GlyphRasterizer-<Platform>` in eacp over the platform's own text engine
+(CoreText, DirectWrite, `android.graphics` over JNI), not a new dependency such
+as FreeType. Gaps found this way are eacp fixes first; a Cows-side workaround is
+the last resort and is called out as one.
+
 ## Code Style
 
 Follows eacp's style:
