@@ -127,14 +127,11 @@ void FrameProfile::report(Clock::time_point now)
             perFrame(Part::Scene),
             " hud ",
             perFrame(Part::Hud),
-            " hud repaints ",
-            hudRepaints,
             " | gpu ms ",
             gpu);
     }
 
     frames = 0;
-    hudRepaints = 0;
     gpuMilliseconds = 0.0;
     gpuSamples = 0;
     totals = {};

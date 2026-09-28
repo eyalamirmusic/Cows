@@ -38,7 +38,6 @@ struct FrameProfile final
 
     void frameStarted();
     void add(Part part, double milliseconds);
-    void hudRepainted() { ++hudRepaints; }
 
     void report(Clock::time_point now);
 
@@ -47,7 +46,6 @@ struct FrameProfile final
     std::array<double, maxFrames> intervals {};
     std::array<double, (int) Part::Count> totals {};
     int frames = 0;
-    int hudRepaints = 0;
     double gpuMilliseconds = 0.0;
     int gpuSamples = 0;
     Clock::time_point lastFrame;
