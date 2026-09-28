@@ -12,6 +12,10 @@ endif ()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 
+if (ANDROID)
+    list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Android")
+endif ()
+
 # eacp supplies both the GPU module and the CMake helpers every target here is
 # configured with (set_default_target_setting, eacp_set_gui_subsystem), so it
 # is fetched before those helpers are included.
