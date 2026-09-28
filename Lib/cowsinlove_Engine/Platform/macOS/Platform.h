@@ -10,5 +10,6 @@ struct Platform final
     static constexpr auto touch = false;
 
     void attach(Graphics::View&, TouchControls&, FooterView&) {}
+    void drawOverlay(GPUView&, RenderPass&) {}
 };
 } // namespace Cows

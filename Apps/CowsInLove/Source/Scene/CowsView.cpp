@@ -438,6 +438,7 @@ void CowsView::render(Frame& frame)
     drawTitle(pass);
     drawBatch(pass, translucentShader, heartBatch);
     drawGlows(pass, viewProjection);
+    drawOverlay(pass);
 }
 
 void CowsView::framePortrait(float aspect)

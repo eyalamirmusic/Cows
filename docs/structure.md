@@ -26,8 +26,9 @@ Lib/
                Palette
     Camera/    OrbitCamera
     UI/        Overlay (footer), TouchControls
-    Platform/  macOS/ (also Windows), iOS/: Platform per platform (iOS:
-               TouchSurface); the current one is on the include path
+    Platform/  macOS/ (also Windows), iOS/, Android/: Platform per platform
+               (iOS, Android: TouchSurface; Android: HudLayer); the current
+               one is on the include path
 
   cowsinlove_AudioEngine/         SamplePlayer: the sample player half of Moo;
                                   output through MakeASound on every platform

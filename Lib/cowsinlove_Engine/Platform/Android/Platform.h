@@ -1,8 +1,9 @@
 #pragma once
 
+#include "HudLayer.h"
+#include "TouchSurface.h"
 #include "UI/Overlay.h"
 #include "UI/TouchControls.h"
-#include "TouchSurface.h"
 
 #include <memory>
 
@@ -16,8 +17,11 @@ struct Platform final
                 TouchControls& touchControls,
                 FooterView& footer);
 
-    void drawOverlay(GPUView&, RenderPass&) {}
+    // Android has one surface, so the footer and the controls are painted over
+    // the scene inside its own pass.
+    void drawOverlay(GPUView& scene, RenderPass& pass);
 
     std::unique_ptr<TouchSurface> surface;
+    std::unique_ptr<HudLayer> hud;
 };
 } // namespace Cows

@@ -109,6 +109,9 @@ struct CowsView final : GPUView
     Vector<GlowInstance> glows;
     Maths::Vec3 contacts[2];
 
+    // Drawn last in the scene's pass: the platform's HUD where it has no
+    // surface of its own to put one on (Android).
+    std::function<void(RenderPass&)> drawOverlay = [](RenderPass&) {};
     std::function<void()> onStateChanged = [] {};
 
     float elapsed = 0.f;

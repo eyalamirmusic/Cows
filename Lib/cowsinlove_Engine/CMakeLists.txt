@@ -14,6 +14,13 @@ if (IOS)
             Platform/iOS/Platform.cpp
             Platform/iOS/TouchSurface.mm)
     target_link_libraries(cowsinlove_Engine PUBLIC "-framework AVFoundation")
+elseif (ANDROID)
+    set(COWS_PLATFORM Platform/Android)
+    target_sources(cowsinlove_Engine PRIVATE
+            Platform/Android/HudLayer.cpp
+            Platform/Android/Platform.cpp
+            Platform/Android/TouchSurface.cpp)
+    target_link_libraries(cowsinlove_Engine PUBLIC eacp-sprites)
 else ()
     set(COWS_PLATFORM Platform/macOS)
 endif ()

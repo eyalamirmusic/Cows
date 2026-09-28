@@ -38,6 +38,8 @@ CowsApp::CowsApp()
     };
 
     scene.touchHints = Platform::touch;
+    scene.drawOverlay = [this](RenderPass& pass)
+    { platform.drawOverlay(scene, pass); };
     platform.attach(root, touchControls, footer);
 }
 } // namespace Cows
