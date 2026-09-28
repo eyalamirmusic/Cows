@@ -2,6 +2,7 @@
 #include "Cow/HeartMesh.h"
 #include "Cow/KissHearts.h"
 #include "Ending.h"
+#include "Render/FrameProfile.h"
 #include "Render/Palette.h"
 #include "Sky/SkyDecor.h"
 
@@ -9,6 +10,7 @@
 #include <cmath>
 #include <eacp/Core/Utils/Environment.h>
 #include <cstdlib>
+#include <optional>
 
 using namespace Maths;
 
@@ -208,6 +210,10 @@ CowsView::CowsView()
 
 void CowsView::update(Threads::FrameTime time)
 {
+    auto& profile = FrameProfile::shared();
+    profile.frameStarted();
+    auto timed = FrameProfile::Scope {profile, FrameProfile::Part::Update};
+
     auto delta = frozen ? 0.f : (float) time.delta;
     elapsed += delta;
 
@@ -403,12 +409,24 @@ void CowsView::layTerrain()
 
 void CowsView::render(Frame& frame)
 {
-    gatherInstances(elapsed);
+    using Part = FrameProfile::Part;
+    auto& profile = FrameProfile::shared();
+
+    {
+        auto timed = FrameProfile::Scope {profile, Part::Gather};
+        gatherInstances(elapsed);
+    }
+
     lightViewProjection =
         shadowMap.lightViewProjection(lighting.keyDirection, groundFocus());
 
-    drawShadows(frame);
+    {
+        auto timed = FrameProfile::Scope {profile, Part::Shadows};
+        drawShadows(frame);
+    }
 
+    auto timedScene = std::optional<FrameProfile::Scope> {};
+    timedScene.emplace(profile, Part::Scene);
     auto pass = frame.beginPass({displayColor(lighting.horizonColor)});
 
     auto width = (float) pass.targetWidth();
@@ -438,6 +456,9 @@ void CowsView::render(Frame& frame)
     drawTitle(pass);
     drawBatch(pass, translucentShader, heartBatch);
     drawGlows(pass, viewProjection);
+    timedScene.reset();
+
+    auto timedHud = FrameProfile::Scope {profile, Part::Hud};
     drawOverlay(pass);
 }
 

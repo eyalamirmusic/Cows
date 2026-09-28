@@ -9,6 +9,8 @@ struct Platform final
 {
     static constexpr auto touch = false;
 
+    static void importSettings() {}
+
     void attach(Graphics::View&, TouchControls&, FooterView&) {}
     void drawOverlay(GPUView&, RenderPass&) {}
 };

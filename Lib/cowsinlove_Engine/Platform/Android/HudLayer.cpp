@@ -1,4 +1,5 @@
 #include "HudLayer.h"
+#include "Render/FrameProfile.h"
 
 #include <cmath>
 
@@ -100,6 +101,7 @@ void HudLayer::draw(GPUView& scene, RenderPass& pass)
     {
         repaint(pixelWidth, pixelHeight, scale);
         painted = current;
+        FrameProfile::shared().hudRepainted();
     }
 
     if (!texture || !texture->isValid())

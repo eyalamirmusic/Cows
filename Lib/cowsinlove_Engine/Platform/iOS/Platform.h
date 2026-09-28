@@ -12,6 +12,8 @@ struct Platform final
 {
     static constexpr auto touch = true;
 
+    static void importSettings() {}
+
     void attach(Graphics::View& root,
                 TouchControls& touchControls,
                 FooterView& footer);

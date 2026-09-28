@@ -7,6 +7,9 @@
 # NDK r27, build-tools 35 and platform 35, and eacp's android-mvp branch:
 # EACP=<path> (default ~/projects/eacp-android) builds against that checkout,
 # or, when it is absent, fetches jamierpond/eacp@android-mvp through CPM.
+# COWS_CONFIG=Debug|Release (default Debug) picks the build type, each in its
+# own build dir. COWS_ENV="COWS_PROFILE=1 COWS_SEED=3" is set as the
+# debug.cows.env property the app reads its COWS_* settings from.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,7 +21,9 @@ eacp="${EACP:-$HOME/projects/eacp-android}"
 avd="${COWS_AVD:-cows}"
 package="${COWS_BUNDLE_ID:-com.cowsinlove.cows}"
 adb="$sdk/platform-tools/adb"
+config="${COWS_CONFIG:-Debug}"
 build=build-android
+[[ $config == Debug ]] || build="build-android-$(echo "$config" | tr '[:upper:]' '[:lower:]')"
 
 build() {
     local eacp_args=(-DCPM_eacp_SOURCE="$eacp")
@@ -26,7 +31,7 @@ build() {
                                  -DCOWS_EACP_TAG=android-mvp)
 
     if [[ ! -f $build/CMakeCache.txt ]]; then
-        cmake -G Ninja -B $build -DCMAKE_BUILD_TYPE=Debug \
+        cmake -G Ninja -B $build -DCMAKE_BUILD_TYPE="$config" \
             -DCMAKE_TOOLCHAIN_FILE="$ndk/build/cmake/android.toolchain.cmake" \
             -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-33 \
             "${eacp_args[@]}" -DCOWS_BUILD_TESTS=OFF
@@ -52,6 +57,7 @@ run() {
     local shot="${1:-}"
 
     "$adb" install -r "$build/Apps/CowsInLove/Cows.apk" >&2
+    "$adb" shell setprop debug.cows.env "'${COWS_ENV:-}'"
     "$adb" shell am force-stop "$package"
     "$adb" shell am start -n "$package/android.app.NativeActivity" >&2
 
@@ -74,7 +80,7 @@ case "${1:-}" in
         run
         ;;
     *)
-        sed -n '2,9p' "$0"
+        sed -n '2,12p' "$0"
         exit 1
         ;;
 esac
