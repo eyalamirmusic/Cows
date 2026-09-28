@@ -34,15 +34,22 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `Render/Instances` — per-instance data and per-mesh batches
   - `Render/ShadowMap` — the key light's depth target
   - `Camera/OrbitCamera` — drag to orbit, scroll to zoom, idle drift
-  - `UI/Overlay` — footer text, and q / Esc to quit
+  - `UI/Hud` — draws the HUD at the end of the scene's own pass: discs and
+    rings through eacp's `UI::ShapeBatch`, text through `Text::TextRenderer`
+    (Menlo), on every platform; `CowsView` owns one and calls `drawHud`
+  - `UI/Overlay` — `Footer` (the footer text, drawn through `Hud`), and
+    `RootView` (q / Esc to quit)
   - `UI/TouchControls` — on-screen stick, Moo / Jump / Again, drag to look,
     pinch to zoom; reports everything through one `onControl` callback as a
     `ControlEvent` (`UI/ControlEvent.h`), and shows Again when `showAgain`;
-    `Platform/iOS/TouchSurface.mm` feeds it multi-touch on iOS
-  - `Platform/macOS`, `Platform/iOS` — one `Platform` each, knowing nothing
-    about the game: `touch`, and `attach(root, touchControls, footer)` (a no-op on
-    macOS, which Windows uses too; on iOS the audio session, the touch controls and their touch surface, and the
-    safe area). CMake puts the current platform's directory on Engine's
+    a `View` for input only, drawn by `draw(Hud&)`;
+    `Platform/iOS/TouchSurface.mm` and `Platform/Android/TouchSurface` feed
+    it multi-touch
+  - `Platform/macOS`, `Platform/iOS`, `Platform/Android` — one `Platform`
+    each, knowing nothing about the game: `touch`, and `attach(root,
+    touchControls, footer)` (a no-op on macOS, which Windows uses too; on iOS
+    and Android the touch controls and their touch surface, and the safe area;
+    on iOS the audio session). CMake puts the current platform's directory on Engine's
     PUBLIC include path, so it is `#include "Platform.h"` and no macros
 - `Lib/cowsinlove_AudioEngine/SamplePlayer` — plays a mono float sample through
   the output device, mixed as panned, pitched, muffled voices; the device is
@@ -106,7 +113,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   root view; wires them the same on every platform and ends by attaching the
   platform (the app has no platform directories or branches)
 - `Apps/CowsInLove/Source/Scene/CowsView` — the `GPUView`: gathers instances,
-  shadow pass, main pass, camera steering, mouse; forwards keys to `Input`
+  shadow pass, main pass (ending with the `Hud`), camera steering, mouse;
+  forwards keys to `Input`
 - `tools/Art` — `CowsArt`, a macOS tool that renders the icon, key art, logo
   and store screenshots from the game's own views; `tools/store-art.sh` and
   `tools/screenshots.sh` drive it. `tools/release-*.sh`, `release-msix.ps1`
@@ -125,7 +133,8 @@ stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her (run the binary i
 
 ## Build Commands
 
-eacp is fetched by CPM (`CMake/Findeacp.cmake`, `eyalamirmusic/eacp#main`).
+eacp is fetched by CPM (`CMake/Findeacp.cmake`; on this branch
+`jamierpond/eacp#android-mvp`, on `main` `eyalamirmusic/eacp#main`).
 To build against the local checkout instead (usually ahead of `main`):
 
 ```bash

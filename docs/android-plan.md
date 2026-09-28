@@ -122,33 +122,30 @@ mostly deciding, file by file, which of those two it wants.
 
 ### Text and fonts
 
-- eacp `Text` (glyph atlas) is FreeType + HarfBuzz + fontconfig on Linux, via
-  pkg-config. Android has no pkg-config and no fontconfig: FreeType and
-  HarfBuzz would be CPM-fetched and built from source, and the fontconfig
-  calls (match, list, fallback sort, coverage) replaced by a small resolver
-  over `/system/fonts` (`AFontMatcher`, API 29+) and `FT_Get_Char_Index`.
-  Sizeable (~2–3 days) but not needed for Cows.
-- **What Cows actually needs is the 2D tier**: the footer (`FooterView`) and
-  the touch HUD (`TouchControls`) paint through `Graphics::Context`
-  (`strokePath`/`fillPath` of circles, `drawText` in Menlo). eacp has no
-  `Context` off Apple/Windows (`EACP_HAS_CONTEXT` is off on Linux and would be
-  on Android), and Android has one surface, so there is no native layer to
-  composite a 2D view onto anyway. Options:
-  1. Draw the HUD in the Cows GPU frame on Android (SDF rings/discs + labels).
-     Smallest, Cows-only. Labels need glyphs: Cows' tube font, or a small
-     baked bitmap font.
-  2. A software `Context` on Android rendering views to an `Image` that the
-     GPUView composites as a texture. General, large.
-  3. eacp `UI` on the GPU (needs `Text`, see above) and port the HUD to it.
-  Done: option 2, smaller than feared. eacp's `SoftwareContext` (Android
-  only) paints the two views into an `Image` and Cows' `HudLayer` draws it as
-  one sprite over the scene; 3 is still the long-term answer.
-- **Dependency**: FreeType, upstream `freetype/freetype` tag `VER-2-13-3`,
-  fetched by CPM (`CMake/FindAndroidFreeType.cmake` → `eacp-freetype`,
-  PRIVATE to `eacp-graphics`, Android only), built with zlib, bzip2, png,
-  HarfBuzz and brotli disabled so it cross-compiles for the NDK with no
-  system packages. Not vendored. The same library the Linux text path uses,
-  so eacp `Text` on Android can reuse it.
+- eacp `Text` (glyph atlas) is portable except for its `GlyphRasterizer`:
+  CoreText on Apple, DirectWrite on Windows, FreeType + HarfBuzz + fontconfig
+  on Linux. Android gets `GlyphRasterizer-Android.cpp` over the platform's own
+  engine, `android.graphics` through JNI — no font library: `Typeface`
+  (`create(String,int)`, `create(Typeface,int,boolean)`, `DEFAULT`,
+  `MONOSPACE`), `Paint` (`setTypeface`, `setTextSize`, `getFontMetrics`,
+  `measureText`, `getTextBounds`, `hasGlyph`), `Canvas.drawText` into an
+  `ALPHA_8` `Bitmap`, read back with `AndroidBitmap_lockPixels`
+  (`jnigraphics`). Menlo / Monaco / Consolas / DejaVu Sans Mono / Courier map
+  to `Typeface.MONOSPACE` (DroidSansMono; bold is Android's fake bold).
+  Classes and method ids are cached as global refs; a thread is attached once
+  and detached when it exits; every call runs inside a local frame.
+- **Shaper caveat**: one glyph per code point, advanced by `measureText`; no
+  kerning, ligatures or complex scripts. Cows' text is ASCII. A real shaper
+  comes later through `TextRunShaper` (API 31+) or `android.text`, drawing by
+  glyph id with `Canvas.drawGlyphs`. Colour emoji come out as tinted masks;
+  `registerMemoryFont` is not supported on Android yet.
+- The HUD is on the GPU on every platform (`UI/Hud` in Cows): the footer and
+  the touch controls draw at the end of `CowsView`'s pass through eacp's
+  `UI::ShapeBatch` (discs; rings as SDF borders) and `Text::TextRenderer`.
+  `TextRenderer::setSampleCount` (eacp) lets glyphs draw into the scene's 4×
+  MSAA pass. There is no CPU 2D tier on Android: the earlier HUD texture
+  painted by `SoftwareContext` with FreeType (~30 ms per repaint in Release, the one thing left
+  dropping frames) is gone, per the Rendering Rule in `CLAUDE.md`.
 
 ### Files and resources
 
@@ -209,7 +206,7 @@ portable. The "main thread" is the glue thread, not Java's UI thread;
 - Engine CMake: `elseif (ANDROID)` picks `Platform/Android`.
 - App CMake: `add_library(Cows SHARED ...)` on Android, `-u
   ANativeActivity_onCreate`, no bundle properties; APK via `tools/android.sh`.
-- HUD: see Text and fonts — drawn in the GPU frame on Android.
+- HUD: see Text and fonts — drawn in the GPU frame, as on every platform.
 - `CMake/Findeacp.cmake`: `COWS_EACP_TAG` (default `main`) so the branch can
   pin `android-mvp`; `CPM_eacp_SOURCE` for the local worktree.
 - `tools/android.sh sim [shot.png]` and `just sim-android`.
@@ -224,7 +221,7 @@ portable. The "main thread" is the glue thread, not Java's UI thread;
 | 3 | Cows renders: shared lib, audio (MakeASound RtMidi fix), res_embed | 1–2 d |
 | 4 | Input + HUD on GPU, safe areas (JNI insets), back button, pause/resume, surface loss | 2–3 d |
 | 5 | Play: AAB, signing, 16 KB pages, store listing, device testing on real Adreno/Mali | 2–3 d |
-| later | eacp Text on Android (FreeType/HarfBuzz, font resolver), multi-touch in eacp, Vulkan 1.1 fallback | 1–2 w |
+| later | a real Android shaper (TextRunShaper), multi-touch in eacp, Vulkan 1.1 fallback | 1–2 w |
 
 ## Risks, and what to check first
 
@@ -232,7 +229,8 @@ portable. The "main thread" is the glue thread, not Java's UI thread;
    Checked first on the emulator: `adb shell cmd gpu vkjson` → 1.3.0 with all
    five features. Real devices: needs a Play device-catalogue check.
 2. **Swapchain format / transform** mismatches (RGBA vs BGRA, rotation).
-3. **2D HUD**: no `Context` on Android (see above).
+3. **2D HUD**: no `Context` on Android — answered by drawing it on the GPU
+   everywhere (see Text and fonts).
 4. **Shader pipeline**: glslang at runtime is proven on Linux; on Android it
    is size and first-frame time, not correctness.
 5. **Emulator GPU**: gfxstream over MoltenVK; driver bugs there are not device
@@ -242,10 +240,15 @@ portable. The "main thread" is the glue thread, not Java's UI thread;
 ## Status (2026-09-28)
 
 **Cows In Love runs on the Android emulator**: meadow, cow, grass, shadows,
-fog, the touch HUD and footer, multi-touch stick/Moo/Jump, the moo through
-AAudio, home-and-back (surface lost and rebuilt), back quits.
+fog, the touch HUD and footer (on the GPU, as everywhere), multi-touch
+stick/Moo/Jump, the moo through AAudio, home-and-back (surface lost and
+rebuilt), back quits. Dragging the stick in Release: before (CPU HUD texture)
+≈39 fps, p95 38 ms; after (GPU HUD) 56–60 fps, p95 17–25 ms, HUD 0.3 ms of
+CPU a frame — what is left of the dip is the scene while walking, not the
+HUD. Shots: `docs/shots/hud-gpu-android.png`, `hud-gpu-ios.png`,
+`hud-gpu-macos.png`.
 Screenshots: `docs/shots/android-mvp.png` (eacp Hello: Vulkan clear following
-the finger), `docs/shots/android-cows.png` (the game). `docs/shots` is
+the finger; now `android-hello.png`, HelloGPU), `docs/shots/android-cows.png` (the game). `docs/shots` is
 gitignored, as for the other shots.
 
 ### Toolchain on this Mac
@@ -273,8 +276,7 @@ gitignored, as for the other shots.
 android-29), builds `Cows-apk`, boots the `cows` AVD if nothing is attached,
 installs and launches `com.cowsinlove.cows`. It builds Release into
 `build-android-release/` by default; `COWS_CONFIG=Debug` builds `build-android/`
-(-O0: fine idle, but ~5 fps while a finger moves, since each HUD repaint takes
-~400 ms). `COWS_ENV="COWS_PROFILE=1 COWS_SEED=3"` passes settings to the app
+(-O0; slower, but the HUD no longer repaints anything on the CPU). `COWS_ENV="COWS_PROFILE=1 COWS_SEED=3"` passes settings to the app
 through the `debug.cows.env` property. `COWS_EACP_TAG` in
 `CMake/Findeacp.cmake` can pin a fetched eacp revision once `android-mvp` is
 pushed; until then the local worktree (`CPM_eacp_SOURCE`) is the only way.
@@ -296,27 +298,26 @@ pushed; until then the local worktree (`CPM_eacp_SOURCE`) is the only way.
 - GPU: `VK_KHR_android_surface`; `eacp-spirv` on by default (glslang at run
   time). Nothing else in the Vulkan backend needed changing; the swapchain
   comes out BGRA8, matching eacp's default pipeline format.
-- `SoftwareContext` + `Font`/`TextMetrics` on Android: a CPU `Context` into a
-  straight-alpha RGBA8 `Image` (non-zero fills with 16× vertical
-  supersampling, strokes as quads + round joins), glyphs from `/system/fonts`
-  (Menlo/Mono → DroidSansMono with synthetic bold; else Roboto/DroidSans).
-  Rasteriser: FreeType 2.13.3 fetched by CPM (`CMake/FindAndroidFreeType.cmake`,
-  `eacp-freetype`), light hinting, `FT_GlyphSlot_Embolden` for synthetic bold.
+- Text: `GlyphRasterizer-Android.cpp` over `android.graphics` via JNI (see
+  Text and fonts), `EACP_HAS_TEXT` on for Android (Text, UI, SVG build);
+  `TextRenderer::setSampleCount` for text in a multisampled pass. No CPU 2D
+  tier and no FreeType: `SoftwareContext`, `Font-Android`,
+  `TextMetrics-Android` and the FreeType fetch were removed.
 - Packaging: `eacp_add_android_apk()` (`CMake/AndroidApk.cmake`,
   `AndroidManifest.xml.in`, `Scripts/android-apk`): aapt2 → zip →
   `zipalign -P 16` → apksigner (debug keystore), no Gradle. Manifest requires
   Vulkan 1.3, NativeActivity, `configChanges` so rotation never recreates it.
-- `Apps/Android/Hello`: clear through Vulkan, log touches, SoftwareContext
-  overlay as a sprite.
+- `Apps/Android/HelloGPU`, eacp's Android example: a Vulkan clear following
+  the finger, a spinning triangle, text through `TextRenderer`, touches
+  logged; `cmake --build build-android --target HelloGPU-run` builds, boots
+  an emulator if needed, installs and launches (eacp README, "Android").
+  Shots: `docs/shots/android-hello.png`, `docs/shots/android-text.png`.
 
 ### Cows `android` branch
 
-- `Platform/Android/`: `Platform` (touch = true, `attach`, `drawOverlay`),
+- `Platform/Android/`: `Platform` (touch = true, `attach`, `importSettings`),
   `TouchSurface` (pointer ids from 1, as on iOS; safe area → controls and
-  footer), `HudLayer` (paints `TouchControls` and `FooterView` through
-  `SoftwareContext` only when their visible state changes, uploads, draws as a
-  sprite at the end of `CowsView`'s pass). `drawOverlay` is a no-op on
-  macOS/iOS.
+  footer). The HUD is `UI/Hud`, the same on every platform.
 - `CMake/Android/FindALSA.cmake` + `rtmidi` forced to `__RTMIDI_DUMMY__`: the
   MakeASound → RtMidi → ALSA configure failure, worked around in Cows. The
   real fix belongs in MakeASound's `FindRTMidi.cmake`.
@@ -355,9 +356,7 @@ aligned; the .so is linked with 16 KB pages through
 
 ### Deviations from the other platforms, on purpose
 
-- HUD text is DroidSansMono (synthetic bold for Menlo-Bold), not Menlo.
-- The HUD is a CPU-painted texture composited in the scene's pass, not
-  native layers.
+- HUD text is DroidSansMono (Android's fake bold for Menlo bold), not Menlo.
 - Back quits (same as Esc on desktop). Play prefers back to leave the game to
   the launcher, which is what quitting does here.
 
@@ -368,8 +367,8 @@ aligned; the .so is linked with 16 KB pages through
 2. Real devices: Adreno/Mali Vulkan 1.3 behaviour, `preTransform` on a rotated
    device (Cows is portrait-locked, so IDENTITY in practice), 16 KB pages.
 3. eacp upstreaming: split `OS::Android` out of `OS::Linux`, a portable
-   multi-touch API on `View`, eacp `Text` on Android (FreeType + HarfBuzz +
-   an `AFontMatcher` resolver), a second `android_main` in one process.
+   multi-touch API on `View`, a real shaper for Android text (TextRunShaper),
+   a second `android_main` in one process.
 
 ### Estimate of what is left
 
