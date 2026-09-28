@@ -39,7 +39,7 @@ for devices in json.load(sys.stdin)["devices"].values():
     xcrun simctl bootstatus "$udid" -b >/dev/null
     open -a Simulator
 
-    xcrun simctl install "$udid" build-ios/App/Debug-iphonesimulator/Cows.app
+    xcrun simctl install "$udid" build-ios/Apps/CowsInLove/Debug-iphonesimulator/Cows.app
     xcrun simctl terminate "$udid" "$bundle_id" 2>/dev/null || true
     xcrun simctl launch "$udid" "$bundle_id"
 
@@ -90,7 +90,7 @@ run_device() {
         exit 1
     fi
 
-    local app="build-ios-device/App/Debug-iphoneos/Cows.app"
+    local app="build-ios-device/Apps/CowsInLove/Debug-iphoneos/Cows.app"
     xcrun devicectl device install app --device "$device" "$app"
     xcrun devicectl device process launch --device "$device" "$bundle_id"
 }

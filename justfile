@@ -6,7 +6,7 @@ device := "D731347C-AC33-53DD-814A-1B1E4ED47AC7"
 macos:
     [[ -f build/CMakeCache.txt ]] || cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug ${EACP:+-DCPM_eacp_SOURCE=$EACP}
     cmake --build build
-    open build/App/Cows.app
+    open build/Apps/CowsInLove/Cows.app
 
 # Build and run on the "Cows iPhone" simulator, optionally saving a screenshot.
 sim-ios shot="":
@@ -23,3 +23,8 @@ shot out="":
 # List phones devicectl can see.
 devices:
     xcrun devicectl list devices
+
+# Build and run every library's test suite.
+test:
+    cmake --build build
+    ctest --test-dir build --output-on-failure

@@ -1,0 +1,5 @@
+add_subdirectory(cowsinlove_Engine)
+add_subdirectory(cowsinlove_AudioEngine)
+add_subdirectory(cowsinlove_Actors)
+add_subdirectory(cowsinlove_World)
+add_subdirectory(cowsinlove_Game)

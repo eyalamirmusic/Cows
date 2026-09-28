@@ -12,38 +12,84 @@ the current conversation.
 
 Cows is a 3D GPU recreation of the "cows in love" terminal animation
 (`ssh ssh.cowsinlove.com`), built on [eacp](https://github.com/eyalamirmusic/eacp)
-and its shader EDSL. It is one app target, `Cows`, under `App/`.
+and its shader EDSL. Game-independent code lives in static libraries under
+`Lib/`; each app under `Apps/` links them. Today there is one app target, `Cows`,
+under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
 
-- `App/Source/Main.cpp` — runs `CowsApp`
-- `App/Source/CowsApp` — the window: scene, footer overlay, root view; ends
-  by attaching the platform
-- `App/Source/macOS`, `App/Source/iOS` — one `Platform.h` each: window size, and
-  on iOS the touch HUD and audio session; CMake puts the
-  current platform's directory on the include path, so no platform macros
-- `App/Source/Scene/Common.h` — `using namespace eacp` and `eacp::GPU`, included
-  by all graphics code
-- `App/Source/Scene/CowsView` — the `GPUView`: gathers instances, shadow pass,
-  main pass, mouse input
-- `App/Source/Scene/Choreography` — every timing of the original (sway/kiss,
-  hops, heartbeat, sun pulse, title wave)
-- `App/Source/Scene/Palette.h` — the original's colours, and sRGB → linear
-- `App/Source/Scene/Shaders` / `Shading` — the `ShaderProgram`s, and the shared
-  shading functions (lighting, PCF shadows, haze, tone curve, value noise)
-- `App/Source/Scene/Lighting.h` — the light, and the uniforms lit shaders share
-- `App/Source/Scene/Mesh`, `HeartMesh`, `TitleFont` — procedural meshes: sphere,
-  lathe shapes, puffy heart, tube-font title
-- `App/Source/Scene/Instances` — per-instance data and per-mesh batches
-- `App/Source/Scene/Cow` — the cow model (parts on bones) and its animation
-- `App/Source/Scene/KissHearts` — the heart burst at each kiss (stateless)
-- `App/Source/Scene/SkyDecor` — sun, clouds, hills; `Grass` — instanced blades
-- `App/Source/Scene/ShadowMap` — the key light's depth target
-- `App/Source/Scene/Overlay` — footer text, and q / Esc to quit
-- `App/Source/Scene/TouchControls` — on-screen stick, Moo / Jump / Again, drag
-  to look, pinch to zoom; `iOS/TouchSurface.mm` feeds it multi-touch on iOS
-- `App/Source/Scene/OrbitCamera` — drag to orbit, scroll to zoom, idle drift
+- `Lib/cowsinlove_Engine` — knows nothing about cows. Include with the
+  subdirectory: `#include "Render/Mesh.h"`.
+  - `Render/Common.h` — `using namespace eacp` and `eacp::GPU`, included by all
+    graphics code
+  - `Render/Palette.h` — the original's colours, and sRGB → linear
+  - `Render/Shaders` / `Shading` — the generic `ShaderProgram`s (sky, surface,
+    shadow caster, glow), and the shared shading functions (lighting, PCF
+    shadows, haze, tone curve, value noise)
+  - `Render/Lighting.h` — the light, and the uniforms lit shaders share
+  - `Render/Mesh` — procedural meshes: sphere, lathe shapes, box, wedge
+  - `Render/Instances` — per-instance data and per-mesh batches
+  - `Render/ShadowMap` — the key light's depth target
+  - `Camera/OrbitCamera` — drag to orbit, scroll to zoom, idle drift
+  - `UI/Overlay` — footer text, and q / Esc to quit
+  - `UI/TouchControls` — on-screen stick, Moo / Jump / Again, drag to look,
+    pinch to zoom; `Platform/iOS/TouchSurface.mm` feeds it multi-touch on iOS
+  - `Platform/macOS`, `Platform/iOS` — one `Platform` each, knowing nothing
+    about the game: `touch`, and `attach(root, hud, footer)` (a no-op on
+    macOS; on iOS the audio session, the HUD and its touch surface, and the
+    safe area). CMake puts the current platform's directory on Engine's
+    PUBLIC include path, so it is `#include "Platform.h"` and no macros
+- `Lib/cowsinlove_AudioEngine/SamplePlayer` — plays a mono float sample through
+  the output device, mixed as panned, pitched, muffled voices
+- `Lib/cowsinlove_Actors` — the things in the world, each with its model,
+  collision shape and behaviour. Links Engine and AudioEngine.
+  - `Animation/Choreography` — every timing of the original (sway/kiss, hops,
+    heartbeat, sun pulse, title wave)
+  - `Cow/Cow` — the cow model (parts on bones) and its animation;
+    `Cow/HeartMesh` — puffy heart; `Cow/KissHearts` — the heart burst at each
+    kiss (stateless); `Cow/Moo` — the recorded moo and her answer, embedded
+    from `Resources/moo.f32` (see `Resources/CREDITS.md`)
+  - `Sky/SkyDecor` — sun, clouds, hills
+  - `Props/Collision` — `Collider` and `Block`; `Props/Scenery` — the batch,
+    colliders and blocks props are added to; `Props/Props` — seeded draws,
+    `matte`, `addBlock`
+  - `Props/Barn`, `Tree`, `Hedge`, `Bale`, `Crate`, `Rock` — one add function
+    each, taking a `Scenery&` and, where the prop is random, a `std::mt19937&`
+- `Lib/cowsinlove_World` — how actors are laid out and collided with. Links
+  Actors.
+  - `Level` — a `Scenery` plus the hideout, and `pushedOut` / `floorAt` /
+    `isFree`; `stepUp`
+  - `Levels/Meadow` — `makeMeadow(seed)`, the seeded meadow layout: where
+    props go and where she hides
+  - `Terrain/Grass` — instanced blades (`makeBlade`, `makeGrassTile()` for
+    one tile); `Terrain/TerrainShaders` — the ground and grass shaders
+- `Lib/cowsinlove_Game` — the rules of this game; nothing that owns GPU passes.
+  Links World.
+  - `Game` — state machine, player movement, found test, moo cooldown, the moo
+    hint, and `footerText`; `reset(seed)` builds the level through its
+    `makeLevel` hook, which the app sets (the library never names a level)
+  - `Ending` — the ending's numbers (title rise, kiss point, camera settle) and
+    `titlePlacement`, `loops` (start again after the title)
+  - `Input` — held keys (wasd / hjkl / arrows, space) and the touch stick,
+    summed into walk ahead / turn
+  - `Title/TitleFont` — the tube-font title; `Title/TitleShader` — its shader
+- `Apps/CowsInLove/Source/Main.cpp` — runs `CowsApp`
+- `Apps/CowsInLove/Source/Stages` — the content: which level generator each
+  round plays (`makeMeadow`) and where the seed comes from (`COWS_SEED`, else
+  the clock)
+- `Apps/CowsInLove/Source/CowsApp` — the window: scene, footer, touch HUD,
+  root view; wires them the same on every platform and ends by attaching the
+  platform (the app has no platform directories or branches)
+- `Apps/CowsInLove/Source/Scene/CowsView` — the `GPUView`: gathers instances,
+  shadow pass, main pass, camera steering, mouse; forwards keys to `Input`
+- `Tests/Engine`, `Tests/AudioEngine`, `Tests/Actors`, `Tests/World`,
+  `Tests/Game` — one NanoTest executable per library, and `Tests/CowsInLove`
+  for the app's content; run with `ctest --test-dir build` or `just test`.
+  `Tests/Support` holds the shared `TestMain` and `SnapshotView`, which draws a
+  `SurfaceBatch` (plus anything in `drawOpaque`) off-screen and saves
+  `docs/shots/tests/<name>.png`; snapshot tests skip without a GPU
 
 `COWS_TIME=<seconds>` starts the clock there and `COWS_FREEZE=1` stops it, for
-screenshots (run the binary in `build/App/Cows.app/Contents/MacOS/` directly).
+screenshots; `COWS_SEED=<n>` fixes the level and `COWS_FOUND=1` starts beside
+her (run the binary in `build/Apps/CowsInLove/Cows.app/Contents/MacOS/` directly).
 
 ## Build Commands
 
@@ -53,7 +99,7 @@ To build against the local checkout instead (usually ahead of `main`):
 ```bash
 cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug -DCPM_eacp_SOURCE=$HOME/Code/eacp
 cmake --build build
-open build/App/Cows.app
+open build/Apps/CowsInLove/Cows.app
 ```
 
 Use `$HOME`, not `~`: CMake does not expand `~`.
@@ -62,7 +108,7 @@ iOS: `tools/ios.sh sim [shot.png]` builds `build-ios/` and runs it on the "Cows 
 simulator; `tools/ios.sh device` signs with `COWS_TEAM` (default: Jamie's Personal Team) and runs it on the phone.
 
 Shortcuts in the `justfile`: `just macos`, `just sim-ios [shot.png]`,
-`just ios [udid]` (defaults to pond), `just shot`, `just devices`.
+`just ios [udid]` (defaults to pond), `just shot`, `just devices`, `just test`.
 
 ## Code Style
 
@@ -73,7 +119,7 @@ Follows eacp's style:
 - Structs marked `final` where nothing derives from them; data members at the
   bottom.
 - File-local helpers live in an anonymous namespace. Graphics code includes
-  `Scene/Common.h`, which brings `eacp` and `eacp::GPU` in globally, so nothing
+  `Render/Common.h`, which brings `eacp` and `eacp::GPU` in globally, so nothing
   spells `eacp::` or `eacp::GPU::` out; `.cpp` files add
   `using namespace Maths;` as needed.
 - Use `eacp::Vector` and the `Maths` types (`Vec3`, `Mat4`) as eacp does.

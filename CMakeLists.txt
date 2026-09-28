@@ -43,4 +43,12 @@ if (PROJECT_IS_TOP_LEVEL)
     endif ()
 endif ()
 
-add_subdirectory(App)
+option(COWS_BUILD_TESTS "Build the test suites" ON)
+
+add_subdirectory(Lib)
+add_subdirectory(Apps)
+
+if (COWS_BUILD_TESTS AND NOT IOS)
+    enable_testing()
+    add_subdirectory(Tests)
+endif ()

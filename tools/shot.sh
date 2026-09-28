@@ -13,7 +13,7 @@ if [[ -z "${SHOT_NOBUILD:-}" ]]; then
     cmake --build build >&2 || { echo "build failed" >&2; exit 1; }
 fi
 
-bin="build/App/Cows.app/Contents/MacOS/Cows"
+bin="build/Apps/CowsInLove/Cows.app/Contents/MacOS/Cows"
 [[ -x "$bin" ]] || { echo "no binary at $bin" >&2; exit 1; }
 
 env_args=()
