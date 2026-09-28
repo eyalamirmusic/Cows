@@ -18,6 +18,7 @@
 
 #include <functional>
 #include <string>
+#include <string_view>
 
 namespace Cows
 {
@@ -38,6 +39,7 @@ struct CowsView final : GPUView
     void control(const ControlEvent& event);
     void returnKeyFocus();
     void restart();
+    void setTitle(std::string_view text);
     void advanceStage();
     void layTerrain();
     void callOut();

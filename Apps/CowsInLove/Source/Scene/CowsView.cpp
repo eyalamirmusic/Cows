@@ -160,7 +160,6 @@ CowsView::CowsView()
     , box(makeBox())
     , wedge(makeWedge())
     , ground(makePlane(groundSize))
-    , title(makeTitle(Ending::titleText))
     , cowParts(makeCowParts())
     , cows(makeCouple())
     , elapsed(startTime())
@@ -186,8 +185,7 @@ CowsView::CowsView()
     uploadedBlades = &grass.tile;
     grassShader.prepare(solidPipeline(samples, CullMode::None));
 
-    titleShader.setVertices(title.vertices.data(), title.vertices.size());
-    titleShader.setIndices(title.indices.data(), title.indices.size());
+    setTitle(Ending::titleText);
     titleShader.prepare(solidPipeline(samples));
 
     glowShader.setVertices(glowQuad);
@@ -376,6 +374,13 @@ void CowsView::restart()
     camera.yaw = startYaw + game.playerHeading;
     camera.target = game.player + Vec3 {0.f, searchHeight, 0.f};
     onStateChanged();
+}
+
+void CowsView::setTitle(std::string_view text)
+{
+    title = makeTitle(text);
+    titleShader.setVertices(title.vertices.data(), title.vertices.size());
+    titleShader.setIndices(title.indices.data(), title.indices.size());
 }
 
 void CowsView::advanceStage()
@@ -622,7 +627,7 @@ void CowsView::drawGrassTile(RenderPass& pass,
 
 void CowsView::drawTitle(RenderPass& pass)
 {
-    if (game.state != Game::State::Found)
+    if (game.state != Game::State::Found || title.indices.empty())
         return;
 
     titleShader.placement = Ending::titlePlacement(game);

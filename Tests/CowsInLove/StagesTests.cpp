@@ -11,6 +11,24 @@ using namespace Cows;
 
 namespace
 {
+void setEnv(const char* name, const char* value)
+{
+#if defined(_WIN32)
+    _putenv_s(name, value);
+#else
+    setenv(name, value, 1);
+#endif
+}
+
+void unsetEnv(const char* name)
+{
+#if defined(_WIN32)
+    _putenv_s(name, "");
+#else
+    unsetenv(name);
+#endif
+}
+
 Level levelOf(const Stages& stages, std::uint32_t seed = 3)
 {
     return stages.level()(seed);
@@ -19,15 +37,15 @@ Level levelOf(const Stages& stages, std::uint32_t seed = 3)
 
 auto tFixedSeed = test("Stages/firstSeedHonoursCOWS_SEED") = []
 {
-    setenv("COWS_SEED", "42", 1);
+    setEnv("COWS_SEED", "42");
     auto stages = Stages {};
     check(stages.firstSeed() == 42u);
-    unsetenv("COWS_SEED");
+    unsetEnv("COWS_SEED");
 };
 
 auto tClockSeeds = test("Stages/seedsChangeBetweenRounds") = []
 {
-    unsetenv("COWS_SEED");
+    unsetEnv("COWS_SEED");
     auto stages = Stages {};
     auto first = stages.firstSeed();
     auto next = stages.nextSeed();
@@ -37,7 +55,7 @@ auto tClockSeeds = test("Stages/seedsChangeBetweenRounds") = []
 
 auto tMeadow = test("Stages/levelIsAMeadow") = []
 {
-    unsetenv("COWS_STAGE");
+    unsetEnv("COWS_STAGE");
     auto stages = Stages {};
     auto game = Game {};
     game.makeLevel = stages.level();
@@ -50,7 +68,7 @@ auto tMeadow = test("Stages/levelIsAMeadow") = []
 
 auto tAdvance = test("Stages/advanceGoesMeadowRavineMeadow") = []
 {
-    unsetenv("COWS_STAGE");
+    unsetEnv("COWS_STAGE");
     auto stages = Stages {};
     check(stages.current == 0 && levelOf(stages).gaps.empty());
 
@@ -64,12 +82,12 @@ auto tAdvance = test("Stages/advanceGoesMeadowRavineMeadow") = []
 
 auto tStageFromEnv = test("Stages/COWS_STAGEPicksTheStart") = []
 {
-    setenv("COWS_STAGE", "1", 1);
+    setEnv("COWS_STAGE", "1");
     auto stages = Stages {};
     check(stages.current == 1);
     check(!levelOf(stages).gaps.empty());
 
-    setenv("COWS_STAGE", "5", 1);
+    setEnv("COWS_STAGE", "5");
     check(Stages {}.current == 1);
-    unsetenv("COWS_STAGE");
+    unsetEnv("COWS_STAGE");
 };
