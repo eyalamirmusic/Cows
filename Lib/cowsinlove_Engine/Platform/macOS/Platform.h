@@ -11,7 +11,6 @@ struct Platform final
 
     static void importSettings() {}
 
-    void attach(Graphics::View&, TouchControls&, FooterView&) {}
-    void drawOverlay(GPUView&, RenderPass&) {}
+    void attach(Graphics::View&, TouchControls&, Footer&) {}
 };
 } // namespace Cows

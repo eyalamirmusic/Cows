@@ -31,32 +31,10 @@ float distance(Point a, Point b)
     return std::hypot(a.x - b.x, a.y - b.y);
 }
 
-Graphics::Path circle(Point center, float radius)
+void strokeRing(Hud& hud, Point center, float radius)
 {
-    auto path = Graphics::Path {};
-    path.addEllipse(
-        {center.x - radius, center.y - radius, radius * 2.f, radius * 2.f});
-    return path;
-}
-
-void strokeRing(Graphics::Context& g, Point center, float radius)
-{
-    auto path = circle(center, radius);
-    g.setColor(shadowColor);
-    g.setLineWidth(5.f);
-    g.strokePath(path);
-    g.setColor(lineColor);
-    g.setLineWidth(2.5f);
-    g.strokePath(path);
-}
-
-void fillDisc(Graphics::Context& g,
-              Point center,
-              float radius,
-              Graphics::Color color)
-{
-    g.setColor(color);
-    g.fillPath(circle(center, radius));
+    hud.strokeRing(center, radius, 5.f, shadowColor);
+    hud.strokeRing(center, radius, 2.5f, lineColor);
 }
 
 float shaped(float value)
@@ -85,8 +63,6 @@ void TouchControls::resized()
 
     if (!pressed(Role::Stick))
         stickCenter = knob = stickHome;
-
-    repaint();
 }
 
 TouchControls::Role TouchControls::roleAt(Point position) const
@@ -161,8 +137,6 @@ void TouchControls::pointerDown(int id, Point position)
         case Role::Look:
             break;
     }
-
-    repaint();
 }
 
 void TouchControls::pointerMoved(int id, Point position)
@@ -205,8 +179,6 @@ void TouchControls::pointerUp(int id)
 
     if (role == Role::Stick)
         releaseStick();
-
-    repaint();
 }
 
 void TouchControls::moveStick(Point position)
@@ -221,7 +193,6 @@ void TouchControls::moveStick(Point position)
     onControl({ControlEvent::Kind::Steer,
                shaped(-offset.y / ringRadius),
                shaped(-offset.x / ringRadius)});
-    repaint();
 }
 
 void TouchControls::releaseStick()
@@ -230,46 +201,41 @@ void TouchControls::releaseStick()
     onControl({ControlEvent::Kind::Steer});
 }
 
-void TouchControls::paint(Graphics::Context& g)
+void TouchControls::draw(Hud& hud) const
 {
     if (showAgain)
     {
-        drawButton(g, jumpCenter, jumpRadius, "Again", pressed(Role::Again));
+        drawButton(hud, jumpCenter, jumpRadius, "Again", pressed(Role::Again));
         return;
     }
 
-    drawStick(g);
-    drawButton(g, mooCenter, mooRadius, "Moo", pressed(Role::Moo));
-    drawButton(g, jumpCenter, jumpRadius, "Jump", pressed(Role::Jump));
+    drawStick(hud);
+    drawButton(hud, mooCenter, mooRadius, "Moo", pressed(Role::Moo));
+    drawButton(hud, jumpCenter, jumpRadius, "Jump", pressed(Role::Jump));
 }
 
-void TouchControls::drawStick(Graphics::Context& g)
+void TouchControls::drawStick(Hud& hud) const
 {
-    strokeRing(g, stickCenter, ringRadius);
-    fillDisc(g, knob, knobRadius, pressed(Role::Stick) ? pressedFill : knobFill);
-    strokeRing(g, knob, knobRadius);
+    strokeRing(hud, stickCenter, ringRadius);
+    hud.fillDisc(knob, knobRadius, pressed(Role::Stick) ? pressedFill : knobFill);
+    strokeRing(hud, knob, knobRadius);
 }
 
-void TouchControls::drawButton(Graphics::Context& g,
-                               Point center,
-                               float radius,
-                               const std::string& label,
-                               bool down)
+void TouchControls::drawButton(
+    Hud& hud, Point center, float radius, std::string_view label, bool down) const
 {
     if (down)
-        fillDisc(g, center, radius, pressedFill);
+        hud.fillDisc(center, radius, pressedFill);
 
-    strokeRing(g, center, radius);
+    strokeRing(hud, center, radius);
 
     const auto& font = radius > mooRadius ? largeLabel : smallLabel;
-    auto width = Graphics::TextMetrics::measureWidth(label, font);
-    auto baseline = center.y + Graphics::TextMetrics::getAscent(font) * 0.36f;
+    auto width = hud.measure(label, font);
+    auto baseline = center.y + hud.ascent(font) * 0.36f;
     auto position = Point {center.x - width * 0.5f, baseline};
 
-    g.setColor(shadowColor);
-    g.drawText(label, {position.x + 1.f, position.y + 1.f}, font);
-    g.setColor(lineColor);
-    g.drawText(label, position, font);
+    hud.drawText(label, {position.x + 1.f, position.y + 1.f}, font, shadowColor);
+    hud.drawText(label, position, font, lineColor);
 }
 
 void TouchControls::returnKeyFocus()

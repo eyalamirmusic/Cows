@@ -154,14 +154,13 @@ void render(const Shot& shot, const std::string& directory, const Screen& screen
     auto phone = screen.phone;
     auto root = RootView {};
     auto scene = CowsView {};
-    auto footer = FooterView {};
+    auto footer = Footer {};
     auto touch = TouchControls {};
 
     scene.frozen = true;
     scene.touchHints = phone;
     footer.text = [&] { return footerText(scene.game, scene.hint, phone); };
     root.addSubview(scene);
-    root.addSubview(footer);
 
     if (phone)
     {
@@ -178,6 +177,13 @@ void render(const Shot& shot, const std::string& directory, const Screen& screen
     shot.setUp(scene);
     settle(scene, shot.seconds);
     touch.showAgain = scene.game.state == Game::State::Found;
+    scene.drawHud = [&](Hud& hud)
+    {
+        footer.draw(hud);
+
+        if (phone)
+            touch.draw(hud);
+    };
 
     auto image = root.renderToImage(screen.scale);
     auto path = directory + "/" + shot.name + ".png";

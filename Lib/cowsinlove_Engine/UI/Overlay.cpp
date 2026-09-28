@@ -14,7 +14,10 @@ constexpr auto lineHeight = 18.f;
 constexpr std::string_view separator = "  -  ";
 } // namespace
 
-Vector<std::string> FooterView::lines(const std::string& line, float width) const
+Vector<std::string>
+    Footer::lines(const std::string& line,
+                  float width,
+                  const std::function<float(std::string_view)>& measure) const
 {
     auto result = Vector<std::string> {};
     auto current = std::string {};
@@ -27,8 +30,7 @@ Vector<std::string> FooterView::lines(const std::string& line, float width) cons
         auto joined =
             current.empty() ? phrase : current + std::string(separator) + phrase;
 
-        if (!current.empty()
-            && Graphics::TextMetrics::measureWidth(joined, font) > width)
+        if (!current.empty() && measure(joined) > width)
         {
             result.add(current);
             current = phrase;
@@ -45,23 +47,24 @@ Vector<std::string> FooterView::lines(const std::string& line, float width) cons
     return result;
 }
 
-void FooterView::paint(Graphics::Context& g)
+void Footer::draw(Hud& hud) const
 {
-    auto bounds = getLocalBounds();
-    auto wrapped = lines(text(), bounds.w - 2.f * sideMargin);
-    auto baseline = bounds.h - bottomInset - bottomMargin
+    auto measure = [&](std::string_view line) { return hud.measure(line, font); };
+    auto wrapped = lines(text(), hud.size.x - 2.f * sideMargin, measure);
+    auto baseline = hud.size.y - bottomInset - bottomMargin
                     - lineHeight * (float) (wrapped.size() - 1);
 
     for (const auto& line: wrapped)
     {
-        auto width = Graphics::TextMetrics::measureWidth(line, font);
-        auto position = Graphics::Point {(bounds.w - width) * 0.5f, baseline};
+        auto width = measure(line);
+        auto position = Graphics::Point {(hud.size.x - width) * 0.5f, baseline};
 
-        g.setColor(Graphics::Color {0.f, 0.16f, 0.f, 0.55f});
-        g.drawText(line, {position.x + 1.f, position.y + 1.f}, font);
-
-        g.setColor(Graphics::Color {0.92f, 1.f, 0.9f, 0.92f});
-        g.drawText(line, position, font);
+        hud.drawText(line,
+                     {position.x + 1.f, position.y + 1.f},
+                     font,
+                     Graphics::Color {0.f, 0.16f, 0.f, 0.55f});
+        hud.drawText(
+            line, position, font, Graphics::Color {0.92f, 1.f, 0.9f, 0.92f});
 
         baseline += lineHeight;
     }

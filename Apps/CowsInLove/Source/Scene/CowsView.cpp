@@ -459,7 +459,9 @@ void CowsView::render(Frame& frame)
     timedScene.reset();
 
     auto timedHud = FrameProfile::Scope {profile, Part::Hud};
-    drawOverlay(pass);
+    hud.begin(frame, pass, sampleCount());
+    drawHud(hud);
+    hud.end();
 }
 
 void CowsView::framePortrait(float aspect)

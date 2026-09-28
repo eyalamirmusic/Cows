@@ -1,6 +1,5 @@
 #pragma once
 
-#include "HudLayer.h"
 #include "TouchSurface.h"
 #include "UI/Overlay.h"
 #include "UI/TouchControls.h"
@@ -18,15 +17,8 @@ struct Platform final
     // `adb shell setprop debug.cows.env "COWS_PROFILE=1 COWS_SEED=3"`.
     static void importSettings();
 
-    void attach(Graphics::View& root,
-                TouchControls& touchControls,
-                FooterView& footer);
-
-    // Android has one surface, so the footer and the controls are painted over
-    // the scene inside its own pass.
-    void drawOverlay(GPUView& scene, RenderPass& pass);
+    void attach(Graphics::View& root, TouchControls& touchControls, Footer& footer);
 
     std::unique_ptr<TouchSurface> surface;
-    std::unique_ptr<HudLayer> hud;
 };
 } // namespace Cows

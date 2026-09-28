@@ -4,10 +4,9 @@ namespace Cows
 {
 void Platform::attach(Graphics::View& root,
                       TouchControls& touchControls,
-                      FooterView& footer)
+                      Footer& footer)
 {
     setUpAudioSession();
-    makeSeeThrough(footer);
     makeSeeThrough(touchControls);
     root.addSubview(touchControls);
 
@@ -17,7 +16,6 @@ void Platform::attach(Graphics::View& root,
         touchControls.safeArea = insets;
         touchControls.resized();
         footer.bottomInset = insets.bottom;
-        footer.repaint();
     };
 }
 } // namespace Cows

@@ -1,23 +1,27 @@
 #pragma once
 
-#include "Render/Common.h"
+#include "UI/Hud.h"
 
 #include <functional>
 #include <string>
+#include <string_view>
 
 namespace Cows
 {
-// The footer, painted over the scene: how to play while searching, how to
-// play again once she is found. Breaks between phrases when it runs too wide.
-struct FooterView final : Graphics::View
+// The footer, drawn over the scene: how to play while searching, how to play
+// again once she is found. Breaks between phrases when it runs too wide.
+struct Footer final
 {
-    void paint(Graphics::Context& g) override;
-    Vector<std::string> lines(const std::string& line, float width) const;
+    void draw(Hud& hud) const;
+    Vector<std::string>
+        lines(const std::string& line,
+              float width,
+              const std::function<float(std::string_view)>& measure) const;
 
     std::function<std::string()> text = [] { return std::string {}; };
     float bottomInset = 0.f;
 
-    Graphics::Font font {Graphics::FontOptions().withName("Menlo").withSize(13.f)};
+    Text::Font font {"Menlo", 13.f};
 };
 
 // Stacks its children over each other, quits on q or Escape, and passes every

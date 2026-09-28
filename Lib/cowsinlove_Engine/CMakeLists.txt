@@ -6,6 +6,7 @@ add_library(cowsinlove_Engine STATIC
         Render/Shaders.cpp
         Render/Shading.cpp
         Render/ShadowMap.cpp
+        UI/Hud.cpp
         UI/Overlay.cpp
         UI/TouchControls.cpp)
 
@@ -18,10 +19,8 @@ if (IOS)
 elseif (ANDROID)
     set(COWS_PLATFORM Platform/Android)
     target_sources(cowsinlove_Engine PRIVATE
-            Platform/Android/HudLayer.cpp
             Platform/Android/Platform.cpp
             Platform/Android/TouchSurface.cpp)
-    target_link_libraries(cowsinlove_Engine PUBLIC eacp-sprites)
 else ()
     set(COWS_PLATFORM Platform/macOS)
 endif ()
@@ -29,6 +28,6 @@ endif ()
 target_include_directories(cowsinlove_Engine PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/${COWS_PLATFORM})
-target_link_libraries(cowsinlove_Engine PUBLIC eacp-gpu)
+target_link_libraries(cowsinlove_Engine PUBLIC eacp-gpu eacp-ui)
 
 set_default_target_setting(cowsinlove_Engine)

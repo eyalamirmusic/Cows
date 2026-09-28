@@ -24,6 +24,7 @@ bool hasDevice();
 // clearColor. `heart` is the mesh for Shape::Heart, which the Engine has not.
 // `drawOpaque` draws anything else solid after `batch`, for shaders the
 // support library does not know; give them the scene with setSceneUniforms.
+// `drawOverlay` draws last, over everything, as the game's HUD does.
 struct SnapshotView final : GPUView
 {
     explicit SnapshotView(const MeshData& heart = makeSphere(16, 24));
@@ -41,6 +42,8 @@ struct SnapshotView final : GPUView
     float time = 0.f;
     std::function<void(RenderPass&, const Maths::Mat4&)> drawOpaque =
         [](RenderPass&, const Maths::Mat4&) {};
+    std::function<void(Frame&, RenderPass&)> drawOverlay = [](Frame&,
+                                                              RenderPass&) {};
 
 private:
     void clearShadows(Frame& frame);

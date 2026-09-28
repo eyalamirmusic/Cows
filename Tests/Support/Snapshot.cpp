@@ -99,6 +99,7 @@ void SnapshotView::render(Frame& frame)
     drawOpaque(pass, viewProjection);
     draw(pass, translucentShader, translucent);
     drawGlows(pass, viewProjection);
+    drawOverlay(frame, pass);
 }
 
 void SnapshotView::clearShadows(Frame& frame)

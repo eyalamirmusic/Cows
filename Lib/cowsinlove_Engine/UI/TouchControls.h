@@ -2,8 +2,10 @@
 
 #include "Render/Common.h"
 #include "UI/ControlEvent.h"
+#include "UI/Hud.h"
 
 #include <functional>
+#include <string_view>
 
 namespace Cows
 {
@@ -19,7 +21,7 @@ struct TouchControls final : Graphics::View
     void pointerMoved(int id, Graphics::Point position);
     void pointerUp(int id);
 
-    void paint(Graphics::Context& g) override;
+    void draw(Hud& hud) const;
     void resized() override;
 
     void mouseDown(const Graphics::MouseEvent& event) override;
@@ -51,12 +53,12 @@ struct TouchControls final : Graphics::View
     void releaseStick();
     void returnKeyFocus();
 
-    void drawStick(Graphics::Context& g);
-    void drawButton(Graphics::Context& g,
+    void drawStick(Hud& hud) const;
+    void drawButton(Hud& hud,
                     Graphics::Point center,
                     float radius,
-                    const std::string& label,
-                    bool down);
+                    std::string_view label,
+                    bool down) const;
 
     std::function<void(const ControlEvent&)> onControl = [](const ControlEvent&) {};
 
@@ -68,9 +70,7 @@ struct TouchControls final : Graphics::View
     Graphics::Point knob;
     Graphics::Point jumpCenter;
     Graphics::Point mooCenter;
-    Graphics::Font smallLabel {
-        Graphics::FontOptions().withName("Menlo-Bold").withSize(14.f)};
-    Graphics::Font largeLabel {
-        Graphics::FontOptions().withName("Menlo-Bold").withSize(17.f)};
+    Text::Font smallLabel {"Menlo", 14.f, Text::FontStyle::Bold};
+    Text::Font largeLabel {"Menlo", 17.f, Text::FontStyle::Bold};
 };
 } // namespace Cows

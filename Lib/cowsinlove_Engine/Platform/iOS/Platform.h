@@ -14,11 +14,7 @@ struct Platform final
 
     static void importSettings() {}
 
-    void attach(Graphics::View& root,
-                TouchControls& touchControls,
-                FooterView& footer);
-
-    void drawOverlay(GPUView&, RenderPass&) {}
+    void attach(Graphics::View& root, TouchControls& touchControls, Footer& footer);
 
     std::unique_ptr<TouchSurface> surface;
 };

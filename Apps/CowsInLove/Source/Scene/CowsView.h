@@ -15,6 +15,7 @@
 #include "Render/ShadowMap.h"
 #include "Render/Shaders.h"
 #include "UI/ControlEvent.h"
+#include "UI/Hud.h"
 
 #include <functional>
 #include <string>
@@ -108,10 +109,10 @@ struct CowsView final : GPUView
     SurfaceBatch heartBatch;
     Vector<GlowInstance> glows;
     Maths::Vec3 contacts[2];
+    Hud hud;
 
-    // Drawn last in the scene's pass: the platform's HUD where it has no
-    // surface of its own to put one on (Android).
-    std::function<void(RenderPass&)> drawOverlay = [](RenderPass&) {};
+    // Drawn last in the scene's pass: the footer and the touch controls.
+    std::function<void(Hud&)> drawHud = [](Hud&) {};
     std::function<void()> onStateChanged = [] {};
 
     float elapsed = 0.f;

@@ -13,7 +13,7 @@ struct CowsApp final
 
     RootView root;
     CowsView scene;
-    FooterView footer;
+    Footer footer;
     TouchControls touchControls;
     Graphics::Window window;
     Platform platform;
