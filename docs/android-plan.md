@@ -99,7 +99,10 @@ mostly deciding, file by file, which of those two it wants.
   catalogue can filter on `android.hardware.vulkan.version` 1.3
   (`0x403000`) in the manifest, which is the honest first release; a 1.1
   fallback is a large eacp change (render passes instead of dynamic rendering,
-  binary semaphores).
+  binary semaphores). **Done**: eacp `jp/vulkan-1-1` takes a 1.1 device
+  through `VK_KHR_synchronization2`, `VK_KHR_timeline_semaphore` (no binary
+  semaphores needed), `VK_EXT_descriptor_indexing` and render passes; the
+  manifest asks for 1.1 (`0x401000`). See Status.
 - Shaders: compiled at run time from GLSL by glslang (`eacp-spirv`), exactly
   as on Linux; `EACP_BUILD_SPIRV` must default on for Android. Costs ~5 MB of
   .so and the first-frame compile (warmed by `Spirv::warmUp`); the
@@ -225,9 +228,9 @@ portable. The "main thread" is the glue thread, not Java's UI thread;
 
 ## Risks, and what to check first
 
-1. **Vulkan 1.3 floor** (dynamic rendering, sync2, timeline semaphores).
-   Checked first on the emulator: `adb shell cmd gpu vkjson` → 1.3.0 with all
-   five features. Real devices: needs a Play device-catalogue check.
+1. **Vulkan floor** (sync2, timeline semaphores; dynamic rendering or render
+   passes). The emulator is 1.3.0 with all five features; a Galaxy S22
+   reports 1.1.128 and gets them through extensions (eacp `jp/vulkan-1-1`).
 2. **Swapchain format / transform** mismatches (RGBA vs BGRA, rotation).
 3. **2D HUD**: no `Context` on Android — answered by drawing it on the GPU
    everywhere (see Text and fonts).
@@ -238,6 +241,21 @@ portable. The "main thread" is the glue thread, not Java's UI thread;
 6. **MakeASound → RtMidi → ALSA** configure failure.
 
 ## Status (2026-09-28)
+
+**A real phone: Galaxy S22 (SM-S901U, Android 16, Adreno 730).** Its driver
+reports Vulkan 1.1.128 under a 1.4 loader, which eacp skipped, so the screen was
+black. eacp `jp/vulkan-1-1` (PR #69) now takes a 1.1 device through
+`VK_KHR_synchronization2`, `VK_KHR_timeline_semaphore` and
+`VK_EXT_descriptor_indexing`, and renders through cached `VkRenderPass`es and
+framebuffers where dynamic rendering is missing, with SPIR-V 1.4. The manifest
+asks for 1.1. On the S22 the log reads `Vulkan: Adreno (TM) 730 (API 1.1, 1.3
+features through extensions, render passes)`, HelloGPU draws, and eacp's
+`GPUTests` pass 473/477 (the four failures are Adreno arithmetic and a 64-byte
+storage offset alignment, not rendering). The emulator forced onto the same
+path (`COWS_ENV="EACP_VK_RENDER_PASSES=1"`) draws the full meadow:
+`docs/shots/android-emulator-renderpasses.png`; the emulator on its own 1.3
+path: `android-emulator-after-vk11.png`. Cows on the phone itself is still to
+be screenshotted and profiled (`s22-cows.png`); the phone locked mid-run.
 
 **Cows In Love runs on the Android emulator**: meadow, cow, grass, shadows,
 fog, the touch HUD and footer (on the GPU, as everywhere), multi-touch
@@ -315,7 +333,7 @@ pushed; until then the local worktree (`CPM_eacp_SOURCE`) is the only way.
 - Packaging: `eacp_add_android_apk()` (`CMake/AndroidApk.cmake`,
   `AndroidManifest.xml.in`, `Scripts/android-apk`): aapt2 → zip →
   `zipalign -P 16` → apksigner (debug keystore), no Gradle. Manifest requires
-  Vulkan 1.3, NativeActivity, `configChanges` so rotation never recreates it.
+  Vulkan 1.1 (1.3 before `jp/vulkan-1-1`), NativeActivity, `configChanges` so rotation never recreates it.
 - `Apps/Android/HelloGPU`, eacp's Android example: a Vulkan clear following
   the finger, a spinning triangle, text through `TextRenderer`, touches
   logged; `cmake --build build-android --target HelloGPU-run` builds, boots
@@ -352,8 +370,8 @@ aligned; the .so is linked with 16 KB pages through
   `COWS_BUILD_NUMBER`, targetSdk 35.
 - **minSdk 33** (Android 13, August 2022), in line with the macOS and
   Windows floors. The code needs 29 (`AChoreographer_postFrameCallback64`),
-  and the real device floor is the Vulkan 1.3 `uses-feature` Play filters
-  on, which is mostly Android 13+ phones anyway. `tools/android.sh` builds
+  and the real device floor is the Vulkan 1.1 `uses-feature` Play filters
+  on. `tools/android.sh` builds
   at 33 too.
 - `allowBackup="false"`: the game saves nothing; the only file it writes is
   the Vulkan pipeline cache.
@@ -387,8 +405,9 @@ aligned; the .so is linked with 16 KB pages through
 fallback, no `std::jthread` in tests, `EACP_HAS_NETWORK`),
 `jp/view-touch-insets` (`View::touchBegan/Moved/Ended` with a `TouchEvent`
 per finger, `getSafeAreaInsets`/`safeAreaInsetsChanged`, iOS views clear
-where they paint nothing) and `jp/android` (the port, on that API). Cows
-follows `jp/android` (worktree `~/projects/eacp-jp-android`); its `Platform/`
+where they paint nothing) and `jp/android` (the port, on that API), with
+`jp/vulkan-1-1` (Vulkan 1.1 devices, PR #69) stacked on it. Cows follows
+`jp/vulkan-1-1` (worktree `~/projects/eacp-vulkan11`); its `Platform/`
 directories are gone: `TouchControls` takes eacp's touch events and safe
 area, MakeASound already sets the Ambient session, and only
 `Settings-Android.cpp` (COWS_* from `debug.cows.env`) is left.

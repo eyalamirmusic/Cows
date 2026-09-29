@@ -129,10 +129,11 @@ none.
 
 ## Device support
 
-- Vulkan 1.3 is required (`android.hardware.vulkan.version` 0x403000 in the
-  manifest), so Play only offers the app to devices whose GPU driver reports
-  1.3: most phones from 2022 on (Android 13+ flagships and mid-range Adreno
-  7xx, Mali-G7xx, Pixel). Older phones see "not compatible" in Play.
+- Vulkan 1.1 is required (`android.hardware.vulkan.version` 0x401000 in the
+  manifest), with synchronization2, timeline semaphores and descriptor
+  indexing as extensions where the driver is below 1.3. Many 2022 flagships
+  still report 1.1 (a Galaxy S22's Adreno 730 does); eacp renders through
+  render passes there. Phones whose driver is below 1.1 see "not compatible".
 - Android 13 (API 33) and later, arm64-v8a and x86_64 (Chromebooks, emulators).
 - Portrait only. Phones and tablets: the game lays itself out for any
   portrait screen, so tablets are supported and the tablet screenshots are

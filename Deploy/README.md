@@ -203,8 +203,8 @@ Create new release**, upload the .aab, paste the release notes, roll out.
 Install from the internal testing link on a real phone, then promote the
 release to Production and **Send for review**. Start with internal testing:
 it is available within minutes, needs no review, and the pre-launch report
-runs the app on real devices (the Vulkan 1.3 floor means old test devices
-report "not compatible", which is expected).
+runs the app on real devices (the Vulkan 1.1 floor means only very old test
+devices report "not compatible", which is expected).
 
 `jarsigner` warns that the upload certificate is self-signed and has no
 timestamp: that is normal for an upload key.
