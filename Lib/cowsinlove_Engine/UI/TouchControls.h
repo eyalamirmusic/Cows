@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Platform/Device.h"
 #include "Render/Common.h"
 #include "UI/ControlEvent.h"
 #include "UI/Hud.h"
@@ -9,9 +10,6 @@
 
 namespace Cows
 {
-// Where the controls are on screen and the footer teaches them.
-constexpr auto touchScreen = Platform::isIOS() || Platform::isAndroid();
-
 // The on-screen controls: a floating stick on the left to walk, Moo and Jump
 // (or Again, once she is found) on the right, and a drag anywhere else to look
 // round, or a pinch to zoom. Driven by numbered pointers so several fingers can

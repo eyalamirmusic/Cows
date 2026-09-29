@@ -91,6 +91,7 @@ void renderEnding(const std::string& name, int width, int height, Framing framin
     clearAroundStage(view.game.level,
                      view.game.stageCenter,
                      framing.clutter ? clearAround : 1000.f);
+    view.scenery = StaticBatch {view.game.level.batch};
 
     auto& camera = view.camera;
     camera.target =

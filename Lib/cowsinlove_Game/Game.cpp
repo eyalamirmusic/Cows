@@ -33,10 +33,10 @@ constexpr auto fellTime = 2.f;
 
 constexpr auto searchingText =
     "wasd / hjkl / arrows to walk  -  space to jump  -  m to "
-    "moo  -  drag to look  -  q to quit";
-constexpr auto foundText = "you found her  -  q to quit";
+    "moo  -  drag to look";
+constexpr auto foundText = "you found her";
+constexpr auto quitText = "  -  q to quit";
 constexpr auto searchingTouchText = "find her  -  drag to look  -  moo for a hint";
-constexpr auto foundTouchText = "you found her";
 constexpr auto fellText = "back on your feet  -  mind the edge";
 
 float headingToward(Vec2 direction)
@@ -190,10 +190,16 @@ bool Game::justFell() const
     return state == State::Searching && sinceFell < fellTime;
 }
 
-std::string footerText(const Game& game, const std::string& hint, bool touchHints)
+std::string footerText(const Game& game,
+                       const std::string& hint,
+                       bool touchHints,
+                       bool quitHint)
 {
+    auto withQuit = [quitHint](std::string text)
+    { return quitHint ? text + quitText : text; };
+
     if (game.state == Game::State::Found)
-        return touchHints ? foundTouchText : foundText;
+        return touchHints ? foundText : withQuit(foundText);
 
     if (game.hintShowing())
         return hint;
@@ -201,6 +207,6 @@ std::string footerText(const Game& game, const std::string& hint, bool touchHint
     if (game.justFell())
         return fellText;
 
-    return touchHints ? searchingTouchText : searchingText;
+    return touchHints ? searchingTouchText : withQuit(searchingText);
 }
 } // namespace Cows

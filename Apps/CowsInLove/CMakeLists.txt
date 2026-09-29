@@ -7,6 +7,8 @@ set(COWS_SOURCES
 
 if (ANDROID)
     list(APPEND COWS_SOURCES Source/Settings-Android.cpp)
+elseif (EMSCRIPTEN)
+    list(APPEND COWS_SOURCES Source/Settings-Web.cpp)
 else ()
     list(APPEND COWS_SOURCES Source/Settings.cpp)
 endif ()
@@ -54,6 +56,16 @@ if (ANDROID)
             VERSION_NAME ${PROJECT_VERSION}
             RES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Android/res"
             ICON "@mipmap/ic_launcher")
+elseif (EMSCRIPTEN)
+    # Cows.html (eacp's page: the canvas, and the WebGPU device asked for before
+    # main runs), .js and .wasm, with an index.html that opens Cows.html and
+    # keeps the query string the settings come from.
+    eacp_web_app(Cows)
+    add_custom_command(TARGET Cows POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${CMAKE_CURRENT_SOURCE_DIR}/Web/index.html"
+                    "$<TARGET_FILE_DIR:Cows>/index.html"
+            VERBATIM)
 elseif (IOS)
     set(assets "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Assets.xcassets")
     set(privacy "${CMAKE_CURRENT_SOURCE_DIR}/Resources/PrivacyInfo.xcprivacy")

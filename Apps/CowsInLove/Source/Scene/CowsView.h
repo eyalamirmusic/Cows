@@ -64,6 +64,8 @@ struct CowsView final : GPUView
     void drawTitle(RenderPass& pass);
     void drawGlows(RenderPass& pass, const Maths::Mat4& viewProjection);
     void drawBatch(RenderPass& pass, ShaderProgram& shader, SurfaceBatch& batch);
+    void
+        drawBatch(RenderPass& pass, ShaderProgram& shader, const StaticBatch& batch);
 
     const Mesh& meshFor(Shape shape) const;
 
@@ -102,7 +104,8 @@ struct CowsView final : GPUView
     Vector<Cow> cows;
     GrassField grass;
     const Vector<BladeInstance>* uploadedBlades = nullptr;
-    SurfaceBatch chasms;
+    StaticBatch chasms;
+    StaticBatch scenery;
 
     SurfaceBatch cowBatch;
     SurfaceBatch backdropBatch;

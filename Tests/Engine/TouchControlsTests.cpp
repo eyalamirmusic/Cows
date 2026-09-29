@@ -188,7 +188,7 @@ auto tPinchZooms = test("TouchControls/pinchZooms") = []
 };
 
 auto tNoTouchScreenOnMacOS =
-    test("TouchControls/noTouchScreenOnMacOS") = [] { check(!touchScreen); };
+    test("TouchControls/noTouchScreenOnMacOS") = [] { check(!touchScreen()); };
 
 // Fingers reach the controls through eacp's view tree, each as its own pointer.
 auto tTouchesArePointers = test("TouchControls/touchesArePointers") = []

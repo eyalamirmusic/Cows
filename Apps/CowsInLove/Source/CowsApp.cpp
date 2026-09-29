@@ -26,23 +26,23 @@ CowsApp::CowsApp()
     root.onKeyUp = [this](const Graphics::KeyEvent& event) { scene.keyUp(event); };
 
     footer.text = [this]
-    { return footerText(scene.game, scene.hint, scene.touchHints); };
+    { return footerText(scene.game, scene.hint, scene.touchHints, canQuit()); };
     touchControls.onControl = [this](const ControlEvent& event)
     { scene.control(event); };
     scene.onStateChanged = [this]
     { touchControls.showAgain = scene.game.state == Game::State::Found; };
 
-    scene.touchHints = touchScreen;
+    scene.touchHints = touchScreen();
     scene.drawHud = [this](Hud& hud)
     {
         footer.bottomInset = root.getSafeAreaInsets().bottom;
         footer.draw(hud);
 
-        if (touchScreen)
+        if (touchScreen())
             touchControls.draw(hud);
     };
 
-    if (touchScreen)
+    if (touchScreen())
         root.addSubview(touchControls);
 }
 } // namespace Cows

@@ -1,5 +1,7 @@
 #include "UI/Overlay.h"
 
+#include "Platform/Device.h"
+
 #include <algorithm>
 #include <string>
 #include <string_view>
@@ -78,8 +80,9 @@ void RootView::resized()
 
 void RootView::keyDown(const Graphics::KeyEvent& event)
 {
-    if (event.keyCode == Graphics::KeyCode::Q
-        || event.keyCode == Graphics::KeyCode::Escape)
+    if (canQuit()
+        && (event.keyCode == Graphics::KeyCode::Q
+            || event.keyCode == Graphics::KeyCode::Escape))
     {
         Apps::quit();
         return;

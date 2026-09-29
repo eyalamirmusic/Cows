@@ -17,6 +17,18 @@ sim-ios shot="":
 sim-android shot="":
     tools/android.sh sim {{shot}}
 
+# Build the web app (Emscripten + WebGPU; COWS_CONFIG=Debug for Debug) into build-web/.
+web:
+    tools/web.sh build
+
+# Serve the web build with COOP/COEP headers (COWS_QUERY="seed=3&stage=1" sets COWS_*).
+serve-web port="8000":
+    tools/web.sh serve {{port}}
+
+# Build the web app and screenshot it in headless Chromium with WebGPU on.
+shot-web shot="":
+    tools/web.sh shot {{shot}}
+
 # Build, sign and run on a phone (devicectl UDID; defaults to pond).
 ios udid=device:
     COWS_DEVICE={{udid}} tools/ios.sh device

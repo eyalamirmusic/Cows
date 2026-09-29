@@ -75,6 +75,9 @@ auto tFooter = test("Ending/footerText") = []
     check(footerText(game, "hint", false) == searching);
     check(footerText(game, "hint", true)
           == "find her  -  drag to look  -  moo for a hint");
+    check(footerText(game, "hint", false, false)
+          == "wasd / hjkl / arrows to walk  -  space to jump  -  m to moo  -  "
+             "drag to look");
 
     game.sinceMoo = mooAnswerDelay + 1.f;
     check(game.hintShowing());
@@ -85,4 +88,5 @@ auto tFooter = test("Ending/footerText") = []
     check(!game.hintShowing());
     check(footerText(game, "hint", false) == "you found her  -  q to quit");
     check(footerText(game, "hint", true) == "you found her");
+    check(footerText(game, "hint", false, false) == "you found her");
 };

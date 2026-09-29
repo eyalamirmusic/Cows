@@ -345,9 +345,9 @@ pushed; until then the local worktree (`CPM_eacp_SOURCE`) is the only way.
 - `Platform/Android/`: `Platform` (touch = true, `attach`, `importSettings`),
   `TouchSurface` (pointer ids from 1, as on iOS; safe area → controls and
   footer). The HUD is `UI/Hud`, the same on every platform.
-- `CMake/Android/FindALSA.cmake` + `rtmidi` forced to `__RTMIDI_DUMMY__`: the
-  MakeASound → RtMidi → ALSA configure failure, worked around in Cows. The
-  real fix belongs in MakeASound's `FindRTMidi.cmake`.
+- `CMake/NoALSA/FindALSA.cmake` (was `CMake/Android/`) + `rtmidi` forced to
+  `__RTMIDI_DUMMY__`: the MakeASound → RtMidi → ALSA configure failure,
+  worked around in Cows. The real fix belongs in MakeASound's `FindRTMidi.cmake`.
 - App: shared library on Android, APK via `eacp_add_android_apk`, launcher
   icon from the iOS icon at five densities (`Apps/CowsInLove/Android/res`).
 

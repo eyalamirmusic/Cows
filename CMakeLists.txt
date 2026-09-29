@@ -12,8 +12,9 @@ endif ()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 
-if (ANDROID)
-    list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Android")
+# Neither has ALSA, which MakeASound's RtMidi asks for on every UNIX.
+if (ANDROID OR EMSCRIPTEN)
+    list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/NoALSA")
 endif ()
 
 # eacp supplies both the GPU module and the CMake helpers every target here is
@@ -23,6 +24,14 @@ find_package(eacp REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH "${eacp_SOURCE_DIR}/CMake")
 include(TargetSetup)
+
+# eacp's web flags (wasm exceptions, which every object in the link must share,
+# and the page and link options eacp_web_app reads) are set in eacp's own
+# directory, so they are set again here, ahead of every target and of
+# MakeASound.
+if (EMSCRIPTEN)
+    include(WebSetup)
+endif ()
 
 # eacp only runs this for itself when it is the top-level project, so a consumer
 # has to call it or the Apple deployment target is never set. It points the
@@ -51,7 +60,7 @@ if (APPLE AND NOT IOS)
     add_subdirectory(tools/Art)
 endif ()
 
-if (COWS_BUILD_TESTS AND NOT IOS)
+if (COWS_BUILD_TESTS AND NOT IOS AND NOT EMSCRIPTEN)
     enable_testing()
     add_subdirectory(Tests)
 endif ()

@@ -31,7 +31,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     shadows, haze, tone curve, value noise)
   - `Render/Lighting.h` — the light, and the uniforms lit shaders share
   - `Render/Mesh` — procedural meshes: sphere, lathe shapes, box, wedge
-  - `Render/Instances` — per-instance data and per-mesh batches
+  - `Render/Instances` — per-instance data and per-mesh batches;
+    `StaticBatch`, a batch uploaded once (the level's scenery and chasms)
   - `Render/ShadowMap` — the key light's depth target
   - `Camera/OrbitCamera` — drag to orbit, scroll to zoom, idle drift
   - `UI/Hud` — draws the HUD at the end of the scene's own pass: discs and
@@ -43,8 +44,10 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     pinch to zoom; reports everything through one `onControl` callback as a
     `ControlEvent` (`UI/ControlEvent.h`), and shows Again when `showAgain`;
     a `View` for input only, drawn by `draw(Hud&)`; eacp's `View` touch
-    events feed it multi-touch and its safe area places it. `touchScreen`
-    (iOS, Android) decides whether it is on screen at all
+    events feed it multi-touch and its safe area places it. `touchScreen()`
+    decides whether it is on screen at all
+  - `Platform/Device` — `touchScreen()` (iOS, Android; on the web the browser
+    is asked, `Device-Web.cpp`) and `canQuit()` (not on the web)
 - `Lib/cowsinlove_AudioEngine/SamplePlayer` — plays a mono float sample through
   the output device, mixed as panned, pitched, muffled voices; the device is
   opened with MakeASound (`CMake/FindMakeASound.cmake`, miniaudio underneath),
@@ -96,7 +99,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     summed into walk ahead / turn
   - `Title/TitleFont` — the tube-font title; `Title/TitleShader` — its shader
 - `Apps/CowsInLove/Source/Main.cpp` — runs `CowsApp`, after `Settings`
-  (on Android, the COWS_* settings from the `debug.cows.env` property)
+  (on Android, the COWS_* settings from the `debug.cows.env` property; on the
+  web, from the page's query string: `?seed=3&stage=1&freeze`)
 - `Apps/CowsInLove/Source/Templates` — the level templates (`meadowTemplate`,
   `meadowRavineTemplate`: the segment lists and lengths)
 - `Apps/CowsInLove/Source/Stages` — the content: the ordered level templates
@@ -143,8 +147,19 @@ Use `$HOME`, not `~`: CMake does not expand `~`.
 iOS: `tools/ios.sh sim [shot.png]` builds `build-ios/` and runs it on the "Cows iPhone"
 simulator; `tools/ios.sh device` signs with `COWS_TEAM` (default: Jamie's Personal Team) and runs it on the phone.
 
+Web (Emscripten + WebGPU, `docs/web-plan.md`): `tools/web.sh build` emcmakes
+`build-web/` against `~/projects/eacp-web` (`EACP=<path>`; else it fetches
+`jp/web`, which `CMake/Findeacp.cmake` defaults to under Emscripten) and
+`~/projects/MakeASound` (`MAKEASOUND=<path>`);
+`tools/web.sh serve [port]` serves it with COOP/COEP headers;
+`tools/web.sh shot [shot.png]` screenshots it in headless Chromium (Playwright,
+installed outside the repo). `COWS_QUERY="seed=3&freeze"` sets the COWS_*
+settings through the URL (`profile` logs frame timings to the console). The page is eacp's shell (`eacp_web_app`), and
+`Apps/CowsInLove/Web/index.html` opens it.
+
 Shortcuts in the `justfile`: `just macos`, `just sim-ios [shot.png]`,
-`just ios [udid]` (defaults to pond), `just shot`, `just devices`, `just test`.
+`just ios [udid]` (defaults to pond), `just shot`, `just devices`, `just test`,
+`just web`, `just serve-web [port]`, `just shot-web [shot.png]`.
 
 ## Rendering Rule
 

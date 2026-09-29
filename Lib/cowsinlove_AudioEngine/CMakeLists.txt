@@ -1,7 +1,8 @@
 find_package(MakeASound REQUIRED)
 
-# See CMake/Android/FindALSA.cmake: no MIDI on Android, so RtMidi's dummy API.
-if (ANDROID)
+# See CMake/NoALSA/FindALSA.cmake: no MIDI on Android or the web, so RtMidi's
+# dummy API.
+if (ANDROID OR EMSCRIPTEN)
     set_property(TARGET rtmidi PROPERTY COMPILE_DEFINITIONS __RTMIDI_DUMMY__)
 endif ()
 

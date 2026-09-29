@@ -2,6 +2,8 @@
 
 #include "Render/Common.h"
 
+#include <optional>
+
 namespace Cows
 {
 struct Material final
@@ -84,5 +86,16 @@ struct SurfaceBatch final
     }
 
     Vector<SurfaceInstance> lists[shapeCount];
+};
+
+// A batch that stays put for a whole level, uploaded once rather than every
+// frame: one GPU buffer per mesh that has instances.
+struct StaticBatch final
+{
+    StaticBatch() = default;
+    explicit StaticBatch(const SurfaceBatch& batch);
+
+    std::optional<Buffer> lists[shapeCount];
+    int counts[shapeCount] = {};
 };
 } // namespace Cows

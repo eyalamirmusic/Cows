@@ -28,4 +28,19 @@ SurfaceInstance
         material.spots, material.emission, material.softness, material.gloss};
     return instance;
 }
+
+StaticBatch::StaticBatch(const SurfaceBatch& batch)
+{
+    for (auto index = 0; index < shapeCount; ++index)
+    {
+        const auto& list = batch.lists[index];
+
+        if (list.empty())
+            continue;
+
+        auto bytes = (std::int64_t) sizeof(SurfaceInstance) * list.size();
+        lists[index].emplace(Device::shared().makeBuffer(list.data(), bytes));
+        counts[index] = list.size();
+    }
+}
 } // namespace Cows

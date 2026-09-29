@@ -30,6 +30,11 @@ void addVoice(float* samples,
 // A mono float sample played through the output device, once per voice, in a
 // buffer long enough for `longestSeconds` of sound. With no device it stays
 // silent.
+//
+// On the web the device is miniaudio's Web Audio backend: a ScriptProcessorNode
+// calling `render` on the main thread (so the mutex never contends), silent
+// until the page's first click or touch, when miniaudio resumes its AudioContext,
+// or first key (Settings-Web.cpp).
 struct SamplePlayer final
 {
     static constexpr auto sampleRate = 44100.0;

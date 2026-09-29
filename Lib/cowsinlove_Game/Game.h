@@ -76,6 +76,9 @@ struct Game final
 };
 
 // The footer: the controls while searching, `hint` while her answer shows, a
-// word after a fall.
-std::string footerText(const Game& game, const std::string& hint, bool touchHints);
+// word after a fall. `quitHint` adds "q to quit" to the keyboard's lines.
+std::string footerText(const Game& game,
+                       const std::string& hint,
+                       bool touchHints,
+                       bool quitHint = true);
 } // namespace Cows

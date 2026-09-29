@@ -400,7 +400,8 @@ void CowsView::advanceStage()
 void CowsView::layTerrain()
 {
     ground = Mesh {makeGround(game.level, groundSize)};
-    chasms = makeChasms(game.level);
+    chasms = StaticBatch {makeChasms(game.level)};
+    scenery = StaticBatch {game.level.batch};
     grass.layOver(game.level);
 
     if (uploadedBlades != &grass.tile)
@@ -449,7 +450,7 @@ void CowsView::render(Frame& frame)
     drawGround(pass);
     drawBatch(pass, surfaceShader, chasms);
     drawBatch(pass, surfaceShader, backdropBatch);
-    drawBatch(pass, surfaceShader, game.level.batch);
+    drawBatch(pass, surfaceShader, scenery);
     drawBatch(pass, surfaceShader, game.level.moving);
     drawBatch(pass, surfaceShader, cowBatch);
     drawGrass(pass);
@@ -581,7 +582,7 @@ void CowsView::drawShadows(Frame& frame)
     auto pass = frame.beginPass(shadowMap.texture, descriptor);
     shadowCaster.lightViewProjection = lightViewProjection;
     drawBatch(pass, shadowCaster, cowBatch);
-    drawBatch(pass, shadowCaster, game.level.batch);
+    drawBatch(pass, shadowCaster, scenery);
     drawBatch(pass, shadowCaster, game.level.moving);
 }
 
@@ -691,6 +692,27 @@ void CowsView::drawBatch(RenderPass& pass,
         pass.bind(shader, mesh.vertices);
         shader.bindInstances(pass);
         pass.drawIndexedInstanced(mesh.indices, mesh.indexCount, list.size());
+    }
+}
+
+void CowsView::drawBatch(RenderPass& pass,
+                         ShaderProgram& shader,
+                         const StaticBatch& batch)
+{
+    for (auto index = 0; index < shapeCount; ++index)
+    {
+        const auto& instances = batch.lists[index];
+
+        if (!instances)
+            continue;
+
+        const auto& mesh = meshFor((Shape) index);
+
+        shader.setInstanceBuffer(1, *instances, batch.counts[index]);
+        pass.bind(shader, mesh.vertices);
+        shader.bindInstances(pass);
+        pass.drawIndexedInstanced(
+            mesh.indices, mesh.indexCount, batch.counts[index]);
     }
 }
 
