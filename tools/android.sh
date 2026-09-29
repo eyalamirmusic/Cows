@@ -4,7 +4,8 @@
 #                                          adb sees (USB debugging on)
 #
 # Needs the Android SDK at $ANDROID_HOME (default ~/Library/Android/sdk) with
-# NDK r27, build-tools 35 and platform 35, and eacp's jp/vulkan-1-1 branch:
+# NDK r30 (eacp builds with the current stable NDK), build-tools 35 and
+# platform 35, and eacp's jp/vulkan-1-1 branch:
 # EACP=<path> (default ~/projects/eacp-vulkan11) builds against that checkout,
 # or, when it is absent, fetches jamierpond/eacp@jp/vulkan-1-1 through CPM.
 # COWS_CONFIG=Release|Debug (default Release; Debug is 5 fps while a finger
@@ -17,7 +18,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 
 sdk="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
-ndk="${ANDROID_NDK:-$sdk/ndk/27.3.13750724}"
+ndk="${ANDROID_NDK:-$sdk/ndk/30.0.16248370}"
 eacp="${EACP:-$HOME/projects/eacp-vulkan11}"
 avd="${COWS_AVD:-cows}"
 package="${COWS_BUNDLE_ID:-com.cowsinlove.cows}"

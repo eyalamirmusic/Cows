@@ -16,7 +16,8 @@
 #       -keysize 4096 -validity 10000
 #
 # Needs the Android SDK at $ANDROID_HOME (default ~/Library/Android/sdk) with
-# NDK r27, build-tools 35 and platform 35, and a JDK (Homebrew openjdk@21).
+# NDK r30 (eacp builds with the current stable NDK), build-tools 35 and
+# platform 35, and a JDK (Homebrew openjdk@21).
 # eacp: EACP=<path> (default ~/projects/eacp-vulkan11), else CPM fetches
 # jamierpond/eacp@jp/vulkan-1-1, as in tools/android.sh.
 set -euo pipefail
@@ -34,7 +35,7 @@ bundle_id="${COWS_BUNDLE_ID:-com.cowsinlove.cows}"
 abis=(${COWS_ANDROID_ABIS:-arm64-v8a x86_64})
 min_sdk=33
 sdk="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
-ndk="${ANDROID_NDK:-$sdk/ndk/27.3.13750724}"
+ndk="${ANDROID_NDK:-$sdk/ndk/30.0.16248370}"
 build_tools="$sdk/build-tools/35.0.0"
 platform_jar="$sdk/platforms/android-35/android.jar"
 llvm="$ndk/toolchains/llvm/prebuilt/darwin-x86_64/bin"

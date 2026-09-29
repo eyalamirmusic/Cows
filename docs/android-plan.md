@@ -177,7 +177,7 @@ portable. The "main thread" is the glue thread, not Java's UI thread;
 
 ### CMake and toolchain
 
-- NDK r27 (`27.3.13750724`), `-DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/
+- NDK r30 (`30.0.16248370`), `-DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/
   android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=
   android-33` (Vulkan 1.3 loader). ABIs: arm64-v8a (devices, the emulator on
   Apple Silicon), x86_64 (the emulator on Intel hosts), one build dir each.
@@ -254,8 +254,12 @@ features through extensions, render passes)`, HelloGPU draws, and eacp's
 storage offset alignment, not rendering). The emulator forced onto the same
 path (`COWS_ENV="EACP_VK_RENDER_PASSES=1"`) draws the full meadow:
 `docs/shots/android-emulator-renderpasses.png`; the emulator on its own 1.3
-path: `android-emulator-after-vk11.png`. Cows on the phone itself is still to
-be screenshotted and profiled (`s22-cows.png`); the phone locked mid-run.
+path: `android-emulator-after-vk11.png`. Cows on the phone (Release, NDK
+r30): the meadow, cows, shadows, fog and HUD render, and Moo answers with the
+hint (`docs/shots/s22-cows.png`, `s22-cows-moo.png`). `COWS_PROFILE=1`, 20 s
+each: idle 25.1 fps (frame avg 39.8 ms, p95 40.5, max 41.5); dragging the
+stick 28.2 fps (avg 35.7, p95 36.7, max 41.0). It is GPU-bound: the GPU takes
+34–39 ms a frame, the CPU 2.6–2.8 ms.
 
 **Cows In Love runs on the Android emulator**: meadow, cow, grass, shadows,
 fog, the touch HUD and footer (on the GPU, as everywhere), multi-touch
@@ -286,11 +290,12 @@ gitignored, as for the other shots.
   `JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home`:
   `sdkmanager --sdk_root=$ANDROID_HOME --licenses`, then
   `sdkmanager "cmdline-tools;latest" platform-tools "platforms;android-35"
-  "build-tools;35.0.0" "ndk;27.3.13750724" emulator
+  "build-tools;35.0.0" "ndk;30.0.16248370" emulator
   "system-images;android-35;google_apis;arm64-v8a"`.
-- Versions: NDK r27d (27.3.13750724), build-tools 35.0.0, platform 35,
-  emulator 37.1.11, adb 37.0.1, system image android-35 google_apis arm64 r9.
-  Sizes: NDK 2.4 GB, system image 3.8 GB, emulator 1.1 GB, rest ~0.5 GB.
+- Versions: NDK r30 (30.0.16248370; r27 until eacp moved to the current
+  stable NDK), build-tools 35.0.0, platform 35, emulator 37.1.11, adb 37.0.1,
+  system image android-35 google_apis arm64 r9.
+  Sizes: NDK 2.8 GB, system image 3.8 GB, emulator 1.1 GB, rest ~0.5 GB.
 - AVD: `avdmanager create avd -n cows -k
   "system-images;android-35;google_apis;arm64-v8a" -d pixel_7` (1080×2400,
   420 dpi). Emulator GPU: gfxstream over MoltenVK, Vulkan 1.3.0 with every
