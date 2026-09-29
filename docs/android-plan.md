@@ -376,9 +376,22 @@ aligned; the .so is linked with 16 KB pages through
    the background) — Cows needs a hook to its `SamplePlayer`.
 2. Real devices: Adreno/Mali Vulkan 1.3 behaviour, `preTransform` on a rotated
    device (Cows is portrait-locked, so IDENTITY in practice), 16 KB pages.
-3. eacp upstreaming: split `OS::Android` out of `OS::Linux`, a portable
-   multi-touch API on `View`, a real shaper for Android text (TextRunShaper),
-   a second `android_main` in one process.
+3. eacp: a real shaper for Android text (TextRunShaper), a second
+   `android_main` in one process. (`OS::Android` and multi-touch on `View`
+   are done; see "Upstream stack".)
+
+### Upstream stack (2026-09-28)
+
+`android-mvp` is split into three stacked PRs on `eyalamirmusic/eacp`
+(`develop`), from `jamierpond/eacp`: `jp/core-portability` (the atomic_ref
+fallback, no `std::jthread` in tests, `EACP_HAS_NETWORK`),
+`jp/view-touch-insets` (`View::touchBegan/Moved/Ended` with a `TouchEvent`
+per finger, `getSafeAreaInsets`/`safeAreaInsetsChanged`, iOS views clear
+where they paint nothing) and `jp/android` (the port, on that API). Cows
+follows `jp/android` (worktree `~/projects/eacp-jp-android`); its `Platform/`
+directories are gone: `TouchControls` takes eacp's touch events and safe
+area, MakeASound already sets the Ambient session, and only
+`Settings-Android.cpp` (COWS_* from `debug.cows.env`) is left.
 
 ### Estimate of what is left
 

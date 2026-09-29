@@ -6,7 +6,6 @@ nano_add_executable(EngineTests
             MeshTests.cpp
             OrbitCameraTests.cpp
             PaletteTests.cpp
-            PlatformTests.cpp
             RenderSnapshotTests.cpp
             TouchControlsTests.cpp
             ../Support/TestMain.cpp

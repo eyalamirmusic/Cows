@@ -1,4 +1,4 @@
-#include "Platform.h"
+#include "Settings.h"
 
 #include <sys/system_properties.h>
 
@@ -8,7 +8,7 @@
 
 namespace Cows
 {
-void Platform::importSettings()
+void importSettings()
 {
     char value[PROP_VALUE_MAX] = {};
 
@@ -27,20 +27,5 @@ void Platform::importSettings()
                    setting.substr(equals + 1).c_str(),
                    1);
     }
-}
-
-void Platform::attach(Graphics::View& root,
-                      TouchControls& touchControls,
-                      Footer& footer)
-{
-    root.addSubview(touchControls);
-
-    surface = std::make_unique<TouchSurface>(touchControls);
-    surface->onSafeAreaChanged = [&footer, &touchControls](Graphics::Insets insets)
-    {
-        touchControls.safeArea = insets;
-        touchControls.resized();
-        footer.bottomInset = insets.bottom;
-    };
 }
 } // namespace Cows

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Platform.h"
 #include "Scene/CowsView.h"
 #include "UI/Overlay.h"
 #include "UI/TouchControls.h"
@@ -16,6 +15,5 @@ struct CowsApp final
     Footer footer;
     TouchControls touchControls;
     Graphics::Window window;
-    Platform platform;
 };
 } // namespace Cows

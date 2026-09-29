@@ -165,7 +165,7 @@ void render(const Shot& shot, const std::string& directory, const Screen& screen
     if (phone)
     {
         root.addSubview(touch);
-        touch.safeArea = {phoneTop, 0.f, phoneBottom, 0.f};
+        root.setSafeAreaInsets({phoneTop, 0.f, phoneBottom, 0.f});
         footer.bottomInset = phoneBottom;
     }
 

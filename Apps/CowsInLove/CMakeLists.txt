@@ -5,6 +5,12 @@ set(COWS_SOURCES
         Source/Templates.cpp
         Source/Scene/CowsView.cpp)
 
+if (ANDROID)
+    list(APPEND COWS_SOURCES Source/Settings-Android.cpp)
+else ()
+    list(APPEND COWS_SOURCES Source/Settings.cpp)
+endif ()
+
 # On Android the app is the library NativeActivity loads.
 if (ANDROID)
     add_library(Cows SHARED ${COWS_SOURCES})

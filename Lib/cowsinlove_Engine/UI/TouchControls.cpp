@@ -49,11 +49,13 @@ float shaped(float value)
 TouchControls::TouchControls()
 {
     setHandlesMouseEvents(true);
+    setHandlesTouchEvents(true);
 }
 
 void TouchControls::resized()
 {
     auto bounds = getLocalBounds();
+    auto safeArea = getSafeAreaInsets();
     auto bottomLine = bounds.h - safeArea.bottom - footerSpace;
 
     stickHome = {safeArea.left + margin + ringRadius, bottomLine - ringRadius};
@@ -264,5 +266,25 @@ void TouchControls::mouseUp(const Graphics::MouseEvent&)
 void TouchControls::mouseWheel(const Graphics::MouseEvent& event)
 {
     onControl({ControlEvent::Kind::Zoom, wheelZoom(event)});
+}
+
+void TouchControls::touchBegan(const Graphics::TouchEvent& event)
+{
+    pointerDown(event.id, event.pos);
+}
+
+void TouchControls::touchMoved(const Graphics::TouchEvent& event)
+{
+    pointerMoved(event.id, event.pos);
+}
+
+void TouchControls::touchEnded(const Graphics::TouchEvent& event)
+{
+    pointerUp(event.id);
+}
+
+void TouchControls::safeAreaInsetsChanged()
+{
+    resized();
 }
 } // namespace Cows

@@ -32,14 +32,17 @@ CowsApp::CowsApp()
     scene.onStateChanged = [this]
     { touchControls.showAgain = scene.game.state == Game::State::Found; };
 
-    scene.touchHints = Platform::touch;
+    scene.touchHints = touchScreen;
     scene.drawHud = [this](Hud& hud)
     {
+        footer.bottomInset = root.getSafeAreaInsets().bottom;
         footer.draw(hud);
 
-        if (Platform::touch)
+        if (touchScreen)
             touchControls.draw(hud);
     };
-    platform.attach(root, touchControls, footer);
+
+    if (touchScreen)
+        root.addSubview(touchControls);
 }
 } // namespace Cows

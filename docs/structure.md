@@ -27,9 +27,6 @@ Lib/
     Camera/    OrbitCamera
     UI/        Hud (the HUD on the GPU), Overlay (Footer, RootView),
                TouchControls
-    Platform/  macOS/ (also Windows), iOS/, Android/: Platform per platform
-               (iOS, Android: TouchSurface); the current one is on the
-               include path
 
   cowsinlove_AudioEngine/         SamplePlayer: the sample player half of Moo;
                                   output through MakeASound on every platform
@@ -82,6 +79,7 @@ Lib/
 
 Apps/CowsInLove/Source/
   Main.cpp, CowsApp.{h,cpp}       app wiring
+  Settings{,-Android}.cpp         COWS_* from a system property on Android
   Stages                          the content: the level templates in order
                                   (meadow; meadow -> ravine -> meadow), advance
                                   after each ending (wrapping, nothing saved),

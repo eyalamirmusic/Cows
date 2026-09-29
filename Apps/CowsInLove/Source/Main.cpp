@@ -1,7 +1,8 @@
 #include "CowsApp.h"
+#include "Settings.h"
 
 int main()
 {
-    Cows::Platform::importSettings();
+    Cows::importSettings();
     return Apps::run<Cows::CowsApp>();
 }

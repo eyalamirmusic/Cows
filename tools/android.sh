@@ -4,9 +4,9 @@
 #                                          adb sees (USB debugging on)
 #
 # Needs the Android SDK at $ANDROID_HOME (default ~/Library/Android/sdk) with
-# NDK r27, build-tools 35 and platform 35, and eacp's android-mvp branch:
-# EACP=<path> (default ~/projects/eacp-android) builds against that checkout,
-# or, when it is absent, fetches jamierpond/eacp@android-mvp through CPM.
+# NDK r27, build-tools 35 and platform 35, and eacp's jp/android branch:
+# EACP=<path> (default ~/projects/eacp-jp-android) builds against that checkout,
+# or, when it is absent, fetches jamierpond/eacp@jp/android through CPM.
 # COWS_CONFIG=Release|Debug (default Release; Debug is 5 fps while a finger
 # moves, the HUD repaint alone ~400 ms) picks the build type, each in its
 # own build dir. COWS_ENV="COWS_PROFILE=1 COWS_SEED=3" is set as the
@@ -18,7 +18,7 @@ cd "$root"
 
 sdk="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 ndk="${ANDROID_NDK:-$sdk/ndk/27.3.13750724}"
-eacp="${EACP:-$HOME/projects/eacp-android}"
+eacp="${EACP:-$HOME/projects/eacp-jp-android}"
 avd="${COWS_AVD:-cows}"
 package="${COWS_BUNDLE_ID:-com.cowsinlove.cows}"
 adb="$sdk/platform-tools/adb"
@@ -29,7 +29,7 @@ build=build-android
 build() {
     local eacp_args=(-DCPM_eacp_SOURCE="$eacp")
     [[ -d $eacp ]] || eacp_args=(-DCOWS_EACP_REPOSITORY=jamierpond/eacp
-                                 -DCOWS_EACP_TAG=android-mvp)
+                                 -DCOWS_EACP_TAG=jp/android)
 
     if [[ ! -f $build/CMakeCache.txt ]]; then
         cmake -G Ninja -B $build -DCMAKE_BUILD_TYPE="$config" \

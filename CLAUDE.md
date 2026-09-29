@@ -42,15 +42,9 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `UI/TouchControls` — on-screen stick, Moo / Jump / Again, drag to look,
     pinch to zoom; reports everything through one `onControl` callback as a
     `ControlEvent` (`UI/ControlEvent.h`), and shows Again when `showAgain`;
-    a `View` for input only, drawn by `draw(Hud&)`;
-    `Platform/iOS/TouchSurface.mm` and `Platform/Android/TouchSurface` feed
-    it multi-touch
-  - `Platform/macOS`, `Platform/iOS`, `Platform/Android` — one `Platform`
-    each, knowing nothing about the game: `touch`, and `attach(root,
-    touchControls, footer)` (a no-op on macOS, which Windows uses too; on iOS
-    and Android the touch controls and their touch surface, and the safe area;
-    on iOS the audio session). CMake puts the current platform's directory on Engine's
-    PUBLIC include path, so it is `#include "Platform.h"` and no macros
+    a `View` for input only, drawn by `draw(Hud&)`; eacp's `View` touch
+    events feed it multi-touch and its safe area places it. `touchScreen`
+    (iOS, Android) decides whether it is on screen at all
 - `Lib/cowsinlove_AudioEngine/SamplePlayer` — plays a mono float sample through
   the output device, mixed as panned, pitched, muffled voices; the device is
   opened with MakeASound (`CMake/FindMakeASound.cmake`, miniaudio underneath),
@@ -101,7 +95,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `Input` — held keys (wasd / hjkl / arrows, space) and the touch stick,
     summed into walk ahead / turn
   - `Title/TitleFont` — the tube-font title; `Title/TitleShader` — its shader
-- `Apps/CowsInLove/Source/Main.cpp` — runs `CowsApp`
+- `Apps/CowsInLove/Source/Main.cpp` — runs `CowsApp`, after `Settings`
+  (on Android, the COWS_* settings from the `debug.cows.env` property)
 - `Apps/CowsInLove/Source/Templates` — the level templates (`meadowTemplate`,
   `meadowRavineTemplate`: the segment lists and lengths)
 - `Apps/CowsInLove/Source/Stages` — the content: the ordered level templates
@@ -134,7 +129,7 @@ stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her (run the binary i
 ## Build Commands
 
 eacp is fetched by CPM (`CMake/Findeacp.cmake`; on this branch
-`jamierpond/eacp#android-mvp`, on `main` `eyalamirmusic/eacp#main`).
+`jamierpond/eacp#jp/android`, on `main` `eyalamirmusic/eacp#main`).
 To build against the local checkout instead (usually ahead of `main`):
 
 ```bash
