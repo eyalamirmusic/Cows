@@ -405,14 +405,15 @@ aligned; the .so is linked with 16 KB pages through
 
 ### Upstream stack (2026-09-28)
 
-`android-mvp` is split into three stacked PRs on `eyalamirmusic/eacp`
-(`develop`), from `jamierpond/eacp`: `jp/core-portability` (the atomic_ref
-fallback, no `std::jthread` in tests, `EACP_HAS_NETWORK`),
-`jp/view-touch-insets` (`View::touchBegan/Moved/Ended` with a `TouchEvent`
-per finger, `getSafeAreaInsets`/`safeAreaInsetsChanged`, iOS views clear
-where they paint nothing) and `jp/android` (the port, on that API), with
-`jp/vulkan-1-1` (Vulkan 1.1 devices, PR #69) stacked on it. Cows follows
-`jp/vulkan-1-1` (worktree `~/projects/eacp-vulkan11`); its `Platform/`
+`android-mvp` is split into PRs on `eyalamirmusic/eacp` (`develop`), from
+`jamierpond/eacp`, stacked only where one needs another:
+`jp/core-portability` (#66, `EACP_HAS_NETWORK`), `jp/view-touch-insets` (#67,
+`View::touchBegan/Moved/Ended` with a `TouchEvent` per finger,
+`getSafeAreaInsets`/`safeAreaInsetsChanged`, iOS views clear where they paint
+nothing), `jp/android` (#68, the port, on #66 and #67) and `jp/vulkan-1-1`
+(#69, Vulkan 1.1 devices, straight on develop). Cows follows the fork-only
+`jp/android-integration`, develop plus all four (worktree
+`~/projects/eacp-android-integration`); its `Platform/`
 directories are gone: `TouchControls` takes eacp's touch events and safe
 area, MakeASound already sets the Ambient session, and only
 `Settings-Android.cpp` (COWS_* from `debug.cows.env`) is left.

@@ -18,8 +18,8 @@
 # Needs the Android SDK at $ANDROID_HOME (default ~/Library/Android/sdk) with
 # NDK r30 (eacp builds with the current stable NDK), build-tools 35 and
 # platform 35, and a JDK (Homebrew openjdk@21).
-# eacp: EACP=<path> (default ~/projects/eacp-vulkan11), else CPM fetches
-# jamierpond/eacp@jp/vulkan-1-1, as in tools/android.sh.
+# eacp: EACP=<path> (default ~/projects/eacp-android-integration), else CPM
+# fetches jamierpond/eacp@jp/android-integration, as in tools/android.sh.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -39,7 +39,7 @@ ndk="${ANDROID_NDK:-$sdk/ndk/30.0.16248370}"
 build_tools="$sdk/build-tools/35.0.0"
 platform_jar="$sdk/platforms/android-35/android.jar"
 llvm="$ndk/toolchains/llvm/prebuilt/darwin-x86_64/bin"
-eacp="${EACP:-$HOME/projects/eacp-vulkan11}"
+eacp="${EACP:-$HOME/projects/eacp-android-integration}"
 adb="$sdk/platform-tools/adb"
 out=Deploy/Google-Play/out
 res=Apps/CowsInLove/Android/res
@@ -65,7 +65,7 @@ fi
 
 eacp_args=(-DCPM_eacp_SOURCE="$eacp")
 [[ -d $eacp ]] || eacp_args=(-DCOWS_EACP_REPOSITORY=jamierpond/eacp
-                             -DCOWS_EACP_TAG=jp/vulkan-1-1)
+                             -DCOWS_EACP_TAG=jp/android-integration)
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT

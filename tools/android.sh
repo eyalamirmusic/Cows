@@ -5,9 +5,10 @@
 #
 # Needs the Android SDK at $ANDROID_HOME (default ~/Library/Android/sdk) with
 # NDK r30 (eacp builds with the current stable NDK), build-tools 35 and
-# platform 35, and eacp's jp/vulkan-1-1 branch:
-# EACP=<path> (default ~/projects/eacp-vulkan11) builds against that checkout,
-# or, when it is absent, fetches jamierpond/eacp@jp/vulkan-1-1 through CPM.
+# platform 35, and eacp's jp/android-integration branch: EACP=<path>
+# (default ~/projects/eacp-android-integration) builds against that
+# checkout, or, when it is absent, fetches
+# jamierpond/eacp@jp/android-integration through CPM.
 # COWS_CONFIG=Release|Debug (default Release; Debug is 5 fps while a finger
 # moves, the HUD repaint alone ~400 ms) picks the build type, each in its
 # own build dir. COWS_ENV="COWS_PROFILE=1 COWS_SEED=3" is set as the
@@ -19,7 +20,7 @@ cd "$root"
 
 sdk="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 ndk="${ANDROID_NDK:-$sdk/ndk/30.0.16248370}"
-eacp="${EACP:-$HOME/projects/eacp-vulkan11}"
+eacp="${EACP:-$HOME/projects/eacp-android-integration}"
 avd="${COWS_AVD:-cows}"
 package="${COWS_BUNDLE_ID:-com.cowsinlove.cows}"
 adb="$sdk/platform-tools/adb"
@@ -30,7 +31,7 @@ build=build-android
 build() {
     local eacp_args=(-DCPM_eacp_SOURCE="$eacp")
     [[ -d $eacp ]] || eacp_args=(-DCOWS_EACP_REPOSITORY=jamierpond/eacp
-                                 -DCOWS_EACP_TAG=jp/vulkan-1-1)
+                                 -DCOWS_EACP_TAG=jp/android-integration)
 
     if [[ ! -f $build/CMakeCache.txt ]]; then
         cmake -G Ninja -B $build -DCMAKE_BUILD_TYPE="$config" \

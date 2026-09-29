@@ -2,16 +2,17 @@ include(CPM)
 
 # Configure with -D CPM_eacp_SOURCE=<path> to build a local checkout instead of
 # the fetched one, or -D COWS_EACP_TAG=<branch|sha> to fetch another revision.
-# This branch needs eacp's jp/vulkan-1-1 branch on every platform until it lands
-# (the Android window and text, text in a multisampled pass for the HUD, View's
-# touch events and safe area, and Vulkan 1.1 phones such as the Galaxy S22), so
-# that is the default here.
+# This branch needs eacp's jp/android-integration on every platform until the
+# PRs it combines land: #66 (EACP_HAS_NETWORK), #67 (View's touch events and
+# safe area), #68 (the Android port, text in a multisampled pass for the HUD)
+# and #69 (Vulkan 1.1 phones such as the Galaxy S22). It is a fork-only branch,
+# develop plus those four PRs' commits, so that is the default here.
 #
 # The WebView module pulls in WKWebView / WebView2 and a Node toolchain for its
 # schema codegen, none of which a GPU scene touches.
-set(COWS_EACP_TAG "jp/vulkan-1-1" CACHE STRING "eacp branch, tag or commit to fetch")
+set(COWS_EACP_TAG "jp/android-integration" CACHE STRING "eacp branch, tag or commit to fetch")
 set(COWS_EACP_REPOSITORY "jamierpond/eacp" CACHE STRING
-        "GitHub repository to fetch eacp from (jamierpond/eacp has jp/vulkan-1-1)")
+        "GitHub repository to fetch eacp from (jamierpond/eacp has jp/android-integration)")
 
 CPMAddPackage(
         NAME eacp
