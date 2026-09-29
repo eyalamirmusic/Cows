@@ -115,10 +115,10 @@ WebGPU is the target:
   first tap, click or key unlocks the moo with no start button. A moo made
   while suspended is mixed and plays when the context resumes.
 - MakeASound `DeviceManager::start` spawned a recovery `std::thread`, which
-  aborts without pthreads. Fixed in the `~/projects/MakeASound` `jp/web`
-  working tree (no recovery thread under Emscripten, stereo for Web Audio's
-  "any channel count", miniaudio without Threads, the dummy RtMidi API);
-  uncommitted there.
+  aborts without pthreads. Fixed on MakeASound `jp/web`
+  (eyalamirmusic/MakeASound#2: no recovery thread under Emscripten, stereo for
+  Web Audio's "any channel count", miniaudio without Threads, the dummy RtMidi
+  API).
 - RtMidi: MakeASound always builds it and its find module asks for ALSA on
   every UNIX. Cows answers with its fake `FindALSA` and RtMidi's dummy API, as
   for Android.
