@@ -309,7 +309,12 @@ android-33), builds `Cows-apk`, boots the `cows` AVD if nothing is attached,
 installs and launches `com.cowsinlove.cows`. It builds Release into
 `build-android-release/` by default; `COWS_CONFIG=Debug` builds `build-android/`
 (-O0; slower, but the HUD no longer repaints anything on the CPU). `COWS_ENV="COWS_PROFILE=1 COWS_SEED=3"` passes settings to the app
-through the `debug.cows.env` property. `COWS_EACP_TAG` in
+through the `debug.cows.env` property. `just studio-android` (= `cmake --preset android-studio`)
+writes the same app as an Android Studio project in `build-android-studio/`
+through eacp's `EACP_ANDROID_STUDIO_DIR`, one `Cows` module whose Gradle build
+runs this `CMakeLists.txt` (Cows' manifest, icons, the moo and MakeASound all
+come through), and opens it; Debug there is the -O0 build, Release is CMake's
+Release with LTO. `COWS_EACP_TAG` in
 `CMake/Findeacp.cmake` can pin a fetched eacp revision once `android-mvp` is
 pushed; until then the local worktree (`CPM_eacp_SOURCE`) is the only way.
 

@@ -138,6 +138,13 @@ cmake --build build
 open build/Apps/CowsInLove/Cows.app
 ```
 
+Android Studio: `just studio-android` runs `cmake --preset android-studio`
+(`CMakePresets.json`), which writes a Gradle project with a `Cows` module to
+`build-android-studio`, and opens it; from a terminal there,
+`./gradlew :Cows:installDebug` (with `JAVA_HOME` at a JDK 17+) does what Run
+does. `CMake/AndroidToolchain.cmake` finds NDK r30 in `$ANDROID_HOME`, Android
+Studio's SDK or `~/.eacp/android/sdk`.
+
 Use `$HOME`, not `~`: CMake does not expand `~`.
 
 iOS: `tools/ios.sh sim [shot.png]` builds `build-ios/` and runs it on the "Cows iPhone"
