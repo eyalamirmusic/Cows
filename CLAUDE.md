@@ -129,7 +129,7 @@ stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her (run the binary i
 ## Build Commands
 
 eacp is fetched by CPM (`CMake/Findeacp.cmake`; on this branch
-`jamierpond/eacp#jp/android`, on `main` `eyalamirmusic/eacp#main`).
+`eyalamirmusic/eacp#jp/android-vulkan-1-1`, on `main` `eyalamirmusic/eacp#main`).
 To build against the local checkout instead (usually ahead of `main`):
 
 ```bash

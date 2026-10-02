@@ -411,8 +411,10 @@ aligned; the .so is linked with 16 KB pages through
 `View::touchBegan/Moved/Ended` with a `TouchEvent` per finger,
 `getSafeAreaInsets`/`safeAreaInsetsChanged`, iOS views clear where they paint
 nothing), `jp/android` (#68, the port, on #66 and #67) and `jp/vulkan-1-1`
-(#69, Vulkan 1.1 devices, straight on develop). Cows follows the fork-only
-`jp/android-integration`, develop plus all four (worktree
+(#69, Vulkan 1.1 devices, straight on develop). #66 and #67 have merged; on
+2026-10-01 the rest moved in-repo as #84 (the port), #85 (Vulkan 1.1) and
+#87 (`jp/android-vulkan-1-1`, the 1.1 manifest, stacked on #84 with #85
+merged in). Cows follows `jp/android-vulkan-1-1` (worktree
 `~/projects/eacp-android-integration`); its `Platform/`
 directories are gone: `TouchControls` takes eacp's touch events and safe
 area, MakeASound already sets the Ambient session, and only

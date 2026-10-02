@@ -19,7 +19,7 @@
 # NDK r30 (eacp builds with the current stable NDK), build-tools 35 and
 # platform 35, and a JDK (Homebrew openjdk@21).
 # eacp: EACP=<path> (default ~/projects/eacp-android-integration), else CPM
-# fetches jamierpond/eacp@jp/android-integration, as in tools/android.sh.
+# fetches eyalamirmusic/eacp@jp/android-vulkan-1-1, as in tools/android.sh.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -64,8 +64,8 @@ if [[ ! -f "$bundletool" ]]; then
 fi
 
 eacp_args=(-DCPM_eacp_SOURCE="$eacp")
-[[ -d $eacp ]] || eacp_args=(-DCOWS_EACP_REPOSITORY=jamierpond/eacp
-                             -DCOWS_EACP_TAG=jp/android-integration)
+[[ -d $eacp ]] || eacp_args=(-DCOWS_EACP_REPOSITORY=eyalamirmusic/eacp
+                             -DCOWS_EACP_TAG=jp/android-vulkan-1-1)
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
