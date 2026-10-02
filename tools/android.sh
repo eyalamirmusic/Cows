@@ -11,8 +11,8 @@
 # eyalamirmusic/eacp@jp/android-vulkan-1-1 through CPM.
 # COWS_CONFIG=Release|Debug (default Release; Debug is 5 fps while a finger
 # moves, the HUD repaint alone ~400 ms) picks the build type, each in its
-# own build dir. COWS_ENV="COWS_PROFILE=1 COWS_SEED=3" is set as the
-# debug.cows.env property the app reads its COWS_* settings from.
+# own build dir. COWS_ENV="COWS_PROFILE=1 COWS_SEED=3" launches the app with
+# each setting as an --es extra, which eacp sets as its environment.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -59,10 +59,16 @@ boot_emulator() {
 run() {
     local shot="${1:-}"
 
+    local extras=()
+
+    for setting in ${COWS_ENV:-}; do
+        extras+=(--es "${setting%%=*}" "${setting#*=}")
+    done
+
     "$adb" install -r "$build/Apps/CowsInLove/Cows.apk" >&2
-    "$adb" shell setprop debug.cows.env "'${COWS_ENV:-}'"
     "$adb" shell am force-stop "$package"
-    "$adb" shell am start -n "$package/android.app.NativeActivity" >&2
+    "$adb" shell am start -n "$package/android.app.NativeActivity" \
+        ${extras[@]+"${extras[@]}"} >&2
 
     if [[ -n "$shot" ]]; then
         mkdir -p "$(dirname "$shot")"

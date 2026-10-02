@@ -79,7 +79,6 @@ Lib/
 
 Apps/CowsInLove/Source/
   Main.cpp, CowsApp.{h,cpp}       app wiring
-  Settings{,-Android}.cpp         COWS_* from a system property on Android
   Stages                          the content: the level templates in order
                                   (meadow; meadow -> ravine -> meadow), advance
                                   after each ending (wrapping, nothing saved),

@@ -309,7 +309,7 @@ android-33), builds `Cows-apk`, boots the `cows` AVD if nothing is attached,
 installs and launches `com.cowsinlove.cows`. It builds Release into
 `build-android-release/` by default; `COWS_CONFIG=Debug` builds `build-android/`
 (-O0; slower, but the HUD no longer repaints anything on the CPU). `COWS_ENV="COWS_PROFILE=1 COWS_SEED=3"` passes settings to the app
-through the `debug.cows.env` property. `just studio-android` (= `cmake --preset android-studio`)
+as `--es` extras on the launch intent, which eacp sets as its environment. `just studio-android` (= `cmake --preset android-studio`)
 writes the same app as an Android Studio project in `build-android-studio/`
 through eacp's `EACP_ANDROID_STUDIO_DIR`, one `Cows` module whose Gradle build
 runs this `CMakeLists.txt` (Cows' manifest, icons, the moo and MakeASound all
@@ -422,8 +422,9 @@ nothing), `jp/android` (#68, the port, on #66 and #67) and `jp/vulkan-1-1`
 merged in). Cows follows `jp/android-vulkan-1-1` (worktree
 `~/projects/eacp-android-integration`); its `Platform/`
 directories are gone: `TouchControls` takes eacp's touch events and safe
-area, MakeASound already sets the Ambient session, and only
-`Settings-Android.cpp` (COWS_* from `debug.cows.env`) is left.
+area, MakeASound already sets the Ambient session, and the COWS_* settings
+come from eacp, which sets the environment from the launch intent's extras and
+`debug.<package>.env` before `main()`.
 
 ### Estimate of what is left
 
