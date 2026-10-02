@@ -17,6 +17,11 @@ sim-ios shot="":
 sim-android shot="":
     tools/android.sh sim {{shot}}
 
+# Write the Android Studio project (build-android-studio, a Cows module) and open it.
+studio-android:
+    cmake --preset android-studio ${EACP:+-DCPM_eacp_SOURCE=$EACP}
+    open -a "Android Studio" build-android-studio
+
 # Build, sign and run on a phone (devicectl UDID; defaults to pond).
 ios udid=device:
     COWS_DEVICE={{udid}} tools/ios.sh device

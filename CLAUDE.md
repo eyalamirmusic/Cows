@@ -129,7 +129,7 @@ stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her (run the binary i
 ## Build Commands
 
 eacp is fetched by CPM (`CMake/Findeacp.cmake`; on this branch
-`jamierpond/eacp#jp/android`, on `main` `eyalamirmusic/eacp#main`).
+`eyalamirmusic/eacp#jp/android`, on `main` `eyalamirmusic/eacp#main`).
 To build against the local checkout instead (usually ahead of `main`):
 
 ```bash
@@ -137,6 +137,13 @@ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug -DCPM_eacp_SOURCE=$HOME/Code/ea
 cmake --build build
 open build/Apps/CowsInLove/Cows.app
 ```
+
+Android Studio: `just studio-android` runs `cmake --preset android-studio`
+(`CMakePresets.json`), which writes a Gradle project with a `Cows` module to
+`build-android-studio`, and opens it; from a terminal there,
+`./gradlew :Cows:installDebug` (with `JAVA_HOME` at a JDK 17+) does what Run
+does. `CMake/AndroidToolchain.cmake` finds NDK r30 in `$ANDROID_HOME`, Android
+Studio's SDK or `~/.eacp/android/sdk`.
 
 Use `$HOME`, not `~`: CMake does not expand `~`.
 
