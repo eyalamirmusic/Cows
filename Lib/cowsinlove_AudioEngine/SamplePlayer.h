@@ -29,7 +29,7 @@ void addVoice(float* samples,
 
 // A mono float sample played through the output device, once per voice, in a
 // buffer long enough for `longestSeconds` of sound. With no device it stays
-// silent.
+// silent, and it stops while the app is in the background.
 struct SamplePlayer final
 {
     static constexpr auto sampleRate = 44100.0;
@@ -44,6 +44,8 @@ struct SamplePlayer final
     // Stops whatever is playing and plays the voices of `sample` together.
     void play(const eacp::Vector<float>& sample,
               std::initializer_list<SampleVoice> voices);
+
+    void start();
 
     // Fills the device's block from the mix, silence when there is none.
     void render(MakeASound::AudioCallbackInfo& info);

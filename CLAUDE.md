@@ -143,8 +143,8 @@ Android Studio: `just studio-android` runs `cmake --preset android-studio`
 (`CMakePresets.json`), which writes a Gradle project with a `Cows` module to
 `build-android-studio`, and opens it; from a terminal there,
 `./gradlew :Cows:installDebug` (with `JAVA_HOME` at a JDK 17+) does what Run
-does. `CMake/AndroidToolchain.cmake` finds NDK r30 in `$ANDROID_HOME`, Android
-Studio's SDK or `~/.eacp/android/sdk`.
+does. The preset takes NDK r30 from Android Studio's SDK; `COWS_NDK` there is
+the one copy of eacp's pinned version.
 
 Use `$HOME`, not `~`: CMake does not expand `~`.
 

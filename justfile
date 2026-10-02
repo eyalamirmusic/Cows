@@ -55,9 +55,10 @@ release-macos:
 release-ios *args:
     tools/release-ios.sh {{args}}
 
-# Google Play .aab, Release arm64 + x86_64, signed with the upload key (--install runs it on the emulator).
-release-android *args:
-    tools/release-android.sh {{args}}
+# Google Play .aab, Release arm64 + x86_64, signed with the upload key in EACP_ANDROID_KEYSTORE*.
+release-android:
+    cmake --preset android -B build-android-release ${EACP:+-DCPM_eacp_SOURCE=$EACP}
+    cmake --build build-android-release --target Cows-aab
 
 # Windows x64 Release build on the Windows box, staged for Steam.
 release-windows:

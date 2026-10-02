@@ -30,13 +30,11 @@ Deploy/
     controller_config.vdf Steam Input template (Steam Deck / controllers)
     README.md             Steam Deck and controller notes
   Google-Play/
-    BundleConfig.json     bundletool config: native libs uncompressed, 16 KB aligned
     Metadata/             store-listing.md (every Play Console field, Data
                           safety, IARC, target audience)
     Store/                512 icon, 1024x500 feature graphic
     Screenshots/          phone (1080x1920), tablet-7 (1440x2560),
                           tablet-10 (2160x3840)
-    out/                  signed .aab (gitignored)
   Microsoft-Store/
     AppxManifest.xml      MSIX manifest template (identity from Partner Center)
     Assets/               MSIX tiles, scale-100/200 and taskbar sizes
@@ -65,10 +63,10 @@ background colour, monochrome hearts for themed icons).
 | `COWS_STEAM_DEPOT_MACOS` | tools/steam-upload.sh | macOS depot id (usually app id + 2) |
 | `COWS_STEAM_USER` | tools/steam-upload.sh | Steam build account login |
 | `COWS_BUILD_NUMBER` | tools/release-ios.sh, release-mas.sh | raise for every App Store upload of one version |
-| `COWS_BUILD_NUMBER` | tools/release-android.sh | the Play versionCode: raise for every upload, never reuse |
-| `COWS_ANDROID_KEYSTORE` | tools/release-android.sh | path to the upload keystore (.jks), kept out of the repo |
-| `COWS_ANDROID_KEY_ALIAS` | tools/release-android.sh | the upload key's alias in it |
-| `COWS_ANDROID_KEYSTORE_PASSWORD` | tools/release-android.sh | the keystore (and key) password |
+| `COWS_BUILD_NUMBER` | CMake (Android) | the Play versionCode: raise for every upload, never reuse |
+| `EACP_ANDROID_KEYSTORE` | eacp's `Cows-aab` | path to the upload keystore (.jks), kept out of the repo |
+| `EACP_ANDROID_KEY_ALIAS` | eacp's `Cows-aab` | the upload key's alias in it |
+| `EACP_ANDROID_KEYSTORE_PASSWORD` | eacp's `Cows-aab` | the keystore (and key) password |
 | `COWS_MSIX_IDENTITY` | tools/release-msix.ps1 | Partner Center Package/Identity/Name |
 | `COWS_MSIX_PUBLISHER` | tools/release-msix.ps1 | Partner Center Package/Identity/Publisher (`CN=...`) |
 | `COWS_MSIX_PUBLISHER_NAME` | tools/release-msix.ps1 | Partner Center PublisherDisplayName |
@@ -185,18 +183,17 @@ One-time, on the Play Console account:
 
 Each release:
 ```bash
-COWS_ANDROID_KEYSTORE=~/keys/cows-upload.jks COWS_ANDROID_KEY_ALIAS=upload \
-COWS_ANDROID_KEYSTORE_PASSWORD=<password> COWS_BUILD_NUMBER=<n> \
-    just release-android
+cmake --preset android -B build-android -DCOWS_BUILD_NUMBER=<n>
+EACP_ANDROID_KEYSTORE=~/keys/cows-upload.jks EACP_ANDROID_KEY_ALIAS=upload \
+EACP_ANDROID_KEYSTORE_PASSWORD=<password> \
+    cmake --build build-android --target Cows-aab
 ```
-This builds Release `libCows.so` for arm64-v8a and x86_64 (minSdk 33, 16 KB
-pages, stripped; the symbol tables go into the bundle for Play's native crash
-reports), links the manifest and resources with `aapt2 --proto-format`,
-packages them with `bundletool` 1.18.3 (downloaded once into
-`$ANDROID_HOME/bundletool`, checksum pinned) and signs with `jarsigner`:
-`Deploy/Google-Play/out/CowsInLove-<version>-<n>.aab`. No Gradle. `just
-release-android --install` also runs `bundletool validate`, builds the APK set
-for the attached device or emulator and installs and launches it.
+eacp's `Cows-aab` builds Release `libCows.so` for arm64-v8a and x86_64 (each
+in `build-android/aab/<abi>`, stripped, with the symbol tables in the bundle for
+Play's native crash reports), packages them with a pinned `bundletool`, signs
+with `jarsigner` and validates: `build-android/Apps/CowsInLove/Cows.aab`. No
+Gradle. To try it on the emulator, `bundletool build-apks --local-testing
+--connected-device` and `install-apks` with the same key.
 
 Then, the one manual step: in Play Console, **Testing > Internal testing >
 Create new release**, upload the .aab, paste the release notes, roll out.

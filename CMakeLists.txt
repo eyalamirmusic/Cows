@@ -51,7 +51,7 @@ if (APPLE AND NOT IOS)
     add_subdirectory(tools/Art)
 endif ()
 
-if (COWS_BUILD_TESTS AND NOT IOS)
+if (COWS_BUILD_TESTS AND NOT IOS AND NOT ANDROID)
     enable_testing()
     add_subdirectory(Tests)
 endif ()
