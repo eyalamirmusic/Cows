@@ -5,10 +5,9 @@
 #include "UI/Overlay.h"
 #include "UI/TouchControls.h"
 
-#include <cmath>
-#include <cstdio>
 #include <eacp/Core/Utils/Environment.h>
-#include <cstdlib>
+
+#include <cmath>
 #include <functional>
 
 using namespace Maths;
@@ -190,12 +189,12 @@ void render(const Shot& shot, const std::string& directory, const Screen& screen
 
     if (!image.isValid())
     {
-        std::fprintf(stderr, "could not render %s\n", path.c_str());
+        LOG("could not render ", path);
         return;
     }
 
     image.save(FilePath {path});
-    std::printf("%s\n", path.c_str());
+    LOG(path);
 }
 } // namespace
 

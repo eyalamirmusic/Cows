@@ -3,6 +3,7 @@
 #include "Render/Palette.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 
@@ -20,7 +21,8 @@ constexpr auto spawnSpread = 0.9f;
 // the lips.
 constexpr auto burstLead = 0.35f;
 
-constexpr std::uint32_t heartColors[] = {0xff005f, 0xff3d80, 0xe8004f, 0xff6f9f};
+constexpr auto heartColors =
+    std::to_array<std::uint32_t>({0xff005f, 0xff3d80, 0xe8004f, 0xff6f9f});
 
 float random(int kiss, int heart, int salt)
 {

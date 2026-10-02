@@ -3,7 +3,8 @@
 #include <eacp/Core/Utils/Environment.h>
 
 #include <algorithm>
-#include <cstdio>
+#include <iomanip>
+#include <sstream>
 
 namespace Cows
 {
@@ -15,11 +16,11 @@ double millisecondsBetween(FrameProfile::Clock::time_point from,
     return std::chrono::duration<double, std::milli>(to - from).count();
 }
 
-std::string formatted(const char* format, double value)
+std::string fixed(double value, int decimals)
 {
-    char text[32];
-    std::snprintf(text, sizeof(text), format, value);
-    return text;
+    auto text = std::ostringstream {};
+    text << std::fixed << std::setprecision(decimals) << value;
+    return text.str();
 }
 } // namespace
 
@@ -105,18 +106,18 @@ void FrameProfile::report(Clock::time_point now)
         auto p95 = sorted[(size_t) std::min(count - 1, (count * 95) / 100)];
         auto seconds = millisecondsBetween(windowStart, now) / 1000.0;
         auto perFrame = [&](Part part)
-        { return formatted("%.2f", totals[(size_t) part] / frames); };
-        auto gpu = gpuSamples > 0 ? formatted("%.2f", gpuMilliseconds / gpuSamples)
+        { return fixed(totals[(size_t) part] / frames, 2); };
+        auto gpu = gpuSamples > 0 ? fixed(gpuMilliseconds / gpuSamples, 2)
                                   : std::string {"-"};
 
         LOG("profile fps ",
-            formatted("%.1f", frames / seconds),
+            fixed(frames / seconds, 1),
             " frame avg ",
-            formatted("%.2f", sum / count),
+            fixed(sum / count, 2),
             " p95 ",
-            formatted("%.2f", p95),
+            fixed(p95, 2),
             " max ",
-            formatted("%.2f", sorted[(size_t) count - 1]),
+            fixed(sorted[(size_t) count - 1], 2),
             " | cpu ms update ",
             perFrame(Part::Update),
             " gather ",

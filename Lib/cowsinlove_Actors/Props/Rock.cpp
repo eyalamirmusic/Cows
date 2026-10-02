@@ -1,6 +1,7 @@
 #include "Props/Rock.h"
 #include "Props/Props.h"
 
+#include <array>
 #include <cmath>
 
 using namespace Maths;
@@ -9,7 +10,8 @@ namespace Cows
 {
 namespace
 {
-constexpr std::uint32_t rockColors[] = {0x8a8f8a, 0x9c9a92, 0x7b807e};
+constexpr auto rockColors =
+    std::to_array<std::uint32_t>({0x8a8f8a, 0x9c9a92, 0x7b807e});
 } // namespace
 
 void addRock(Scenery& scenery, std::mt19937& random, Vec2 at)

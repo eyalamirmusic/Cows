@@ -4,11 +4,9 @@
 #include "Scene/CowsView.h"
 
 #include <eacp/Core/Core.h>
+#include <eacp/Core/Utils/Environment.h>
 
 #include <cmath>
-#include <cstdio>
-#include <eacp/Core/Utils/Environment.h>
-#include <cstdlib>
 #include <functional>
 #include <string>
 
@@ -60,12 +58,12 @@ void save(const Graphics::Image& image, const std::string& name)
 {
     if (!image.isValid())
     {
-        std::fprintf(stderr, "could not render %s\n", name.c_str());
+        LOG("could not render ", name);
         return;
     }
 
     image.save(FilePath {outputPath(name)});
-    std::printf("%s\n", outputPath(name).c_str());
+    LOG(outputPath(name));
 }
 
 void playEnding(CowsView& view, float sinceFound)
@@ -236,7 +234,7 @@ int main(int argc, char* argv[])
             else if (mode == "play-10")
                 renderScreenshots(directory, playTablet10);
             else
-                std::fprintf(stderr, "unknown mode %s\n", mode.c_str());
+                LOG("unknown mode ", mode);
         });
     return 0;
 }

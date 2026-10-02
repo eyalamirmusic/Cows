@@ -1,6 +1,7 @@
 #include "Props/Fence.h"
 #include "Props/Props.h"
 
+#include <array>
 #include <cmath>
 
 using namespace Maths;
@@ -12,7 +13,7 @@ namespace
 constexpr std::uint32_t woodColor = 0xb89a6a;
 constexpr auto postSpacing = 2.f;
 constexpr auto postSize = 0.2f;
-constexpr float railHeights[] = {0.55f, 1.15f};
+constexpr auto railHeights = std::array {0.55f, 1.15f};
 constexpr auto railSize = 0.14f;
 } // namespace
 

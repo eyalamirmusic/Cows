@@ -1,6 +1,7 @@
 #include "Props/Tree.h"
 #include "Props/Props.h"
 
+#include <array>
 #include <cmath>
 
 using namespace Maths;
@@ -9,7 +10,8 @@ namespace Cows
 {
 namespace
 {
-constexpr std::uint32_t leafColors[] = {0x2f8f3a, 0x3a9a40, 0x2c7a30, 0x4aa844};
+constexpr auto leafColors =
+    std::to_array<std::uint32_t>({0x2f8f3a, 0x3a9a40, 0x2c7a30, 0x4aa844});
 constexpr std::uint32_t barkColor = 0x6b4a2f;
 } // namespace
 

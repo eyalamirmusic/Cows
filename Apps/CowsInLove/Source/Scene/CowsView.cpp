@@ -6,10 +6,11 @@
 #include "Render/Palette.h"
 #include "Sky/SkyDecor.h"
 
-#include <algorithm>
-#include <cmath>
 #include <eacp/Core/Utils/Environment.h>
-#include <cstdlib>
+
+#include <algorithm>
+#include <array>
+#include <cmath>
 #include <optional>
 
 using namespace Maths;
@@ -35,20 +36,20 @@ constexpr auto grassTiles = 2;
 constexpr auto portraitDistance = 6.5f;
 constexpr auto portraitPitch = 0.26f;
 
-constexpr CornerVertex fullScreenTriangle[3] = {
+constexpr auto fullScreenTriangle = std::to_array<CornerVertex>({
     {{-1.f, -1.f}},
     {{3.f, -1.f}},
     {{-1.f, 3.f}},
-};
+});
 
-constexpr CornerVertex glowQuad[6] = {
+constexpr auto glowQuad = std::to_array<CornerVertex>({
     {{-1.f, -1.f}},
     {{1.f, -1.f}},
     {{1.f, 1.f}},
     {{-1.f, -1.f}},
     {{1.f, 1.f}},
     {{-1.f, 1.f}},
-};
+});
 
 RenderPipelineDescriptor skyPipeline(int samples)
 {
@@ -507,7 +508,7 @@ void CowsView::gatherInstances(float seconds)
     heartBatch.clear();
     glows.clear();
 
-    CowPose poses[2];
+    auto poses = std::array<CowPose, 2> {};
 
     if (game.state == Game::State::Searching)
     {

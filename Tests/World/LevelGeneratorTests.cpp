@@ -6,8 +6,11 @@
 
 #include <NanoTest/NanoTest.h>
 
+#include <eacp/Core/Platform/Platform.h>
+
+#include <array>
+#include <bit>
 #include <cstdint>
-#include <cstring>
 
 using namespace nano;
 using namespace Cows;
@@ -18,8 +21,7 @@ namespace
 // makeMeadow(seed) for seeds 1 to 40, hashed before levels were generated from
 // templates. MSVC's random distributions and maths differ in the low bits, so
 // Windows has its own table, taken from the same template.
-#if defined(_WIN32)
-constexpr std::uint64_t meadowGolden[] = {
+constexpr auto msvcMeadowGolden = std::to_array<std::uint64_t>({
     11244291730218905906ull, 10343436613414068082ull, 11684292388551233939ull,
     10329903429551420818ull, 16146641879865093557ull, 7326419559184624660ull,
     4355824712913150694ull,  10898734205573658670ull, 8818754057994609395ull,
@@ -34,9 +36,9 @@ constexpr std::uint64_t meadowGolden[] = {
     12657607272428366434ull, 17213503771893865822ull, 8966284539395114966ull,
     8864771927408114120ull,  3431518799143032867ull,  10065454127548761700ull,
     13022393425606858233ull,
-};
-#else
-constexpr std::uint64_t meadowGolden[] = {
+});
+
+constexpr auto otherMeadowGolden = std::to_array<std::uint64_t>({
     16968748991025543715ull, 2400430729910096927ull,  14610855147932081439ull,
     3777630825141125684ull,  7498380083352017341ull,  7414868895855385629ull,
     794469300712865879ull,   15683707823397588847ull, 2315092222490707705ull,
@@ -51,14 +53,14 @@ constexpr std::uint64_t meadowGolden[] = {
     7364493285580767347ull,  9813079974151635243ull,  13028706465663847859ull,
     18198534311345766270ull, 1290066189693251099ull,  17844490471936195330ull,
     6065830062698745729ull,
-};
-#endif
+});
+
+constexpr auto& meadowGolden =
+    Platform::isWindows() ? msvcMeadowGolden : otherMeadowGolden;
 
 std::uint64_t mixIn(std::uint64_t hash, float value)
 {
-    auto bits = std::uint32_t {};
-    std::memcpy(&bits, &value, 4);
-    return (hash ^ bits) * 1099511628211ull;
+    return (hash ^ std::bit_cast<std::uint32_t>(value)) * 1099511628211ull;
 }
 
 std::uint64_t levelHash(const Level& level)
