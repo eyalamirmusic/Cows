@@ -7,6 +7,8 @@ set(COWS_BUILD_NUMBER "1" CACHE STRING
 set(COWS_MAC_ENTITLEMENTS "" CACHE FILEPATH
         "Entitlements for the Mac App Store build (tools/release-mas.sh)")
 
+set(COWS_DISPLAY_NAME "Cows In Love")
+
 eacp_add_app(Cows
         Source/Main.cpp
         Source/CowsApp.cpp
@@ -14,19 +16,33 @@ eacp_add_app(Cows
         Source/Templates.cpp
         Source/Scene/CowsView.cpp
         BUNDLE_ID ${COWS_BUNDLE_ID}
-        DISPLAY_NAME "Cows In Love"
+        DISPLAY_NAME "${COWS_DISPLAY_NAME}"
         VERSION_CODE ${COWS_BUILD_NUMBER}
         ICON Resources/AppIcon-Desktop.png
-        IOS_RESOURCES Resources/Assets.xcassets Resources/PrivacyInfo.xcprivacy
-        ORIENTATION portrait
-        RES_DIR Android/res
-        MANIFEST_ELEMENTS [[
-    <uses-feature android:name="android.hardware.touchscreen" android:required="true" />
-    <uses-feature android:name="android.hardware.screen.portrait" android:required="true" />
-    <supports-screens android:smallScreens="true" android:normalScreens="true"
-            android:largeScreens="true" android:xlargeScreens="true" />]]
-        APPLICATION_ATTRIBUTES [[android:isGame="true" android:appCategory="game"
-            android:allowBackup="false" android:hasFragileUserData="false"]])
+        ORIENTATION portrait)
+
+# Android/res (the adaptive icon) and the store manifest entries (touchscreen
+# and portrait required, isGame, appCategory, no backup) wait for eacp to take
+# an app's own res directory and manifest elements again.
+
+eacp_add_plist_entries(Cows
+        CFBundleDisplayName "${COWS_DISPLAY_NAME}"
+        ITSAppUsesNonExemptEncryption FALSE
+        LSApplicationCategoryType public.app-category.games)
+
+if (IOS)
+    eacp_add_plist_entries(Cows
+            LSRequiresIPhoneOS TRUE
+            UIRequiresFullScreen TRUE
+            UIStatusBarHidden TRUE)
+
+    set(ios_resources Resources/Assets.xcassets Resources/PrivacyInfo.xcprivacy)
+    target_sources(Cows PRIVATE ${ios_resources})
+    set_source_files_properties(${ios_resources} PROPERTIES
+            MACOSX_PACKAGE_LOCATION Resources)
+    set_target_properties(Cows PROPERTIES
+            XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME AppIcon)
+endif ()
 
 target_include_directories(Cows PRIVATE Source)
 target_link_libraries(Cows PRIVATE cowsinlove_Game)

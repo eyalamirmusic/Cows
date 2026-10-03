@@ -47,7 +47,8 @@ App icons live with the app: `Apps/CowsInLove/Resources/Assets.xcassets`
 (iOS, 1024 single size) and `AppIcon-Desktop.png` (the macOS .icns and the
 Windows .ico are made from it at build time by `eacp_set_app_icon`), and
 `Apps/CowsInLove/Android/res` (the Android adaptive icon: foreground, sky
-background colour, monochrome hearts for themed icons).
+background colour, monochrome hearts for themed icons; not built in until eacp
+takes an app's own res directory again, so Android uses the desktop PNG).
 
 ## What to fill in
 
@@ -64,9 +65,6 @@ background colour, monochrome hearts for themed icons).
 | `COWS_STEAM_USER` | tools/steam-upload.sh | Steam build account login |
 | `COWS_BUILD_NUMBER` | tools/release-ios.sh, release-mas.sh | raise for every App Store upload of one version |
 | `COWS_BUILD_NUMBER` | CMake (Android) | the Play versionCode: raise for every upload, never reuse |
-| `EACP_ANDROID_KEYSTORE` | eacp's `Cows-aab` | path to the upload keystore (.jks), kept out of the repo |
-| `EACP_ANDROID_KEY_ALIAS` | eacp's `Cows-aab` | the upload key's alias in it |
-| `EACP_ANDROID_KEYSTORE_PASSWORD` | eacp's `Cows-aab` | the keystore (and key) password |
 | `COWS_MSIX_IDENTITY` | tools/release-msix.ps1 | Partner Center Package/Identity/Name |
 | `COWS_MSIX_PUBLISHER` | tools/release-msix.ps1 | Partner Center Package/Identity/Publisher (`CN=...`) |
 | `COWS_MSIX_PUBLISHER_NAME` | tools/release-msix.ps1 | Partner Center PublisherDisplayName |
@@ -183,17 +181,14 @@ One-time, on the Play Console account:
 
 Each release:
 ```bash
-cmake --preset android -B build-android -DCOWS_BUILD_NUMBER=<n>
-EACP_ANDROID_KEYSTORE=~/keys/cows-upload.jks EACP_ANDROID_KEY_ALIAS=upload \
-EACP_ANDROID_KEYSTORE_PASSWORD=<password> \
-    cmake --build build-android --target Cows-aab
+just release-android -DCOWS_BUILD_NUMBER=<n>
 ```
-eacp's `Cows-aab` builds Release `libCows.so` for arm64-v8a and x86_64 (each
-in `build-android/aab/<abi>`, stripped, with the symbol tables in the bundle for
-Play's native crash reports), packages them with a pinned `bundletool`, signs
-with `jarsigner` and validates: `build-android/Apps/CowsInLove/Cows.aab`. No
-Gradle. To try it on the emulator, `bundletool build-apks --local-testing
---connected-device` and `install-apks` with the same key.
+That configures the android preset and runs Gradle's `:Cows:bundleRelease` in
+`build-android/AndroidStudio`: Release `libCows.so` for arm64-v8a and x86_64,
+in `build-android/AndroidStudio/Cows/build/outputs/bundle/release/Cows-release.aab`.
+Signing with the upload key is pending in eacp: the module eacp generates signs
+release with the debug key, and eacp has no slot for an upload key yet, so
+this bundle cannot go to Play until it does.
 
 Then, the one manual step: in Play Console, **Testing > Internal testing >
 Create new release**, upload the .aab, paste the release notes, roll out.
@@ -203,14 +198,8 @@ it is available within minutes, needs no review, and the pre-launch report
 runs the app on real devices (the Vulkan 1.1 floor means only very old test
 devices report "not compatible", which is expected).
 
-`jarsigner` warns that the upload certificate is self-signed and has no
-timestamp: that is normal for an upload key.
-
-Checked on this Mac with a throwaway upload key: the bundle builds (11 MB,
-both ABIs), validates, installs through `--local-testing` on the `cows`
-emulator and runs (`docs/shots/play-aab.png`); the generated APKs pass
-`zipalign -c -P 16` and `aapt2 dump badging` shows minSdk 33, targetSdk 35,
-isGame, no permissions.
+Checked on this Mac: `just release-android` builds the bundle (9.7 MB, both
+ABIs), signed with the debug key.
 
 ## Microsoft Store (MSIX)
 

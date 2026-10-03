@@ -96,8 +96,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     summed into walk ahead / turn
   - `Title/TitleFont` — the tube-font title; `Title/TitleShader` — its shader
 - `Apps/CowsInLove/Source/Main.cpp` — runs `CowsApp`. On Android eacp sets the
-  COWS_* settings before `main()`, from the launch intent's `--es` extras and
-  the `debug.com.cowsinlove.cows.env` property
+  COWS_* settings before `main()` in a debug build, from the launch intent's
+  `--es` extras and the `debug.com.cowsinlove.cows.env` property
 - `Apps/CowsInLove/Source/Templates` — the level templates (`meadowTemplate`,
   `meadowRavineTemplate`: the segment lists and lengths)
 - `Apps/CowsInLove/Source/Stages` — the content: the ordered level templates
@@ -130,7 +130,7 @@ stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her (run the binary i
 ## Build Commands
 
 eacp is fetched by CPM (`CMake/Findeacp.cmake`; on this branch
-`eyalamirmusic/eacp#jp/android-vulkan-1-1`, on `main` `eyalamirmusic/eacp#main`).
+`eyalamirmusic/eacp#develop`, on `main` `eyalamirmusic/eacp#main`).
 To build against the local checkout instead (usually ahead of `main`):
 
 ```bash
@@ -139,12 +139,16 @@ cmake --build build
 open build/Apps/CowsInLove/Cows.app
 ```
 
-Android Studio: `just studio-android` runs `cmake --preset android-studio`
-(`CMakePresets.json`), which writes a Gradle project with a `Cows` module to
-`build-android-studio`, and opens it; from a terminal there,
-`./gradlew :Cows:installDebug` (with `JAVA_HOME` at a JDK 17+) does what Run
-does. The preset takes NDK r30 from Android Studio's SDK; `COWS_NDK` there is
-the one copy of eacp's pinned version.
+Android: `cmake --preset android` (`CMakePresets.json`) configures
+`build-android` (Release, arm64-v8a, API 33) and writes the Android Studio
+project, a Gradle project with a `Cows` module, to `build-android/AndroidStudio`;
+`just studio-android` does that and opens it. From a terminal there,
+`./gradlew :Cows:installDebug` (with `JAVA_HOME` at a JDK 17+, e.g. Studio's
+JBR) does what Run does, for arm64-v8a and x86_64 (`EACP_ANDROID_ABIS`).
+`tools/android.sh sim [shot.png]` (`just sim-android`) builds, boots the `cows`
+emulator and runs it. The preset's toolchain, `CMake/AndroidToolchain.cmake`,
+finds the SDK ($ANDROID_HOME, else Studio's) and holds `COWS_NDK`, the one copy
+of the NDK version eacp pins in its `CMake/AndroidVersions.cmake`.
 
 Use `$HOME`, not `~`: CMake does not expand `~`.
 

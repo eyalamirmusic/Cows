@@ -12,15 +12,16 @@ macos:
 sim-ios shot="":
     tools/ios.sh sim {{shot}}
 
-# Build (Release; COWS_CONFIG=Debug for Debug) and run on the "cows" Android
+# Build (Debug; COWS_CONFIG=Release for Release) and run on the "cows" Android
 # emulator, optionally saving a screenshot.
 sim-android shot="":
     tools/android.sh sim {{shot}}
 
-# Write the Android Studio project (build-android-studio, a Cows module) and open it.
+# Write the Android Studio project (build-android/AndroidStudio, a Cows module)
+# and open it.
 studio-android:
-    cmake --preset android-studio ${EACP:+-DCPM_eacp_SOURCE=$EACP}
-    open -a "Android Studio" build-android-studio
+    cmake --preset android ${EACP:+-DCPM_eacp_SOURCE=$EACP}
+    open -a "Android Studio" build-android/AndroidStudio
 
 # Build, sign and run on a phone (devicectl UDID; defaults to pond).
 ios udid=device:
@@ -55,10 +56,12 @@ release-macos:
 release-ios *args:
     tools/release-ios.sh {{args}}
 
-# Google Play .aab, Release arm64 + x86_64, signed with the upload key in EACP_ANDROID_KEYSTORE*.
-release-android:
-    cmake --preset android -B build-android-release ${EACP:+-DCPM_eacp_SOURCE=$EACP}
-    cmake --build build-android-release --target Cows-aab
+# Google Play .aab, Release arm64-v8a + x86_64, through Gradle's bundleRelease
+# (args go to the configure: -DCOWS_BUILD_NUMBER=<n>).
+# Signed with the debug key until eacp has a slot for the upload key.
+release-android *args:
+    cmake --preset android ${EACP:+-DCPM_eacp_SOURCE=$EACP} {{args}}
+    cd build-android/AndroidStudio && JAVA_HOME="${JAVA_HOME:-/Applications/Android Studio.app/Contents/jbr/Contents/Home}" ./gradlew :Cows:bundleRelease
 
 # Windows x64 Release build on the Windows box, staged for Steam.
 release-windows:

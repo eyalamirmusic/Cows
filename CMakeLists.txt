@@ -25,10 +25,9 @@ list(APPEND CMAKE_MODULE_PATH "${eacp_SOURCE_DIR}/CMake")
 include(TargetSetup)
 
 # eacp only runs this for itself when it is the top-level project, so a consumer
-# has to call it or the Apple deployment target is never set. It points the
-# bundle plist templates at this project's CMake directory, where the store
-# copies live (display name, category, launch screen, portrait-only iOS). eacp
-# also forces its own signing team; COWS_IOS_TEAM replaces it.
+# has to call it or the Apple deployment target is never set. It also forces
+# eacp's own signing team, "iPhone Developer" and iOS 14; COWS_IOS_TEAM, Apple
+# Development and iOS 15 replace them.
 if (PROJECT_IS_TOP_LEVEL)
     eacp_default_setup()
 

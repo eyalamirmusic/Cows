@@ -5,24 +5,12 @@
             "name": "android",
             "displayName": "Android arm64-v8a, API 33, Release",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build-android-preset",
-            "environment": {
-                "COWS_NDK": "30.0.16248370"
-            },
-            "toolchainFile": "$env{HOME}/Library/Android/sdk/ndk/$env{COWS_NDK}/build/cmake/android.toolchain.cmake",
+            "binaryDir": "${sourceDir}/build-android",
+            "toolchainFile": "${sourceDir}/CMake/AndroidToolchain.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "ANDROID_ABI": "arm64-v8a",
                 "ANDROID_PLATFORM": "android-33"
-            }
-        },
-        {
-            "name": "android-studio",
-            "inherits": "android",
-            "displayName": "Android Studio project in build-android-studio",
-            "binaryDir": "${sourceDir}/build-android-studio/cmake",
-            "cacheVariables": {
-                "EACP_ANDROID_STUDIO_DIR": "${sourceDir}/build-android-studio"
             }
         }
     ],
@@ -30,7 +18,7 @@
         {
             "name": "android",
             "configurePreset": "android",
-            "targets": ["Cows-apk"]
+            "targets": ["Cows"]
         }
     ]
 }
