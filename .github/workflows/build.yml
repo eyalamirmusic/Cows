@@ -74,7 +74,7 @@ jobs:
           arch: x64
 
       - name: Configure
-        run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug -DEACP_CI_BUILD=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF ${{ matrix.cmake-flags }}
+        run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug -DEACP_CI_BUILD=ON ${{ matrix.cmake-flags }}
 
       - name: Build
         run: cmake --build build
@@ -146,7 +146,7 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION"
 
       - name: Configure
-        run: cmake --preset android "-DCOWS_NDK=$NDK_VERSION" -DCMAKE_BUILD_TYPE=Debug -DEACP_CI_BUILD=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DEACP_ANDROID_STUDIO=OFF
+        run: cmake --preset android "-DCOWS_NDK=$NDK_VERSION" -DCMAKE_BUILD_TYPE=Debug -DEACP_CI_BUILD=ON -DEACP_ANDROID_STUDIO=OFF
 
       - name: Build
         run: cmake --build --preset android

@@ -129,9 +129,8 @@ stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her (run the binary i
 
 ## Build Commands
 
-eacp is fetched by CPM (`CMake/Findeacp.cmake`; on this branch
-`eyalamirmusic/eacp#develop`, on `main` `eyalamirmusic/eacp#main`).
-To build against the local checkout instead (usually ahead of `main`):
+eacp is fetched by CPM (`CMake/Findeacp.cmake`, `eyalamirmusic/eacp#develop`).
+To build against the local checkout instead (usually ahead of `develop`):
 
 ```bash
 cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug -DCPM_eacp_SOURCE=$HOME/Code/eacp
