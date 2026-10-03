@@ -1,11 +1,11 @@
 nano_add_executable(EngineTests
         NO_MAIN
         SOURCES
+            HudSnapshotTests.cpp
             InstancesTests.cpp
             MeshTests.cpp
             OrbitCameraTests.cpp
             PaletteTests.cpp
-            PlatformTests.cpp
             RenderSnapshotTests.cpp
             TouchControlsTests.cpp
             ../Support/TestMain.cpp

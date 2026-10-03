@@ -12,6 +12,10 @@ endif ()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 
+if (ANDROID)
+    list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Android")
+endif ()
+
 # eacp supplies both the GPU module and the CMake helpers every target here is
 # configured with (set_default_target_setting, eacp_set_gui_subsystem), so it
 # is fetched before those helpers are included.
@@ -21,10 +25,9 @@ list(APPEND CMAKE_MODULE_PATH "${eacp_SOURCE_DIR}/CMake")
 include(TargetSetup)
 
 # eacp only runs this for itself when it is the top-level project, so a consumer
-# has to call it or the Apple deployment target is never set. It points the
-# bundle plist templates at this project's CMake directory, where the store
-# copies live (display name, category, launch screen, portrait-only iOS). eacp
-# also forces its own signing team; COWS_IOS_TEAM replaces it.
+# has to call it or the Apple deployment target is never set. It also forces
+# eacp's own signing team, "iPhone Developer" and iOS 14; COWS_IOS_TEAM, Apple
+# Development and iOS 15 replace them.
 if (PROJECT_IS_TOP_LEVEL)
     eacp_default_setup()
 
@@ -47,7 +50,7 @@ if (APPLE AND NOT IOS)
     add_subdirectory(tools/Art)
 endif ()
 
-if (COWS_BUILD_TESTS AND NOT IOS)
+if (COWS_BUILD_TESTS AND NOT IOS AND NOT ANDROID)
     enable_testing()
     add_subdirectory(Tests)
 endif ()

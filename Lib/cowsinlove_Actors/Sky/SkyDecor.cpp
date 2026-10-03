@@ -2,6 +2,7 @@
 #include "Animation/Choreography.h"
 #include "Render/Palette.h"
 
+#include <array>
 #include <cmath>
 
 using namespace Maths;
@@ -24,7 +25,7 @@ struct Puff final
     float radius = 1.f;
 };
 
-constexpr Puff puffs[] = {
+constexpr auto puffs = std::to_array<Puff>({
     {{0.f, 0.f, 0.f}, 1.05f},
     {{1.15f, -0.25f, 0.1f}, 0.82f},
     {{-1.1f, -0.3f, 0.f}, 0.78f},
@@ -34,7 +35,7 @@ constexpr Puff puffs[] = {
     {{-1.9f, -0.55f, 0.f}, 0.5f},
     {{0.1f, -0.45f, 0.35f}, 0.75f},
     {{1.2f, 0.3f, -0.3f}, 0.6f},
-};
+});
 
 struct Cloud final
 {
@@ -43,10 +44,10 @@ struct Cloud final
     float scale = 1.f;
 };
 
-constexpr Cloud clouds[] = {
+constexpr auto clouds = std::to_array<Cloud>({
     {-30.f, 10.5f, 2.6f},
     {14.f, 14.5f, 2.2f},
-};
+});
 
 float wrapped(float x)
 {
@@ -127,12 +128,12 @@ void addHills(SurfaceBatch& batch, Vec3 origin)
         std::uint32_t color;
     };
 
-    constexpr Hill hills[] = {
+    constexpr auto hills = std::to_array<Hill>({
         {{-46.f, -2.f, -78.f}, {34.f, 9.f, 16.f}, 0x2f8f3a},
         {{-8.f, -3.5f, -96.f}, {40.f, 10.f, 18.f}, 0x3a9a40},
         {{34.f, -2.5f, -84.f}, {36.f, 9.5f, 16.f}, 0x2c8a36},
         {{70.f, -2.f, -70.f}, {30.f, 8.f, 14.f}, 0x35933c},
-    };
+    });
 
     for (const auto& hill: hills)
     {

@@ -22,6 +22,12 @@ constexpr Screen macScreen {1440.f, 900.f, 2.f, false};
 constexpr Screen iPhone69 {440.f, 956.f, 3.f, true};
 // App Store 6.5" iPhone: 1284x2778.
 constexpr Screen iPhone65 {428.f, 926.f, 3.f, true};
+// Google Play phone, 9:16: 1080x1920.
+constexpr Screen playPhone {360.f, 640.f, 3.f, true};
+// Google Play 7" tablet, 9:16: 1440x2560.
+constexpr Screen playTablet7 {720.f, 1280.f, 2.f, true};
+// Google Play 10" tablet, 9:16: 2160x3840.
+constexpr Screen playTablet10 {900.f, 1600.f, 2.4f, true};
 
 // Renders the store screenshots through the game's own views (scene, footer
 // and, on a phone, the touch controls) into `directory`.

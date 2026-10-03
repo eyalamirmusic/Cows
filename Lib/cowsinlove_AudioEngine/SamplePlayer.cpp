@@ -1,5 +1,6 @@
 #include "SamplePlayer.h"
 
+#include <eacp/Core/App/App.h>
 #include <eacp/Core/Maths/Constants.h>
 
 #include <algorithm>
@@ -69,7 +70,20 @@ void addVoice(float* samples,
 SamplePlayer::SamplePlayer(float longestSeconds)
 {
     mix.resize((int) (mixFrames(longestSeconds) * channels));
+    start();
 
+    Apps::setSuspendHandler(
+        [this](bool suspended)
+        {
+            if (suspended)
+                device.stop();
+            else
+                start();
+        });
+}
+
+void SamplePlayer::start()
+{
     auto config = device.getDefaultOutputConfig();
 
     if (!config.output)
@@ -84,6 +98,7 @@ SamplePlayer::SamplePlayer(float longestSeconds)
 
 SamplePlayer::~SamplePlayer()
 {
+    Apps::setSuspendHandler({});
     device.stop();
 }
 

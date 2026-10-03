@@ -20,7 +20,6 @@ CowsApp::CowsApp()
     : window {root, windowOptions()}
 {
     root.addSubview(scene);
-    root.addSubview(footer);
 
     root.onKeyDown = [this](const Graphics::KeyEvent& event)
     { scene.keyDown(event); };
@@ -31,13 +30,19 @@ CowsApp::CowsApp()
     touchControls.onControl = [this](const ControlEvent& event)
     { scene.control(event); };
     scene.onStateChanged = [this]
+    { touchControls.showAgain = scene.game.state == Game::State::Found; };
+
+    scene.touchHints = touchScreen;
+    scene.drawHud = [this](Hud& hud)
     {
-        touchControls.showAgain = scene.game.state == Game::State::Found;
-        footer.repaint();
-        touchControls.repaint();
+        footer.bottomInset = root.getSafeAreaInsets().bottom;
+        footer.draw(hud);
+
+        if (touchScreen)
+            touchControls.draw(hud);
     };
 
-    scene.touchHints = Platform::touch;
-    platform.attach(root, touchControls, footer);
+    if (touchScreen)
+        root.addSubview(touchControls);
 }
 } // namespace Cows

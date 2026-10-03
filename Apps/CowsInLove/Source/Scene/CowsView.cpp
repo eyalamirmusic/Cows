@@ -2,13 +2,16 @@
 #include "Cow/HeartMesh.h"
 #include "Cow/KissHearts.h"
 #include "Ending.h"
+#include "Render/FrameProfile.h"
 #include "Render/Palette.h"
 #include "Sky/SkyDecor.h"
 
-#include <algorithm>
-#include <cmath>
 #include <eacp/Core/Utils/Environment.h>
-#include <cstdlib>
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <optional>
 
 using namespace Maths;
 
@@ -33,20 +36,20 @@ constexpr auto grassTiles = 2;
 constexpr auto portraitDistance = 6.5f;
 constexpr auto portraitPitch = 0.26f;
 
-constexpr CornerVertex fullScreenTriangle[3] = {
+constexpr auto fullScreenTriangle = std::to_array<CornerVertex>({
     {{-1.f, -1.f}},
     {{3.f, -1.f}},
     {{-1.f, 3.f}},
-};
+});
 
-constexpr CornerVertex glowQuad[6] = {
+constexpr auto glowQuad = std::to_array<CornerVertex>({
     {{-1.f, -1.f}},
     {{1.f, -1.f}},
     {{1.f, 1.f}},
     {{-1.f, -1.f}},
     {{1.f, 1.f}},
     {{-1.f, 1.f}},
-};
+});
 
 RenderPipelineDescriptor skyPipeline(int samples)
 {
@@ -208,6 +211,10 @@ CowsView::CowsView()
 
 void CowsView::update(Threads::FrameTime time)
 {
+    auto& profile = FrameProfile::shared();
+    profile.frameStarted();
+    auto timed = FrameProfile::Scope {profile, FrameProfile::Part::Update};
+
     auto delta = frozen ? 0.f : (float) time.delta;
     elapsed += delta;
 
@@ -403,12 +410,24 @@ void CowsView::layTerrain()
 
 void CowsView::render(Frame& frame)
 {
-    gatherInstances(elapsed);
+    using Part = FrameProfile::Part;
+    auto& profile = FrameProfile::shared();
+
+    {
+        auto timed = FrameProfile::Scope {profile, Part::Gather};
+        gatherInstances(elapsed);
+    }
+
     lightViewProjection =
         shadowMap.lightViewProjection(lighting.keyDirection, groundFocus());
 
-    drawShadows(frame);
+    {
+        auto timed = FrameProfile::Scope {profile, Part::Shadows};
+        drawShadows(frame);
+    }
 
+    auto timedScene = std::optional<FrameProfile::Scope> {};
+    timedScene.emplace(profile, Part::Scene);
     auto pass = frame.beginPass({displayColor(lighting.horizonColor)});
 
     auto width = (float) pass.targetWidth();
@@ -438,6 +457,12 @@ void CowsView::render(Frame& frame)
     drawTitle(pass);
     drawBatch(pass, translucentShader, heartBatch);
     drawGlows(pass, viewProjection);
+    timedScene.reset();
+
+    auto timedHud = FrameProfile::Scope {profile, Part::Hud};
+    hud.begin(frame, pass, sampleCount());
+    drawHud(hud);
+    hud.end();
 }
 
 void CowsView::framePortrait(float aspect)
@@ -483,7 +508,7 @@ void CowsView::gatherInstances(float seconds)
     heartBatch.clear();
     glows.clear();
 
-    CowPose poses[2];
+    auto poses = std::array<CowPose, 2> {};
 
     if (game.state == Game::State::Searching)
     {

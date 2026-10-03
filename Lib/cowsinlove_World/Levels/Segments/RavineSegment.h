@@ -3,6 +3,8 @@
 #include "Levels/Segments/MoverSpawner.h"
 #include "Levels/Segments/Segment.h"
 
+#include <array>
+
 namespace Cows
 {
 constexpr auto ravineLength = 18.f;
@@ -14,7 +16,7 @@ constexpr auto bridgeHalfWidth = 1.5f;
 constexpr auto bridgeOverlap = 1.f;
 constexpr auto baleSweep = 7.f;
 constexpr auto baleLaneSpacing = 4.6f;
-constexpr float baleLanePeriods[] = {4.6f, 5.8f, 5.2f};
+constexpr auto baleLanePeriods = std::array {4.6f, 5.8f, 5.2f};
 
 // A ravine across the arena from side to side, ravineDepth deep, with one
 // plank bridge over it on the critical path, and bales rolling across the

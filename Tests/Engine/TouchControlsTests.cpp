@@ -186,3 +186,50 @@ auto tPinchZooms = test("TouchControls/pinchZooms") = []
     check(std::abs(phone.zoom - std::log(2.f)) < 1e-4f);
     check(phone.lookX == 0.f);
 };
+
+auto tNoTouchScreenOnMacOS =
+    test("TouchControls/noTouchScreenOnMacOS") = [] { check(!touchScreen); };
+
+// Fingers reach the controls through eacp's view tree, each as its own pointer.
+auto tTouchesArePointers = test("TouchControls/touchesArePointers") = []
+{
+    auto phone = Phone {};
+    auto root = Graphics::View {};
+    root.setBounds({0.f, 0.f, 400.f, 800.f});
+    root.addSubview(phone.controls);
+
+    auto touch = [&root](int id, Graphics::TouchPhase phase, Graphics::Point at)
+    {
+        auto event = Graphics::TouchEvent {};
+        event.id = id;
+        event.phase = phase;
+        event.pos = at;
+        root.dispatchTouchEvent(event);
+    };
+
+    touch(1, Graphics::TouchPhase::Began, phone.controls.jumpCenter);
+    touch(2, Graphics::TouchPhase::Began, phone.controls.mooCenter);
+
+    check(phone.jumps == 1);
+    check(phone.moos == 1);
+    check(phone.controls.pointers.size() == 2);
+
+    touch(1, Graphics::TouchPhase::Ended, phone.controls.jumpCenter);
+    touch(2, Graphics::TouchPhase::Cancelled, phone.controls.mooCenter);
+
+    check(phone.controls.pointers.empty());
+};
+
+// The window's safe area lifts the controls clear of the home indicator.
+auto tSafeAreaLiftsControls = test("TouchControls/safeAreaLiftsControls") = []
+{
+    auto phone = Phone {};
+    auto root = Graphics::View {};
+    root.setBounds({0.f, 0.f, 400.f, 800.f});
+    root.addSubview(phone.controls);
+
+    auto jumpBefore = phone.controls.jumpCenter;
+    root.setSafeAreaInsets({.top = 59.f, .bottom = 34.f});
+
+    check(same(phone.controls.jumpCenter, {jumpBefore.x, jumpBefore.y - 34.f}));
+};

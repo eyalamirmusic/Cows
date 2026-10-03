@@ -15,7 +15,9 @@
 #include "Render/ShadowMap.h"
 #include "Render/Shaders.h"
 #include "UI/ControlEvent.h"
+#include "UI/Hud.h"
 
+#include <array>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -107,8 +109,11 @@ struct CowsView final : GPUView
     SurfaceBatch backdropBatch;
     SurfaceBatch heartBatch;
     Vector<GlowInstance> glows;
-    Maths::Vec3 contacts[2];
+    std::array<Maths::Vec3, 2> contacts;
+    Hud hud;
 
+    // Drawn last in the scene's pass: the footer and the touch controls.
+    std::function<void(Hud&)> drawHud = [](Hud&) {};
     std::function<void()> onStateChanged = [] {};
 
     float elapsed = 0.f;

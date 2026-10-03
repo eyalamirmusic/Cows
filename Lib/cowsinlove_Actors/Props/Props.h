@@ -2,6 +2,7 @@
 
 #include "Props/Scenery.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <random>
@@ -12,7 +13,8 @@ float randomUnit(std::mt19937& random);
 float randomBetween(std::mt19937& random, float from, float to);
 
 template <std::size_t Count>
-std::uint32_t randomPick(std::mt19937& random, const std::uint32_t (&colors)[Count])
+std::uint32_t randomPick(std::mt19937& random,
+                         const std::array<std::uint32_t, Count>& colors)
 {
     return colors[(std::size_t) (randomUnit(random) * (float) Count) % Count];
 }

@@ -5,10 +5,9 @@
 #include "UI/Overlay.h"
 #include "UI/TouchControls.h"
 
-#include <cmath>
-#include <cstdio>
 #include <eacp/Core/Utils/Environment.h>
-#include <cstdlib>
+
+#include <cmath>
 #include <functional>
 
 using namespace Maths;
@@ -154,19 +153,18 @@ void render(const Shot& shot, const std::string& directory, const Screen& screen
     auto phone = screen.phone;
     auto root = RootView {};
     auto scene = CowsView {};
-    auto footer = FooterView {};
+    auto footer = Footer {};
     auto touch = TouchControls {};
 
     scene.frozen = true;
     scene.touchHints = phone;
     footer.text = [&] { return footerText(scene.game, scene.hint, phone); };
     root.addSubview(scene);
-    root.addSubview(footer);
 
     if (phone)
     {
         root.addSubview(touch);
-        touch.safeArea = {phoneTop, 0.f, phoneBottom, 0.f};
+        root.setSafeAreaInsets({phoneTop, 0.f, phoneBottom, 0.f});
         footer.bottomInset = phoneBottom;
     }
 
@@ -178,18 +176,25 @@ void render(const Shot& shot, const std::string& directory, const Screen& screen
     shot.setUp(scene);
     settle(scene, shot.seconds);
     touch.showAgain = scene.game.state == Game::State::Found;
+    scene.drawHud = [&](Hud& hud)
+    {
+        footer.draw(hud);
+
+        if (phone)
+            touch.draw(hud);
+    };
 
     auto image = root.renderToImage(screen.scale);
     auto path = directory + "/" + shot.name + ".png";
 
     if (!image.isValid())
     {
-        std::fprintf(stderr, "could not render %s\n", path.c_str());
+        LOG("could not render ", path);
         return;
     }
 
     image.save(FilePath {path});
-    std::printf("%s\n", path.c_str());
+    LOG(path);
 }
 } // namespace
 

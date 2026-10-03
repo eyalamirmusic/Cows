@@ -1,5 +1,6 @@
 #include "Snapshot.h"
 
+#include <array>
 #include <cmath>
 
 using namespace Maths;
@@ -8,14 +9,14 @@ namespace Cows::Testing
 {
 namespace
 {
-constexpr CornerVertex glowQuad[6] = {
+constexpr auto glowQuad = std::to_array<CornerVertex>({
     {{-1.f, -1.f}},
     {{1.f, -1.f}},
     {{1.f, 1.f}},
     {{-1.f, -1.f}},
     {{1.f, 1.f}},
     {{-1.f, 1.f}},
-};
+});
 
 RenderPipelineDescriptor solidPipeline(int samples)
 {
@@ -99,6 +100,7 @@ void SnapshotView::render(Frame& frame)
     drawOpaque(pass, viewProjection);
     draw(pass, translucentShader, translucent);
     drawGlows(pass, viewProjection);
+    drawOverlay(frame, pass);
 }
 
 void SnapshotView::clearShadows(Frame& frame)

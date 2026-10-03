@@ -12,6 +12,17 @@ macos:
 sim-ios shot="":
     tools/ios.sh sim {{shot}}
 
+# Build (Debug; COWS_CONFIG=Release for Release) and run on the "cows" Android
+# emulator, optionally saving a screenshot.
+sim-android shot="":
+    tools/android.sh sim {{shot}}
+
+# Write the Android Studio project (build-android/AndroidStudio, a Cows module)
+# and open it.
+studio-android:
+    cmake --preset android ${EACP:+-DCPM_eacp_SOURCE=$EACP}
+    open -a "Android Studio" build-android/AndroidStudio
+
 # Build, sign and run on a phone (devicectl UDID; defaults to pond).
 ios udid=device:
     COWS_DEVICE={{udid}} tools/ios.sh device
@@ -29,11 +40,11 @@ test:
     cmake --build build
     ctest --test-dir build --output-on-failure
 
-# Render the icons and store art (Deploy/Art, Deploy/Steam/Store, app icons).
+# Render the icons and store art (Deploy/Art, Steam, MSIX, Google Play, app icons).
 store-art:
     tools/store-art.sh
 
-# Render the Steam and App Store screenshots.
+# Render the Steam, App Store and Google Play screenshots.
 screenshots:
     tools/screenshots.sh
 
@@ -44,6 +55,13 @@ release-macos:
 # App Store archive and export (COWS_TEAM; --upload sends it to App Store Connect).
 release-ios *args:
     tools/release-ios.sh {{args}}
+
+# Google Play .aab, Release arm64-v8a + x86_64, through Gradle's bundleRelease
+# (args go to the configure: -DCOWS_BUILD_NUMBER=<n>).
+# Signed with the debug key until eacp has a slot for the upload key.
+release-android *args:
+    cmake --preset android ${EACP:+-DCPM_eacp_SOURCE=$EACP} {{args}}
+    cd build-android/AndroidStudio && JAVA_HOME="${JAVA_HOME:-/Applications/Android Studio.app/Contents/jbr/Contents/Home}" ./gradlew :Cows:bundleRelease
 
 # Windows x64 Release build on the Windows box, staged for Steam.
 release-windows:

@@ -29,6 +29,12 @@ Deploy/
     content/              staged depots (gitignored)
     controller_config.vdf Steam Input template (Steam Deck / controllers)
     README.md             Steam Deck and controller notes
+  Google-Play/
+    Metadata/             store-listing.md (every Play Console field, Data
+                          safety, IARC, target audience)
+    Store/                512 icon, 1024x500 feature graphic
+    Screenshots/          phone (1080x1920), tablet-7 (1440x2560),
+                          tablet-10 (2160x3840)
   Microsoft-Store/
     AppxManifest.xml      MSIX manifest template (identity from Partner Center)
     Assets/               MSIX tiles, scale-100/200 and taskbar sizes
@@ -39,7 +45,10 @@ Deploy/
 
 App icons live with the app: `Apps/CowsInLove/Resources/Assets.xcassets`
 (iOS, 1024 single size) and `AppIcon-Desktop.png` (the macOS .icns and the
-Windows .ico are made from it at build time by `eacp_set_app_icon`).
+Windows .ico are made from it at build time by `eacp_set_app_icon`), and
+`Apps/CowsInLove/Android/res` (the Android adaptive icon: foreground, sky
+background colour, monochrome hearts for themed icons; not built in until eacp
+takes an app's own res directory again, so Android uses the desktop PNG).
 
 ## What to fill in
 
@@ -55,13 +64,14 @@ Windows .ico are made from it at build time by `eacp_set_app_icon`).
 | `COWS_STEAM_DEPOT_MACOS` | tools/steam-upload.sh | macOS depot id (usually app id + 2) |
 | `COWS_STEAM_USER` | tools/steam-upload.sh | Steam build account login |
 | `COWS_BUILD_NUMBER` | tools/release-ios.sh, release-mas.sh | raise for every App Store upload of one version |
+| `COWS_BUILD_NUMBER` | CMake (Android) | the Play versionCode: raise for every upload, never reuse |
 | `COWS_MSIX_IDENTITY` | tools/release-msix.ps1 | Partner Center Package/Identity/Name |
 | `COWS_MSIX_PUBLISHER` | tools/release-msix.ps1 | Partner Center Package/Identity/Publisher (`CN=...`) |
 | `COWS_MSIX_PUBLISHER_NAME` | tools/release-msix.ps1 | Partner Center PublisherDisplayName |
 
 The version is `project(Cows VERSION x.y.z)` in `CMakeLists.txt`: it becomes
-CFBundleShortVersionString, the Windows VERSIONINFO and the Steam build
-description. Release 1.0.0.
+CFBundleShortVersionString, the Android versionName, the Windows VERSIONINFO
+and the Steam build description. Release 1.0.0.
 
 ## Before every release
 
@@ -150,6 +160,46 @@ and mouse only.
 `steam-upload` refuses a macOS app that is not notarized. The build is
 uploaded without going live; set it live on the default branch in Steamworks
 (Builds), or pass `COWS_STEAM_BRANCH=<beta>` to set a beta branch live.
+
+## Google Play
+
+One-time, on the Play Console account:
+1. Create the app (Game, the name and default language from
+   `Deploy/Google-Play/Metadata/store-listing.md`). The package name is fixed
+   by the first upload: `COWS_BUNDLE_ID` (default `com.cowsinlove.cows`).
+2. Make the upload key and keep it (and its password) outside the repo:
+   ```bash
+   keytool -genkeypair -v -keystore ~/keys/cows-upload.jks -alias upload \
+       -keyalg RSA -keysize 4096 -validity 10000
+   ```
+3. Play App Signing: on the first release accept "Let Google manage and
+   protect your app signing key" (the default). Google holds the key that
+   signs what users install; the key above only proves uploads are yours, and
+   Play Console can reset it if it is lost.
+4. Fill in the listing and App content from `Metadata/store-listing.md`, host
+   the privacy policy, upload `Store/` and `Screenshots/`.
+
+Each release:
+```bash
+just release-android -DCOWS_BUILD_NUMBER=<n>
+```
+That configures the android preset and runs Gradle's `:Cows:bundleRelease` in
+`build-android/AndroidStudio`: Release `libCows.so` for arm64-v8a and x86_64,
+in `build-android/AndroidStudio/Cows/build/outputs/bundle/release/Cows-release.aab`.
+Signing with the upload key is pending in eacp: the module eacp generates signs
+release with the debug key, and eacp has no slot for an upload key yet, so
+this bundle cannot go to Play until it does.
+
+Then, the one manual step: in Play Console, **Testing > Internal testing >
+Create new release**, upload the .aab, paste the release notes, roll out.
+Install from the internal testing link on a real phone, then promote the
+release to Production and **Send for review**. Start with internal testing:
+it is available within minutes, needs no review, and the pre-launch report
+runs the app on real devices (the Vulkan 1.1 floor means only very old test
+devices report "not compatible", which is expected).
+
+Checked on this Mac: `just release-android` builds the bundle (9.7 MB, both
+ABIs), signed with the debug key.
 
 ## Microsoft Store (MSIX)
 

@@ -25,9 +25,8 @@ Lib/
     Render/    Common, Mesh, Instances, Shaders, Shading, Lighting, ShadowMap,
                Palette
     Camera/    OrbitCamera
-    UI/        Overlay (footer), TouchControls
-    Platform/  macOS/ (also Windows), iOS/: Platform per platform (iOS:
-               TouchSurface); the current one is on the include path
+    UI/        Hud (the HUD on the GPU), Overlay (Footer, RootView),
+               TouchControls
 
   cowsinlove_AudioEngine/         SamplePlayer: the sample player half of Moo;
                                   output through MakeASound on every platform

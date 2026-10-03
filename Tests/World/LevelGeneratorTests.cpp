@@ -6,8 +6,11 @@
 
 #include <NanoTest/NanoTest.h>
 
+#include <eacp/Core/Platform/Platform.h>
+
+#include <array>
+#include <bit>
 #include <cstdint>
-#include <cstring>
 
 using namespace nano;
 using namespace Cows;
@@ -18,8 +21,7 @@ namespace
 // makeMeadow(seed) for seeds 1 to 40, hashed before levels were generated from
 // templates. MSVC's random distributions and maths differ in the low bits, so
 // Windows has its own table, taken from the same template.
-#if defined(_WIN32)
-constexpr std::uint64_t meadowGolden[] = {
+constexpr auto msvcMeadowGolden = std::to_array<std::uint64_t>({
     11244291730218905906ull, 10343436613414068082ull, 11684292388551233939ull,
     10329903429551420818ull, 16146641879865093557ull, 7326419559184624660ull,
     4355824712913150694ull,  10898734205573658670ull, 8818754057994609395ull,
@@ -34,9 +36,9 @@ constexpr std::uint64_t meadowGolden[] = {
     12657607272428366434ull, 17213503771893865822ull, 8966284539395114966ull,
     8864771927408114120ull,  3431518799143032867ull,  10065454127548761700ull,
     13022393425606858233ull,
-};
-#else
-constexpr std::uint64_t meadowGolden[] = {
+});
+
+constexpr auto otherMeadowGolden = std::to_array<std::uint64_t>({
     16968748991025543715ull, 2400430729910096927ull,  14610855147932081439ull,
     3777630825141125684ull,  7498380083352017341ull,  7414868895855385629ull,
     794469300712865879ull,   15683707823397588847ull, 2315092222490707705ull,
@@ -51,14 +53,34 @@ constexpr std::uint64_t meadowGolden[] = {
     7364493285580767347ull,  9813079974151635243ull,  13028706465663847859ull,
     18198534311345766270ull, 1290066189693251099ull,  17844490471936195330ull,
     6065830062698745729ull,
-};
-#endif
+});
+
+// x86-64 Linux (CI's runner) differs in the low bits again. arm64 Linux matches
+// none of the three.
+constexpr auto linuxMeadowGolden = std::to_array<std::uint64_t>({
+    1151177960577254616ull,  13738730589382266549ull, 15197971795123286052ull,
+    2383273968527815807ull,  2428477535599350953ull,  12072876086045465495ull,
+    12574481065660919751ull, 13273426080093746865ull, 2784937808278090082ull,
+    12063927317693631913ull, 12430887636966795118ull, 3640544014187368960ull,
+    11061612428955070813ull, 5439260746834344065ull,  16289257021953624838ull,
+    10532436916426050197ull, 10350579454875552547ull, 14238544770294048238ull,
+    353906853697121291ull,   9491961147817210717ull,  7171937648199247643ull,
+    12022711299925237007ull, 2365108853393691589ull,  3183307993517245238ull,
+    14694277993699789234ull, 9164553411196599106ull,  14674563222518210054ull,
+    9300472995833050578ull,  5550271528308836203ull,  16661157769857622003ull,
+    3807964431777502747ull,  12774910309662990339ull, 2285899882437085956ull,
+    9282679620146109723ull,  5392606008903866686ull,  10959089563826635870ull,
+    2324174887429392242ull,  1276525791139328517ull,  3056490746189571217ull,
+    5678711752673766838ull,
+});
+
+constexpr auto& meadowGolden = Platform::isWindows() ? msvcMeadowGolden
+                               : Platform::isLinux() ? linuxMeadowGolden
+                                                     : otherMeadowGolden;
 
 std::uint64_t mixIn(std::uint64_t hash, float value)
 {
-    auto bits = std::uint32_t {};
-    std::memcpy(&bits, &value, 4);
-    return (hash ^ bits) * 1099511628211ull;
+    return (hash ^ std::bit_cast<std::uint32_t>(value)) * 1099511628211ull;
 }
 
 std::uint64_t levelHash(const Level& level)

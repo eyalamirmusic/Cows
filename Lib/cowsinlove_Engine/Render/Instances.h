@@ -2,6 +2,8 @@
 
 #include "Render/Common.h"
 
+#include <array>
+
 namespace Cows
 {
 struct Material final
@@ -83,6 +85,6 @@ struct SurfaceBatch final
             list.clear();
     }
 
-    Vector<SurfaceInstance> lists[shapeCount];
+    std::array<Vector<SurfaceInstance>, shapeCount> lists;
 };
 } // namespace Cows

@@ -33,7 +33,7 @@ struct Layout final
     Maths::Vec2 spot(const Region& region);
 
     template <std::size_t Count>
-    std::uint32_t pick(const std::uint32_t (&colors)[Count])
+    std::uint32_t pick(const std::array<std::uint32_t, Count>& colors)
     {
         return randomPick(random, colors);
     }
