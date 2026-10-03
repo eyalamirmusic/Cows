@@ -147,8 +147,9 @@ project, a Gradle project with a `Cows` module, to `build-android/AndroidStudio`
 JBR) does what Run does, for arm64-v8a and x86_64 (`EACP_ANDROID_ABIS`).
 `tools/android.sh sim [shot.png]` (`just sim-android`) builds, boots the `cows`
 emulator and runs it. The preset's toolchain, `CMake/AndroidToolchain.cmake`,
-finds the SDK ($ANDROID_HOME, else Studio's) and holds `COWS_NDK`, the one copy
-of the NDK version eacp pins in its `CMake/AndroidVersions.cmake`.
+builds with the NDK `-DCOWS_NDK=<version>` locks to, else the one
+`$ANDROID_NDK_HOME` names, else the newest in the SDK ($ANDROID_HOME, else
+Studio's), as eacp's own toolchain does.
 
 Use `$HOME`, not `~`: CMake does not expand `~`.
 

@@ -114,12 +114,14 @@ jobs:
       - name: Build
         run: cmake --build build-ios --config Debug --target Cows -- -sdk iphonesimulator
 
-  # The android preset's toolchain (CMake/AndroidToolchain.cmake) finds the NDK
-  # it pins under $ANDROID_HOME, which the runner sets; the runner's SDK just
-  # may not have that NDK yet.
+  # The android preset's toolchain (CMake/AndroidToolchain.cmake) builds with
+  # the NDK COWS_NDK names under $ANDROID_HOME, which the runner sets; the
+  # runner's SDK just may not have that NDK yet.
   build-android:
     name: Android arm64-v8a
     runs-on: ubuntu-latest
+    env:
+      NDK_VERSION: 30.0.16248370
 
     steps:
       - uses: actions/checkout@v6
@@ -137,16 +139,14 @@ jobs:
           path: .cpm
           key: cpm-Android-${{ hashFiles('CMake/Find*.cmake') }}-${{ steps.cpm.outputs.key }}
 
-      - name: Install Ninja and the pinned NDK
+      - name: Install Ninja and the NDK
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build
-          ndk=$(sed -n 's/^set(COWS_NDK \(.*\))$/\1/p' CMake/AndroidToolchain.cmake)
-          echo "NDK $ndk"
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ndk"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION"
 
       - name: Configure
-        run: cmake --preset android -DCMAKE_BUILD_TYPE=Debug -DEACP_CI_BUILD=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DEACP_ANDROID_STUDIO=OFF
+        run: cmake --preset android "-DCOWS_NDK=$NDK_VERSION" -DCMAKE_BUILD_TYPE=Debug -DEACP_CI_BUILD=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DEACP_ANDROID_STUDIO=OFF
 
       - name: Build
         run: cmake --build --preset android
