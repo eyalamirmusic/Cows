@@ -1,0 +1,152 @@
+name: Build
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CPM_SOURCE_CACHE: ${{ github.workspace }}/.cpm
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            cmake-flags: ''
+          - name: Windows MSVC
+            os: windows-latest
+            cmake-flags: ''
+          - name: Linux Clang
+            os: ubuntu-latest
+            cmake-flags: '-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++'
+
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    env:
+      EACP_HEADLESS: ${{ startsWith(matrix.os, 'ubuntu') && '1' || '' }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # eacp and NanoTest are fetched by branch, and CPM never refetches a
+      # cached branch, so the key carries the commits those branches are at.
+      - name: CPM cache key
+        id: cpm
+        shell: bash
+        run: |
+          tag=$(sed -n 's/^set(COWS_EACP_TAG "\(.*\)" CACHE.*/\1/p' CMake/Findeacp.cmake)
+          eacp=$(git ls-remote https://github.com/eyalamirmusic/eacp "$tag" | cut -c1-12)
+          nanotest=$(git ls-remote https://github.com/eyalamirmusic/NanoTest main | cut -c1-12)
+          echo "key=$eacp-$nanotest" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: .cpm
+          key: cpm-${{ runner.os }}-${{ hashFiles('CMake/Find*.cmake') }}-${{ steps.cpm.outputs.key }}
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libcurl4-openssl-dev clang \
+            libwayland-dev wayland-protocols libwayland-bin libxkbcommon-dev \
+            libdecor-0-dev pkg-config \
+            libxcb1-dev libxcb-xkb-dev libxkbcommon-x11-dev \
+            libxcb-randr0-dev libxcb-xfixes0-dev libxcb-cursor-dev \
+            libxcb-icccm4-dev libxcb-xinput-dev libxcb-xtest0-dev \
+            libfreetype-dev libharfbuzz-dev libfontconfig-dev \
+            fonts-dejavu-core libasound2-dev
+
+      - name: Set up MSVC environment
+        if: runner.os == 'Windows'
+        uses: egor-tensin/vs-shell@54e4148eac794e4580591c2e0b7750f14b7891fc # v2
+        with:
+          arch: x64
+
+      - name: Configure
+        run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug -DEACP_CI_BUILD=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF ${{ matrix.cmake-flags }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -j 4
+
+  build-ios:
+    name: iOS Simulator
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: CPM cache key
+        id: cpm
+        run: |
+          tag=$(sed -n 's/^set(COWS_EACP_TAG "\(.*\)" CACHE.*/\1/p' CMake/Findeacp.cmake)
+          eacp=$(git ls-remote https://github.com/eyalamirmusic/eacp "$tag" | cut -c1-12)
+          nanotest=$(git ls-remote https://github.com/eyalamirmusic/NanoTest main | cut -c1-12)
+          echo "key=$eacp-$nanotest" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: .cpm
+          key: cpm-iOS-${{ hashFiles('CMake/Find*.cmake') }}-${{ steps.cpm.outputs.key }}
+
+      - name: Configure
+        run: >
+          cmake -G Xcode -B build-ios
+          -DCMAKE_SYSTEM_NAME=iOS
+          -DCMAKE_OSX_SYSROOT=iphonesimulator
+          -DCMAKE_OSX_ARCHITECTURES=arm64
+          -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO
+          -DEACP_CI_BUILD=ON
+
+      - name: Build
+        run: cmake --build build-ios --config Debug --target Cows -- -sdk iphonesimulator
+
+  # The android preset's toolchain (CMake/AndroidToolchain.cmake) finds the NDK
+  # it pins under $ANDROID_HOME, which the runner sets; the runner's SDK just
+  # may not have that NDK yet.
+  build-android:
+    name: Android arm64-v8a
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: CPM cache key
+        id: cpm
+        run: |
+          tag=$(sed -n 's/^set(COWS_EACP_TAG "\(.*\)" CACHE.*/\1/p' CMake/Findeacp.cmake)
+          eacp=$(git ls-remote https://github.com/eyalamirmusic/eacp "$tag" | cut -c1-12)
+          nanotest=$(git ls-remote https://github.com/eyalamirmusic/NanoTest main | cut -c1-12)
+          echo "key=$eacp-$nanotest" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: .cpm
+          key: cpm-Android-${{ hashFiles('CMake/Find*.cmake') }}-${{ steps.cpm.outputs.key }}
+
+      - name: Install Ninja and the pinned NDK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+          ndk=$(sed -n 's/^set(COWS_NDK \(.*\))$/\1/p' CMake/AndroidToolchain.cmake)
+          echo "NDK $ndk"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ndk"
+
+      - name: Configure
+        run: cmake --preset android -DCMAKE_BUILD_TYPE=Debug -DEACP_CI_BUILD=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DEACP_ANDROID_STUDIO=OFF
+
+      - name: Build
+        run: cmake --build --preset android
