@@ -21,7 +21,7 @@ if /i "%CONFIG%"=="Debug" (
     set ARCH=x64
 )
 if not "%COWS_ARCH%"=="" set ARCH=%COWS_ARCH%
-if /i "%CONFIG%"=="Release" if /i not "%ARCH%"=="x64" set BUILD=%ROOT%build-windows-%ARCH%
+if /i "%CONFIG%"=="Release" if /i not "%ARCH%"=="x64" set BUILD=%ROOT%\build-windows-%ARCH%
 
 set VCARCH=%ARCH%
 if /i not "%HOST%"=="%ARCH%" set VCARCH=%HOST%_%ARCH%
