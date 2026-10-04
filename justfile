@@ -53,8 +53,8 @@ release-macos:
     tools/release-macos.sh
 
 # App Store Connect credentials, from the "Cows In Love" vault of the personal
-# 1Password account through Deploy/asc.env (never the Tamber service account).
-asc := "env -u OP_SERVICE_ACCOUNT_TOKEN op run --account my.1password.com --env-file Deploy/asc.env --"
+# 1Password account through Deploy/asc.env (tools/asc-run.sh).
+asc := "tools/asc-run.sh"
 
 # App Store archive and export (--upload sends it to App Store Connect), signed
 # and uploaded with the API key from 1Password.

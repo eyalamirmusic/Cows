@@ -4,7 +4,7 @@
 Usage: just asc <command> [--platform ios|macos]
        [--write] [flags]
 
-Commands: check, info, version, screenshots, build, submit, all.
+Commands: check, info, version, screenshots, build, price, submit, all.
 Without --write every POST/PATCH/DELETE and upload is printed, not sent.
 Credentials come from COWS_ASC_KEY_ID, COWS_ASC_ISSUER_ID and COWS_ASC_KEY
 (path to the .p8) or COWS_ASC_KEY_P8 (its contents): `just asc` fills them
@@ -608,15 +608,62 @@ def cmd_submit(args, app):
               f"{state['attributes']['state']}")
 
 
+def cmd_price(args, app):
+    schedule = api("GET", f"/v1/apps/{app['id']}/appPriceSchedule",
+                   missing_ok=True).get("data")
+    prices = schedule and api(
+        "GET", f"/v1/appPriceSchedules/{schedule['id']}/manualPrices",
+        missing_ok=True).get("data")
+    if prices:
+        print(f"price schedule {schedule['id']}: {len(prices)} manual price(s)")
+    else:
+        points = get_all(f"/v1/apps/{app['id']}/appPricePoints",
+                         {"filter[territory]": "USA", "limit": 200})
+        free = [p for p in points
+                if float(p["attributes"].get("customerPrice") or 0) == 0]
+        if not free:
+            fail("no USA price point with customerPrice 0")
+        print(f"price schedule: creating, free (price point {free[0]['id']})")
+        api("POST", "/v1/appPriceSchedules", {
+            "data": {"type": "appPriceSchedules", "relationships": {
+                "app": resource("apps", app["id"]),
+                "baseTerritory": resource("territories", "USA"),
+                "manualPrices": {"data": [{"type": "appPrices", "id": "${free}"}]}}},
+            "included": [{"type": "appPrices", "id": "${free}",
+                          "attributes": {"startDate": None},
+                          "relationships": {"appPricePoint": resource(
+                              "appPricePoints", free[0]["id"])}}]})
+    availability = api("GET", f"/v1/apps/{app['id']}/appAvailabilityV2",
+                       missing_ok=True).get("data")
+    if availability:
+        print(f"availability {availability['id']}: exists")
+        return
+    territories = [t["id"] for t in get_all("/v1/territories", {"limit": 200})]
+    print(f"availability: creating, all {len(territories)} territories")
+    api("POST", "/v2/appAvailabilities", {
+        "data": {"type": "appAvailabilities",
+                 "attributes": {"availableInNewTerritories": True},
+                 "relationships": {
+                     "app": resource("apps", app["id"]),
+                     "territoryAvailabilities": {"data": [
+                         {"type": "territoryAvailabilities", "id": f"${{{t}}}"}
+                         for t in territories]}}},
+        "included": [{"type": "territoryAvailabilities", "id": f"${{{t}}}",
+                      "attributes": {"available": True},
+                      "relationships": {"territory": resource("territories", t)}}
+                     for t in territories]})
+
+
 def cmd_all(args, app):
-    for step in (cmd_info, cmd_version, cmd_screenshots, cmd_build, cmd_submit):
+    for step in (cmd_info, cmd_version, cmd_screenshots, cmd_build, cmd_price,
+                 cmd_submit):
         print(f"== {step.__name__[4:]}")
         step(args, app)
 
 
 COMMANDS = {"check": cmd_check, "info": cmd_info, "version": cmd_version,
             "screenshots": cmd_screenshots, "build": cmd_build,
-            "submit": cmd_submit, "all": cmd_all}
+            "price": cmd_price, "submit": cmd_submit, "all": cmd_all}
 
 
 def main():

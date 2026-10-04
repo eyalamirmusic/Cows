@@ -92,7 +92,7 @@ One-time, on the Apple account:
    the fields `team id`, `key id`, `issuer id`, the `.p8` attached as
    `private key`, and `copyright`, `review name`, `review phone`,
    `review email` for the listing. `Deploy/asc.env` maps them to the
-   environment for `op run`, which the justfile's `asc` prefix runs; automatic
+   environment for `op run`, which `tools/asc-run.sh` (the justfile's `asc` prefix) runs; automatic
    signing then creates the distribution certificate and profile on first
    export with no Xcode login. No contact details or secrets go in the repo.
 3. The listing is filled from `Deploy/Apple-iOS/Metadata/app-store.md` and
