@@ -4,6 +4,7 @@
 #include "Game.h"
 #include "Stages.h"
 #include "Input.h"
+#include "Pad.h"
 #include "Terrain/Grass.h"
 #include "Terrain/Ground.h"
 #include "Render/Lighting.h"
@@ -39,6 +40,8 @@ struct CowsView final : GPUView
     void keyUp(const Graphics::KeyEvent& event) override;
 
     void control(const ControlEvent& event);
+    void readGameInput(float delta);
+    void usePad(const PadControls& pad, float delta);
     void returnKeyFocus();
     void restart();
     void setTitle(std::string_view text);
@@ -115,8 +118,11 @@ struct CowsView final : GPUView
     // Drawn last in the scene's pass: the footer and the touch controls.
     std::function<void(Hud&)> drawHud = [](Hud&) {};
     std::function<void()> onStateChanged = [] {};
+    Graphics::GameInput* gameInput = nullptr;
 
     float elapsed = 0.f;
+    float lookHold = 0.f;
+    bool padRestarted = false;
     bool frozen = false;
     bool touchHints = false;
     bool framedPortrait = false;

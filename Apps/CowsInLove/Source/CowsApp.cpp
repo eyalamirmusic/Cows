@@ -20,6 +20,7 @@ CowsApp::CowsApp()
     : window {root, windowOptions()}
 {
     root.addSubview(scene);
+    scene.gameInput = &gameInput;
 
     root.onKeyDown = [this](const Graphics::KeyEvent& event)
     { scene.keyDown(event); };

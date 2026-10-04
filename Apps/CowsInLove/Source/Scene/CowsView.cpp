@@ -21,6 +21,10 @@ namespace
 {
 constexpr auto msaaSamples = 4;
 constexpr auto orbitSpeed = 0.006f;
+constexpr auto padYawRate = 2.6f;
+constexpr auto padPitchRate = 1.5f;
+constexpr auto padZoomRate = 1.5f;
+constexpr auto lookHoldTime = 0.5f;
 
 constexpr auto searchHeight = 2.2f;
 constexpr auto startYaw = -halfPi;
@@ -217,6 +221,8 @@ void CowsView::update(Threads::FrameTime time)
 
     auto delta = frozen ? 0.f : (float) time.delta;
     elapsed += delta;
+    lookHold = std::max(0.f, lookHold - delta);
+    readGameInput(delta);
 
     auto wasSearching = game.state == Game::State::Searching;
     auto wasGrounded = game.grounded;
@@ -224,7 +230,7 @@ void CowsView::update(Threads::FrameTime time)
     game.update(delta,
                 input.walkAhead(),
                 input.walkTurn(),
-                input.jumping || input.jumpPending);
+                input.jumping || input.padJumping || input.jumpPending);
     if (wasGrounded)
         input.jumpPending = false;
 
@@ -255,7 +261,9 @@ void CowsView::steerCamera(float delta)
         camera.swayYaw = 0.f;
         camera.swayPitch = 0.f;
 
-        if (input.walkAhead() != 0.f || input.walkTurn() != 0.f)
+        auto walking = input.walkAhead() != 0.f || input.walkTurn() != 0.f;
+
+        if (walking && lookHold <= 0.f)
             camera.turnToward(game.playerHeading + startYaw,
                               std::min(1.f, delta * chaseRate));
 
@@ -326,6 +334,50 @@ void CowsView::control(const ControlEvent& event)
             camera.zoom(event.x);
             break;
     }
+}
+
+void CowsView::readGameInput(float delta)
+{
+    if (gameInput == nullptr)
+        return;
+
+    usePad(readPad(gameInput->snapshot()), delta);
+}
+
+void CowsView::usePad(const PadControls& pad, float delta)
+{
+    if (!pad.jumping)
+        padRestarted = false;
+
+    if (pad.jumpPressed)
+    {
+        if (game.state == Game::State::Found)
+        {
+            padRestarted = true;
+            control({ControlEvent::Kind::Restart});
+        }
+        else
+            control({ControlEvent::Kind::Jump});
+    }
+
+    if (pad.mooPressed)
+        control({ControlEvent::Kind::Moo});
+
+    if (pad.againPressed)
+        control({ControlEvent::Kind::Restart});
+
+    if (pad.recenterPressed && game.state == Game::State::Searching)
+        camera.turnToward(game.playerHeading + startYaw, 1.f);
+
+    if (pad.lookX != 0.f || pad.lookY != 0.f)
+    {
+        camera.orbit(pad.lookX * padYawRate * delta,
+                     -pad.lookY * padPitchRate * delta);
+        lookHold = lookHoldTime;
+    }
+
+    camera.zoom(pad.zoom * padZoomRate * delta);
+    input.setPad(pad.ahead, pad.turn, pad.jumping && !padRestarted);
 }
 
 void CowsView::callOut()
@@ -494,6 +546,7 @@ void CowsView::returnKeyFocus()
 void CowsView::mouseDragged(const Graphics::MouseEvent& event)
 {
     camera.orbit(event.delta.x * orbitSpeed, event.delta.y * orbitSpeed);
+    lookHold = lookHoldTime;
 }
 
 void CowsView::mouseWheel(const Graphics::MouseEvent& event)

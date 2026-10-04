@@ -15,5 +15,6 @@ struct CowsApp final
     Footer footer;
     TouchControls touchControls;
     Graphics::Window window;
+    Graphics::GameInput gameInput {window};
 };
 } // namespace Cows
