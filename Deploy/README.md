@@ -142,7 +142,7 @@ One-time, on the Steamworks account:
 1. Create the app; add a Windows depot and a macOS depot (Steamworks > SteamPipe
    > Depots) and note their ids.
 2. Installation > General: launch options from `Deploy/Steam/Store/copy.md`
-   (Windows `Cows.exe`, macOS `Cows.app`); Client Icon `client_icon.ico`.
+   (Windows `Cows.exe`, macOS `Cows In Love.app`); Client Icon `client_icon.ico`.
 3. Store page and library art from `Deploy/Steam/Store/` (copy.md lists every
    slot and size) and `Deploy/Steam/Screenshots/`.
 4. On the Mac that notarizes: a Developer ID Application certificate in a

@@ -21,12 +21,12 @@ branch="${COWS_STEAM_BRANCH:-}"
 content="$root/Deploy/Steam/content"
 output="$root/Deploy/Steam/output"
 
-for depot in windows/Cows.exe macos/Cows.app; do
+for depot in windows/Cows.exe "macos/Cows In Love.app"; do
     [[ -e "$content/$depot" ]] || { echo "missing $content/$depot" >&2; exit 1; }
 done
 
-codesign --verify --strict "$content/macos/Cows.app"
-xcrun stapler validate "$content/macos/Cows.app" \
+codesign --verify --strict "$content/macos/Cows In Love.app"
+xcrun stapler validate "$content/macos/Cows In Love.app" \
     || { echo "the macOS app is not notarized: run tools/release-macos.sh" >&2; exit 1; }
 
 version="$(sed -n 's/^project(Cows VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)"

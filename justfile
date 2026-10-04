@@ -6,7 +6,7 @@ device := "D731347C-AC33-53DD-814A-1B1E4ED47AC7"
 macos:
     [[ -f build/CMakeCache.txt ]] || cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug ${EACP:+-DCPM_eacp_SOURCE=$EACP}
     cmake --build build
-    open build/Apps/CowsInLove/Cows.app
+    open "build/Apps/CowsInLove/Cows In Love.app"
 
 # Build and run on the "Cows iPhone" simulator, optionally saving a screenshot.
 sim-ios shot="":

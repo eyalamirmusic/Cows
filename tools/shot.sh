@@ -13,7 +13,7 @@ if [[ -z "${SHOT_NOBUILD:-}" ]]; then
     cmake --build build >&2 || { echo "build failed" >&2; exit 1; }
 fi
 
-bin="build/Apps/CowsInLove/Cows.app/Contents/MacOS/Cows"
+bin="build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/Cows In Love"
 [[ -x "$bin" ]] || { echo "no binary at $bin" >&2; exit 1; }
 
 env_args=()
@@ -34,7 +34,7 @@ let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopEleme
 let wins = list.filter {
     ($0[kCGWindowLayer as String] as? Int) == 0 &&
     (($0[kCGWindowOwnerPID as String] as? Int) == pid ||
-     ($0[kCGWindowOwnerName as String] as? String) == "Cows")
+     ($0[kCGWindowOwnerName as String] as? String) == "Cows In Love")
 }
 if let w = wins.first, let n = w[kCGWindowNumber as String] as? Int { print(n) }
 SWIFT

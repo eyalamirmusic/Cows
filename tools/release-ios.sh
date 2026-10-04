@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: COWS_TEAM=<team id> [COWS_BUILD_NUMBER=n] [COWS_BUNDLE_ID=id]
+# Usage: COWS_TEAM=<team id> [COWS_BUILD_NUMBER=n, else Apps/CowsInLove/CMakeLists.txt] [COWS_BUNDLE_ID=id]
 #        tools/release-ios.sh [--upload]
 # Builds a Release archive for the App Store and exports the .ipa into
 # Deploy/Apple-iOS/out/. --upload sends it straight to App Store Connect.
@@ -20,7 +20,7 @@ cd "$root"
 export PATH="/usr/bin:$PATH"
 
 team="${COWS_TEAM:?set COWS_TEAM to the Apple Developer team id (or none)}"
-build_number="${COWS_BUILD_NUMBER:-1}"
+build_number="${COWS_BUILD_NUMBER:-}"
 bundle_id="${COWS_BUNDLE_ID:-com.cowsinlove.play}"
 out=Deploy/Apple-iOS/out
 build=build-ios-appstore
@@ -49,7 +49,7 @@ cmake -G Xcode -B "$build" -DCMAKE_SYSTEM_NAME=iOS \
     -DCMAKE_XCODE_GENERATE_SCHEME=ON \
     -DCMAKE_XCODE_ATTRIBUTE_SKIP_INSTALL=YES \
     -DCOWS_BUILD_TESTS=OFF \
-    -DCOWS_BUILD_NUMBER="$build_number" -DCOWS_BUNDLE_ID="$bundle_id" \
+    ${build_number:+-DCOWS_BUILD_NUMBER="$build_number"} -DCOWS_BUNDLE_ID="$bundle_id" \
     "${signing[@]}"
 
 rm -rf "$archive"

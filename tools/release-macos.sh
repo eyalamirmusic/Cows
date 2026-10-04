@@ -20,7 +20,7 @@ notary="${COWS_NOTARY_PROFILE:?set COWS_NOTARY_PROFILE to a notarytool keychain 
 bundle_id="${COWS_BUNDLE_ID:-com.cowsinlove.play}"
 build=build-macos-release
 depot=Deploy/Steam/content/macos
-app="$build/Apps/CowsInLove/Cows.app"
+app="$build/Apps/CowsInLove/Cows In Love.app"
 
 cmake -G Ninja -B "$build" -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCOWS_BUILD_TESTS=OFF \
@@ -28,7 +28,7 @@ cmake -G Ninja -B "$build" -DCMAKE_BUILD_TYPE=Release \
     ${EACP:+-DCPM_eacp_SOURCE=$EACP}
 cmake --build "$build" --target Cows
 
-lipo -info "$app/Contents/MacOS/Cows" >&2
+lipo -info "$app/Contents/MacOS/Cows In Love" >&2
 
 codesign --force --timestamp --options runtime \
     ${COWS_SIGN_KEYCHAIN:+--keychain "$COWS_SIGN_KEYCHAIN"} \
@@ -47,5 +47,5 @@ fi
 
 rm -rf "$depot"
 mkdir -p "$depot"
-ditto "$app" "$depot/Cows.app"
-echo "$depot/Cows.app" >&2
+ditto "$app" "$depot/Cows In Love.app"
+echo "$depot/Cows In Love.app" >&2

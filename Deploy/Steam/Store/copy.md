@@ -76,7 +76,7 @@ Based on the "cows in love" terminal animation (ssh ssh.cowsinlove.com).
 | OS | Executable | Arguments |
 | --- | --- | --- |
 | Windows | `Cows.exe` | none |
-| macOS | `Cows.app` | none |
+| macOS | `Cows In Love.app` | none |
 
 No installscript and no redistributables: the Windows exe links the C
 runtime statically and only needs DLLs that ship with Windows 10 (Direct3D 12,

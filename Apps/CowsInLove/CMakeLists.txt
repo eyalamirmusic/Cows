@@ -2,7 +2,7 @@ set(COWS_BUNDLE_ID "com.cowsinlove.play" CACHE STRING
         "Bundle identifier: set to the one registered on the publishing account")
 set(COWS_COPYRIGHT "© 2026 Cows In Love" CACHE STRING
         "The copyright line shown in Finder and the About box")
-set(COWS_BUILD_NUMBER "3" CACHE STRING
+set(COWS_BUILD_NUMBER "4" CACHE STRING
         "Build number (CFBundleVersion, Play versionCode): raise it for every upload")
 set(COWS_MAC_ENTITLEMENTS "" CACHE FILEPATH
         "Entitlements for the Mac App Store build (tools/release-mas.sh)")
@@ -56,6 +56,12 @@ set_target_properties(Cows PROPERTIES
         XCODE_ATTRIBUTE_SKIP_INSTALL NO
         XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${COWS_MAC_ENTITLEMENTS}")
+
+# Finder and Launchpad show a Mac app's file name, so the bundle (and the
+# executable in it) carries the display name; iOS never shows it.
+if (APPLE AND NOT IOS)
+    set_target_properties(Cows PROPERTIES OUTPUT_NAME "${COWS_DISPLAY_NAME}")
+endif ()
 
 eacp_set_gui_subsystem(Cows)
 set_default_target_setting(Cows)

@@ -125,7 +125,7 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
 
 `COWS_TIME=<seconds>` starts the clock there and `COWS_FREEZE=1` stops it, for
 screenshots; `COWS_SEED=<n>` fixes the level, `COWS_STAGE=<n>` starts on
-stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her (run the binary in `build/Apps/CowsInLove/Cows.app/Contents/MacOS/` directly).
+stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).
 
 ## Build Commands
 
@@ -135,7 +135,7 @@ To build against the local checkout instead (usually ahead of `develop`):
 ```bash
 cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug -DCPM_eacp_SOURCE=$HOME/Code/eacp
 cmake --build build
-open build/Apps/CowsInLove/Cows.app
+open "build/Apps/CowsInLove/Cows In Love.app"
 ```
 
 Android: `cmake --preset android` (`CMakePresets.json`) configures

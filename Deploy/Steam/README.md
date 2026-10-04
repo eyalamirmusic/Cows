@@ -1,7 +1,7 @@
 # Steam
 
 One app, two depots: Windows (`content/windows/Cows.exe`) and macOS
-(`content/macos/Cows.app`). `tools/release-windows.sh` and
+(`content/macos/Cows In Love.app`). `tools/release-windows.sh` and
 `tools/release-macos.sh` stage them; `tools/steam-upload.sh` fills in the
 `scripts/*.vdf` templates and runs steamcmd. The whole runbook is in
 `Deploy/README.md`; store text, system requirements, launch options and the
