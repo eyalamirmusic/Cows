@@ -9,7 +9,7 @@ page). Lines marked **FILL IN** need a value from the publishing account.
 | --- | --- |
 | Name (30) | Cows In Love |
 | Subtitle (30) | Find her. Moo. Kiss. |
-| Bundle ID | com.cowsinlove.cows (or whatever `COWS_BUNDLE_ID` was registered as) |
+| Bundle ID | com.cowsinlove.play (or whatever `COWS_BUNDLE_ID` was registered as) |
 | SKU | COWSINLOVE-IOS-1 |
 | Primary language | English (U.S.) |
 | Primary category | Games |

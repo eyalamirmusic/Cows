@@ -17,7 +17,7 @@ cd "$root"
 
 identity="${COWS_SIGN_IDENTITY:?set COWS_SIGN_IDENTITY to the Developer ID Application identity (security find-identity -v -p codesigning)}"
 notary="${COWS_NOTARY_PROFILE:?set COWS_NOTARY_PROFILE to a notarytool keychain profile (or skip)}"
-bundle_id="${COWS_BUNDLE_ID:-com.cowsinlove.cows}"
+bundle_id="${COWS_BUNDLE_ID:-com.cowsinlove.play}"
 build=build-macos-release
 depot=Deploy/Steam/content/macos
 app="$build/Apps/CowsInLove/Cows.app"

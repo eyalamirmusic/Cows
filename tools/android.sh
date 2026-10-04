@@ -16,7 +16,7 @@ cd "$root"
 
 sdk="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 adb="$sdk/platform-tools/adb"
-bundle_id="${COWS_BUNDLE_ID:-com.cowsinlove.cows}"
+bundle_id="${COWS_BUNDLE_ID:-com.cowsinlove.play}"
 config="${COWS_CONFIG:-Debug}"
 export JAVA_HOME="${JAVA_HOME:-/Applications/Android Studio.app/Contents/jbr/Contents/Home}"
 

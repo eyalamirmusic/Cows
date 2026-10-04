@@ -54,7 +54,7 @@ takes an app's own res directory again, so Android uses the desktop PNG).
 
 | Variable | Used by | Value |
 | --- | --- | --- |
-| `COWS_BUNDLE_ID` | CMake (macOS + iOS), release scripts | the bundle id registered on the Apple account; default `com.cowsinlove.cows` |
+| `COWS_BUNDLE_ID` | CMake (macOS + iOS), release scripts | the bundle id registered on the Apple account; default `com.cowsinlove.play` |
 | `COWS_COPYRIGHT` | CMake (Info.plist) | e.g. `© 2026 <legal name>`; default `© 2026 Cows In Love` |
 | `COWS_TEAM` | tools/release-ios.sh | Apple Developer team id (10 chars) |
 | `COWS_SIGN_IDENTITY` | tools/release-macos.sh | `Developer ID Application: <Name> (<TEAM>)` |
@@ -166,7 +166,7 @@ uploaded without going live; set it live on the default branch in Steamworks
 One-time, on the Play Console account:
 1. Create the app (Game, the name and default language from
    `Deploy/Google-Play/Metadata/store-listing.md`). The package name is fixed
-   by the first upload: `COWS_BUNDLE_ID` (default `com.cowsinlove.cows`).
+   by the first upload: `COWS_BUNDLE_ID` (default `com.cowsinlove.play`).
 2. Make the upload key and keep it (and its password) outside the repo:
    ```bash
    keytool -genkeypair -v -keystore ~/keys/cows-upload.jks -alias upload \

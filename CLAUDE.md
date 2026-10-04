@@ -97,7 +97,7 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `Title/TitleFont` — the tube-font title; `Title/TitleShader` — its shader
 - `Apps/CowsInLove/Source/Main.cpp` — runs `CowsApp`. On Android eacp sets the
   COWS_* settings before `main()` in a debug build, from the launch intent's
-  `--es` extras and the `debug.com.cowsinlove.cows.env` property
+  `--es` extras and the `debug.com.cowsinlove.play.env` property
 - `Apps/CowsInLove/Source/Templates` — the level templates (`meadowTemplate`,
   `meadowRavineTemplate`: the segment lists and lengths)
 - `Apps/CowsInLove/Source/Stages` — the content: the ordered level templates

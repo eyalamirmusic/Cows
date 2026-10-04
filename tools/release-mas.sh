@@ -13,7 +13,7 @@ cd "$root"
 
 team="${COWS_TEAM:?set COWS_TEAM to the Apple Developer team id (or none)}"
 build_number="${COWS_BUILD_NUMBER:-1}"
-bundle_id="${COWS_BUNDLE_ID:-com.cowsinlove.cows}"
+bundle_id="${COWS_BUNDLE_ID:-com.cowsinlove.play}"
 out=Deploy/Apple-macOS/out
 build=build-mas
 archive="$out/CowsInLove.xcarchive"

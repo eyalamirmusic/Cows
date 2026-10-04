@@ -11,7 +11,7 @@ section). Lines marked **FILL IN** need a value from the publishing account.
 | Default language | English (United States) – en-US |
 | App or game | Game |
 | Free or paid | **FILL IN** (Free cannot later become paid) |
-| Package name | com.cowsinlove.cows (fixed by the first upload: `COWS_BUNDLE_ID`) |
+| Package name | com.cowsinlove.play (fixed by the first upload: `COWS_BUNDLE_ID`) |
 
 ## Main store listing
 

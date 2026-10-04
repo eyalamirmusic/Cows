@@ -1,4 +1,4 @@
-set(COWS_BUNDLE_ID "com.cowsinlove.cows" CACHE STRING
+set(COWS_BUNDLE_ID "com.cowsinlove.play" CACHE STRING
         "Bundle identifier: set to the one registered on the publishing account")
 set(COWS_COPYRIGHT "© 2026 Cows In Love" CACHE STRING
         "The copyright line shown in Finder and the About box")
