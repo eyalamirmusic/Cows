@@ -1,24 +1,40 @@
 @echo off
-rem Usage: [set COWS_EACP=<eacp checkout>] tools\build-windows.bat [Release^|Debug]
-rem Configures and builds build-windows\ (Release) or build-windows-debug\ (Debug)
-rem with the newest Visual Studio's x64 tools and Ninja. COWS_EACP is optional
-rem (CPM fetches eacp otherwise).
+rem Usage: [set COWS_EACP=<eacp checkout>] [set COWS_ARCH=arm64^|x64] tools\build-windows.bat [Release^|Debug]
+rem Release: the x64 exe the stores ship, in build-windows\ (static C runtime,
+rem no tests). Debug: build\, for this machine's own architecture (arm64 or x64;
+rem COWS_ARCH overrides), with the tests. Both configure with the newest Visual
+rem Studio's tools (native on Arm machines, cross-compiling x64 there) and Ninja.
+rem COWS_EACP is optional (CPM fetches eacp otherwise).
 setlocal
 set CONFIG=%~1
 if "%CONFIG%"=="" set CONFIG=Release
 set ROOT=%~dp0..
-set BUILD=%ROOT%\build-windows
-if /i "%CONFIG%"=="Debug" set BUILD=%ROOT%\build-windows-debug
 
-if not defined VSCMD_VER (
-    for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do set VSPATH=%%i
+set HOST=x64
+if not "%ProgramFiles(Arm)%"=="" set HOST=arm64
+
+if /i "%CONFIG%"=="Debug" (
+    set BUILD=%ROOT%\build
+    set ARCH=%HOST%
+) else (
+    set BUILD=%ROOT%\build-windows
+    set ARCH=x64
 )
-if not defined VSCMD_VER (
-    call "%VSPATH%\VC\Auxiliary\Build\vcvars64.bat" >nul || exit /b 1
+if not "%COWS_ARCH%"=="" set ARCH=%COWS_ARCH%
+if /i "%CONFIG%"=="Release" if /i not "%ARCH%"=="x64" set BUILD=%ROOT%build-windows-%ARCH%
+
+set VCARCH=%ARCH%
+if /i not "%HOST%"=="%ARCH%" set VCARCH=%HOST%_%ARCH%
+
+for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do set VSPATH=%%i
+if not defined VSPATH echo vswhere found no Visual Studio & exit /b 1
+call "%VSPATH%\VC\Auxiliary\Build\vcvarsall.bat" %VCARCH% >nul 2>nul || (
+    echo vcvarsall.bat %VCARCH% failed: are the %ARCH% build tools installed?
+    exit /b 1
 )
 
 set EACP=
-if defined COWS_EACP set EACP=-DCPM_eacp_SOURCE=%COWS_EACP%
+if not "%COWS_EACP%"=="" set EACP=-DCPM_eacp_SOURCE=%COWS_EACP%
 
 rem Release links the C runtime statically, so the exe needs no VC++ redist.
 set CRT=

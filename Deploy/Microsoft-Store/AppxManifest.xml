@@ -12,7 +12,7 @@
     Name="@IDENTITY_NAME@"
     Publisher="@PUBLISHER@"
     Version="@VERSION@"
-    ProcessorArchitecture="x64" />
+    ProcessorArchitecture="@ARCH@" />
 
   <Properties>
     <DisplayName>Cows In Love</DisplayName>

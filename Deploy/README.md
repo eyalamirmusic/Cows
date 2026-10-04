@@ -226,9 +226,10 @@ $env:COWS_MSIX_PUBLISHER = '<Package/Identity/Publisher>'
 $env:COWS_MSIX_PUBLISHER_NAME = '<PublisherDisplayName>'
 powershell -ExecutionPolicy Bypass -File tools\release-msix.ps1
 ```
-It builds the Release exe if needed, lays out the package, makes
-`resources.pri` and packs `Deploy\Microsoft-Store\out\CowsInLove-<version>.0-x64.msix`.
-Upload that to the submission's Packages page: Partner Center signs it.
+For x64 and arm64 (`-Arch x64` for one), it builds the Release exe if needed
+(`COWS_ARCH` on `build-windows.bat`), lays out the package, makes
+`resources.pri` and packs `Deploy\Microsoft-Store\out\CowsInLove-<version>.0-<arch>.msix`.
+Upload both to the submission's Packages page: Partner Center signs them.
 `-Certificate <pfx> -Password <pw>` signs it locally, only for sideload
 testing (the certificate subject must equal the publisher).
 

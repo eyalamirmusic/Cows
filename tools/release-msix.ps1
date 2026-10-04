@@ -2,15 +2,17 @@
 #   $env:COWS_MSIX_IDENTITY  = '<Package/Identity/Name from Partner Center>'
 #   $env:COWS_MSIX_PUBLISHER = '<Package/Identity/Publisher, e.g. CN=...>'
 #   $env:COWS_MSIX_PUBLISHER_NAME = '<Package/Properties/PublisherDisplayName>'
-#   powershell -ExecutionPolicy Bypass -File tools\release-msix.ps1 [-Certificate cert.pfx -Password pw]
+#   powershell -ExecutionPolicy Bypass -File tools\release-msix.ps1 [-Arch x64,arm64] [-Certificate cert.pfx -Password pw]
 #
-# Builds the Release exe if it is not built yet (tools\build-windows.bat),
-# lays out the package (exe, AppxManifest.xml filled in, Assets) and packs
-# Deploy\Microsoft-Store\out\CowsInLove-<version>-x64.msix with makeappx.
-# Upload that .msix to Partner Center, which signs it for the Store. A
-# certificate is only for sideloading a test build; its subject must equal
-# COWS_MSIX_PUBLISHER.
+# For each architecture (both by default: the Store submission ships x64 and
+# arm64), builds the Release exe if it is not built yet (tools\build-windows.bat
+# with COWS_ARCH), lays out the package (exe, AppxManifest.xml filled in,
+# Assets) and packs Deploy\Microsoft-Store\out\CowsInLove-<version>-<arch>.msix
+# with makeappx. Upload those .msix to Partner Center, which signs them for the
+# Store. A certificate is only for sideloading a test build; its subject must
+# equal COWS_MSIX_PUBLISHER.
 param(
+    [ValidateSet('x64', 'arm64')] [string[]]$Arch = @('x64', 'arm64'),
     [string]$Certificate = '',
     [string]$Password = ''
 )
@@ -32,12 +34,6 @@ $publisherName = Require 'COWS_MSIX_PUBLISHER_NAME'
 $project = Get-Content CMakeLists.txt | Select-String 'project\(Cows VERSION ([0-9.]+)'
 $version = "$($project.Matches[0].Groups[1].Value).0"
 
-$exe = 'build-windows\Apps\CowsInLove\Cows.exe'
-if (-not (Test-Path $exe)) {
-    cmd /c 'tools\build-windows.bat Release'
-    if ($LASTEXITCODE -ne 0) { throw 'the Release build failed' }
-}
-
 $kits = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
 $sdk = Get-ChildItem $kits -Directory | Where-Object { $_.Name -match '^10\.' } |
     Sort-Object { [version]$_.Name } -Descending |
@@ -49,39 +45,54 @@ $signtool = Join-Path $sdk.FullName 'x64\signtool.exe'
 $makepri = Join-Path $sdk.FullName 'x64\makepri.exe'
 
 $out = 'Deploy\Microsoft-Store\out'
-$layout = Join-Path $out 'package'
-if (Test-Path $layout) { Remove-Item -Recurse -Force $layout }
-New-Item -ItemType Directory -Force -Path $layout | Out-Null
+New-Item -ItemType Directory -Force -Path $out | Out-Null
 
-Copy-Item $exe $layout
-Copy-Item -Recurse 'Deploy\Microsoft-Store\Assets' (Join-Path $layout 'Assets')
+function Pack([string]$arch) {
+    $build = if ($arch -eq 'x64') { 'build-windows' } else { "build-windows-$arch" }
+    $exe = "$build\Apps\CowsInLove\Cows.exe"
+    if (-not (Test-Path $exe)) {
+        $env:COWS_ARCH = $arch
+        cmd /c 'tools\build-windows.bat Release'
+        if ($LASTEXITCODE -ne 0) { throw "the $arch Release build failed" }
+    }
 
-(Get-Content 'Deploy\Microsoft-Store\AppxManifest.xml' -Raw) `
-    -replace '@IDENTITY_NAME@', $identity `
-    -replace '@PUBLISHER@', [Security.SecurityElement]::Escape($publisher) `
-    -replace '@PUBLISHER_DISPLAY_NAME@', [Security.SecurityElement]::Escape($publisherName) `
-    -replace '@VERSION@', $version |
-    Set-Content -Encoding UTF8 (Join-Path $layout 'AppxManifest.xml')
+    $layout = Join-Path $out "package-$arch"
+    if (Test-Path $layout) { Remove-Item -Recurse -Force $layout }
+    New-Item -ItemType Directory -Force -Path $layout | Out-Null
 
-# resources.pri maps Assets\X.png to its scale-100/200 and targetsize files.
-$config = Join-Path $out 'priconfig.xml'
-& $makepri createconfig /cf $config /dq en-US /pv 10.0.0 /o | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'makepri createconfig failed' }
-# One .msix, not a bundle: keep every scale in resources.pri rather than
-# splitting resource packs that nothing installs.
-(Get-Content $config -Raw) -replace '(?s)\s*<packaging>.*?</packaging>', '' |
-    Set-Content -Encoding UTF8 $config
-& $makepri new /pr $layout /cf $config /mn (Join-Path $layout 'AppxManifest.xml') `
-    /of (Join-Path $layout 'resources.pri') /o
-if ($LASTEXITCODE -ne 0) { throw 'makepri failed' }
+    Copy-Item $exe $layout
+    Copy-Item -Recurse 'Deploy\Microsoft-Store\Assets' (Join-Path $layout 'Assets')
 
-$msix = Join-Path $out "CowsInLove-$version-x64.msix"
-& $makeappx pack /o /d $layout /p $msix
-if ($LASTEXITCODE -ne 0) { throw 'makeappx failed' }
+    (Get-Content 'Deploy\Microsoft-Store\AppxManifest.xml' -Raw) `
+        -replace '@IDENTITY_NAME@', $identity `
+        -replace '@PUBLISHER@', [Security.SecurityElement]::Escape($publisher) `
+        -replace '@PUBLISHER_DISPLAY_NAME@', [Security.SecurityElement]::Escape($publisherName) `
+        -replace '@VERSION@', $version `
+        -replace '@ARCH@', $arch |
+        Set-Content -Encoding UTF8 (Join-Path $layout 'AppxManifest.xml')
 
-if ($Certificate) {
-    & $signtool sign /fd SHA256 /a /f $Certificate /p $Password $msix
-    if ($LASTEXITCODE -ne 0) { throw 'signtool failed' }
+    # resources.pri maps Assets\X.png to its scale-100/200 and targetsize files.
+    $config = Join-Path $out "priconfig-$arch.xml"
+    & $makepri createconfig /cf $config /dq en-US /pv 10.0.0 /o | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'makepri createconfig failed' }
+    # One .msix per architecture, not a bundle: keep every scale in
+    # resources.pri rather than splitting resource packs that nothing installs.
+    (Get-Content $config -Raw) -replace '(?s)\s*<packaging>.*?</packaging>', '' |
+        Set-Content -Encoding UTF8 $config
+    & $makepri new /pr $layout /cf $config /mn (Join-Path $layout 'AppxManifest.xml') `
+        /of (Join-Path $layout 'resources.pri') /o
+    if ($LASTEXITCODE -ne 0) { throw 'makepri failed' }
+
+    $msix = Join-Path $out "CowsInLove-$version-$arch.msix"
+    & $makeappx pack /o /d $layout /p $msix
+    if ($LASTEXITCODE -ne 0) { throw 'makeappx failed' }
+
+    if ($Certificate) {
+        & $signtool sign /fd SHA256 /a /f $Certificate /p $Password $msix
+        if ($LASTEXITCODE -ne 0) { throw 'signtool failed' }
+    }
+
+    Write-Output $msix
 }
 
-Write-Output $msix
+foreach ($a in $Arch) { Pack $a }
