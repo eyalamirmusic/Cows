@@ -34,3 +34,6 @@ secret-data
 
 # Partner Center values, filled in locally
 partner-center.env
+
+# App Review recordings, uploaded as review attachments, too big for git
+Deploy/Apple-iOS/Review/*.mp4
