@@ -1,6 +1,7 @@
 #include "SamplePlayer.h"
 
 #include <eacp/Core/App/App.h>
+#include <eacp/Core/Utils/Logging.h>
 #include <eacp/Core/Maths/Constants.h>
 
 #include <algorithm>
@@ -87,13 +88,20 @@ void SamplePlayer::start()
     auto config = device.getDefaultOutputConfig();
 
     if (!config.output)
+    {
+        LOG("audio: no output device");
         return;
+    }
 
     config.sampleRate = (int) sampleRate;
     device.setSessionConfig(playbackSession());
-    open = device.start(
-               config, [this](MakeASound::AudioCallbackInfo& info) { render(info); })
-           == MakeASound::Error::NoError;
+    auto error = device.start(
+        config, [this](MakeASound::AudioCallbackInfo& info) { render(info); });
+    open = error == MakeASound::Error::NoError;
+    LOG("audio: ",
+        config.output->device.name,
+        " ",
+        MakeASound::getErrorMessage(error));
 }
 
 SamplePlayer::~SamplePlayer()
