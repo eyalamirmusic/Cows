@@ -4,7 +4,8 @@
 Usage: just asc <command> [--platform ios|macos]
        [--write] [flags]
 
-Commands: check, info, version, screenshots, build, price, submit, all.
+Commands: check, info, version, screenshots, build, price, testflight, submit,
+all.
 Without --write every POST/PATCH/DELETE and upload is printed, not sent.
 Credentials come from COWS_ASC_KEY_ID, COWS_ASC_ISSUER_ID and COWS_ASC_KEY
 (path to the .p8) or COWS_ASC_KEY_P8 (its contents): `just asc` fills them
@@ -65,6 +66,7 @@ EDITABLE_VERSION_STATES = {
     "PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED",
     "METADATA_REJECTED", "INVALID_BINARY", "WAITING_FOR_EXPORT_COMPLIANCE",
 }
+BETA_GROUP = "Cows"
 WRITE = False
 NEW_ID = "(new)"
 
@@ -342,6 +344,20 @@ def cmd_check(args, app):
               f"{p.get('platform', '?')}: {a['processingState']}, uploaded "
               f"{a.get('uploadedDate')}, usesNonExemptEncryption "
               f"{a.get('usesNonExemptEncryption')}, id {b['id']}")
+        beta = api("GET", f"/v1/builds/{b['id']}/buildBetaDetail",
+                   missing_ok=True).get("data") or {}
+        print(f"    TestFlight: internal "
+              f"{beta.get('attributes', {}).get('internalBuildState')}, external "
+              f"{beta.get('attributes', {}).get('externalBuildState')}")
+    for g in get_all("/v1/betaGroups", {"filter[app]": app["id"]}):
+        ga = g["attributes"]
+        testers = get_all(f"/v1/betaGroups/{g['id']}/betaTesters")
+        print(f"  beta group {ga['name']} {g['id']}: "
+              f"{'internal' if ga['isInternalGroup'] else 'external'}, "
+              f"all builds {ga.get('hasAccessToAllBuilds')}, testers "
+              + (", ".join(f"{t['attributes'].get('email')} "
+                           f"({t['attributes'].get('state')})" for t in testers)
+                 or "none"))
     for s in get_all("/v1/reviewSubmissions", {"filter[app]": app["id"]}):
         print(f"  review submission {s['id']} {s['attributes']['platform']}: "
               f"{s['attributes']['state']}")
@@ -654,6 +670,62 @@ def cmd_price(args, app):
                      for t in territories]})
 
 
+def cmd_testflight(args, app):
+    build = find_build(app["id"], args.platform, args.version_string, args.number)
+    if not build or build["attributes"]["processingState"] != "VALID":
+        fail(f"no VALID {PLATFORMS[args.platform]} build {args.version_string}")
+    label = f"build {args.version_string} ({build['attributes']['version']})"
+    print(f"{label} {build['id']}:")
+    loc = localization(f"/v1/builds/{build['id']}/betaBuildLocalizations")
+    wanted = {"whatsNew": "First build."}
+    if loc:
+        update("betaBuildLocalizations", loc["id"], wanted, loc["attributes"])
+    else:
+        print(f"  creating beta localization {LOCALE}")
+        create("betaBuildLocalizations", {"locale": LOCALE, **wanted},
+               {"build": resource("builds", build["id"])})
+
+    groups = get_all("/v1/betaGroups", {"filter[app]": app["id"],
+                                        "filter[name]": BETA_GROUP})
+    if groups:
+        group = groups[0]
+        print(f"beta group {BETA_GROUP} {group['id']}: exists")
+    else:
+        print(f"beta group {BETA_GROUP}: creating (internal, all builds)")
+        group = create("betaGroups", {"name": BETA_GROUP, "isInternalGroup": True,
+                                      "hasAccessToAllBuilds": True},
+                       {"app": resource("apps", app["id"])})
+    in_group = [b["id"] for b in get_all(f"/v1/betaGroups/{group['id']}/builds")]
+    if build["id"] in in_group:
+        print(f"  {label} already in the group")
+    elif group["attributes"].get("hasAccessToAllBuilds"):
+        print(f"  {label}: the group gets every build")
+    else:
+        print(f"  adding {label}")
+        api("POST", f"/v1/betaGroups/{group['id']}/relationships/builds",
+            {"data": [{"type": "builds", "id": build["id"]}]})
+
+    email = args.review_email
+    users = get_all("/v1/users", {"limit": 200})
+    user = next((u for u in users if u["attributes"]["username"].lower()
+                 == (email or "").lower()), None)
+    if not user:
+        admins = [u for u in users if "ADMIN" in u["attributes"]["roles"]]
+        if len(admins) != 1:
+            fail(f"no user {email} and {len(admins)} admins; pick one")
+        user = admins[0]
+    a = user["attributes"]
+    testers = get_all(f"/v1/betaGroups/{group['id']}/betaTesters")
+    if any(t["attributes"].get("email", "").lower() == a["username"].lower()
+           for t in testers):
+        print(f"  tester {a['username']}: already in the group")
+        return
+    print(f"  adding tester {a['firstName']} {a['lastName']} <{a['username']}>")
+    create("betaTesters", {"email": a["username"], "firstName": a["firstName"],
+                           "lastName": a["lastName"]},
+           {"betaGroups": {"data": [{"type": "betaGroups", "id": group["id"]}]}})
+
+
 def cmd_all(args, app):
     for step in (cmd_info, cmd_version, cmd_screenshots, cmd_build, cmd_price,
                  cmd_submit):
@@ -663,7 +735,7 @@ def cmd_all(args, app):
 
 COMMANDS = {"check": cmd_check, "info": cmd_info, "version": cmd_version,
             "screenshots": cmd_screenshots, "build": cmd_build,
-            "price": cmd_price, "submit": cmd_submit, "all": cmd_all}
+            "price": cmd_price, "testflight": cmd_testflight, "submit": cmd_submit, "all": cmd_all}
 
 
 def main():
