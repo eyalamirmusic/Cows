@@ -42,6 +42,7 @@ struct CowsView final : GPUView
     void control(const ControlEvent& event);
     void readGameInput(float delta);
     void usePad(const PadControls& pad, float delta);
+    void useHints(Hints used);
     void returnKeyFocus();
     void restart();
     void setTitle(std::string_view text);
@@ -124,7 +125,8 @@ struct CowsView final : GPUView
     float lookHold = 0.f;
     bool padRestarted = false;
     bool frozen = false;
-    bool touchHints = false;
+    Hints pointerHints = Hints::Keys;
+    Hints hints = Hints::Keys;
     bool framedPortrait = false;
 };
 } // namespace Cows

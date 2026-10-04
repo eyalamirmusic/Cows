@@ -76,3 +76,49 @@ auto tHudDrawsControlsAndFooter = test("HudSnapshot/controlsAndFooter") = []
     check(isClearColor(image.at(1, image.height() - 2)));
     check(isClearColor(image.at(image.width() - 2, image.height() - 2)));
 };
+
+// The footer with a controller's words, at the window's size and at its
+// smallest, where it must still fit between the margins.
+auto tHudPadHints = test("HudSnapshot/footerWithPadHints") = []
+{
+    if (!hasDevice())
+        return;
+
+    auto footer = Footer {};
+    footer.text = []
+    {
+        return std::string {"left stick to walk  -  A to jump  -  X to moo  -  "
+                            "right stick to look"};
+    };
+
+    auto hud = Hud {};
+    auto view = SnapshotView {};
+    view.drawOverlay = [&](Frame& frame, RenderPass& pass)
+    {
+        hud.begin(frame, pass, view.sampleCount());
+        footer.draw(hud);
+        hud.end();
+    };
+
+    auto image = snapshot(view, 1280.f, 800.f, "engine-hud-pad");
+    check(image.isValid());
+
+    if (!image.isValid())
+        return;
+
+    check(anyDrawn(image, {640.f, 780.f}, 12.f));
+    check(isClearColor(image.at(1, 1)));
+
+    view.setBounds({0.f, 0.f, 640.f, 400.f});
+    auto small = view.renderToImage(1.f);
+    check(small.isValid());
+
+    if (!small.isValid())
+        return;
+
+    check(anyDrawn(small, {320.f, 380.f}, 12.f));
+
+    for (auto y = 0; y < small.height(); ++y)
+        for (auto x: {0, 1, 2, 3, small.width() - 4, small.width() - 1})
+            check(isClearColor(small.at(x, y)));
+};

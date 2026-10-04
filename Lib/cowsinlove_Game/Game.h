@@ -75,7 +75,24 @@ struct Game final
     float seconds = 0.f;
 };
 
+// Whose controls the footer names: the keys, the touch controls, or a
+// controller by the labels it wears.
+enum class Hints
+{
+    Keys,
+    Touch,
+    Xbox,
+    PlayStation,
+    Nintendo,
+    Gamepad
+};
+
+constexpr bool isGamepad(Hints hints)
+{
+    return hints != Hints::Keys && hints != Hints::Touch;
+}
+
 // The footer: the controls while searching, `hint` while her answer shows, a
 // word after a fall.
-std::string footerText(const Game& game, const std::string& hint, bool touchHints);
+std::string footerText(const Game& game, const std::string& hint, Hints hints);
 } // namespace Cows

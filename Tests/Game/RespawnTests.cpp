@@ -56,7 +56,8 @@ auto tFallAndRespawn = test("Respawn/walkingOffTheEdgeRespawnsAtTheCheckpoint") 
     check(game.player.z > edge && game.player.z < edge + 0.5f);
     check(game.playerHeading == halfPi);
     check(game.justFell());
-    check(footerText(game, "", false) == "back on your feet  -  mind the edge");
+    check(footerText(game, "", Hints::Keys)
+          == "back on your feet  -  mind the edge");
 
     game.update(2.5f, 0.f, 0.f, false);
     check(!game.justFell());

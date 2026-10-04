@@ -284,6 +284,8 @@ void CowsView::steerCamera(float delta)
 
 void CowsView::keyDown(const Graphics::KeyEvent& event)
 {
+    useHints(pointerHints);
+
     if (event.keyCode == Graphics::KeyCode::M)
     {
         if (!event.isRepeat)
@@ -349,6 +351,9 @@ void CowsView::usePad(const PadControls& pad, float delta)
     if (!pad.jumping)
         padRestarted = false;
 
+    if (pad.active)
+        useHints(padHints(pad.family));
+
     if (pad.jumpPressed)
     {
         if (game.state == Game::State::Found)
@@ -378,6 +383,15 @@ void CowsView::usePad(const PadControls& pad, float delta)
 
     camera.zoom(pad.zoom * padZoomRate * delta);
     input.setPad(pad.ahead, pad.turn, pad.jumping && !padRestarted);
+}
+
+void CowsView::useHints(Hints used)
+{
+    if (used == hints)
+        return;
+
+    hints = used;
+    onStateChanged();
 }
 
 void CowsView::callOut()
@@ -529,6 +543,7 @@ void CowsView::framePortrait(float aspect)
 
 void CowsView::mouseDown(const Graphics::MouseEvent&)
 {
+    useHints(pointerHints);
     returnKeyFocus();
 }
 
@@ -545,12 +560,14 @@ void CowsView::returnKeyFocus()
 
 void CowsView::mouseDragged(const Graphics::MouseEvent& event)
 {
+    useHints(pointerHints);
     camera.orbit(event.delta.x * orbitSpeed, event.delta.y * orbitSpeed);
     lookHold = lookHoldTime;
 }
 
 void CowsView::mouseWheel(const Graphics::MouseEvent& event)
 {
+    useHints(pointerHints);
     camera.zoom(wheelZoom(event));
 }
 

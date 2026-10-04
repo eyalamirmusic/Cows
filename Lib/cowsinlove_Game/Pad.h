@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Game.h"
 #include "Render/Common.h"
 
 namespace Cows
@@ -25,4 +26,6 @@ struct PadControls final
 };
 
 PadControls readPad(const Graphics::GameInputFrame& frame);
+
+Hints padHints(Graphics::GamepadFamily family);
 } // namespace Cows

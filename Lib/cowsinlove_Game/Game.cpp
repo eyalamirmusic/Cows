@@ -31,13 +31,61 @@ constexpr auto mooCooldown = 3.2f;
 constexpr auto hintTime = 4.f;
 constexpr auto fellTime = 2.f;
 
-constexpr auto searchingText =
+constexpr auto searchingKeysText =
     "wasd / hjkl / arrows to walk  -  space to jump  -  m to "
     "moo  -  drag to look  -  q to quit";
-constexpr auto foundText = "you found her  -  q to quit";
+constexpr auto foundKeysText = "you found her  -  q to quit";
 constexpr auto searchingTouchText = "find her  -  drag to look  -  moo for a hint";
 constexpr auto foundTouchText = "you found her";
 constexpr auto fellText = "back on your feet  -  mind the edge";
+
+struct PadLabels final
+{
+    std::string jump;
+    std::string moo;
+};
+
+PadLabels padLabels(Hints hints)
+{
+    switch (hints)
+    {
+        case Hints::PlayStation:
+            return {"cross", "square"};
+        case Hints::Nintendo:
+            return {"B", "Y"};
+        default:
+            break;
+    }
+
+    return {"A", "X"};
+}
+
+std::string searchingPadText(const PadLabels& labels)
+{
+    return "left stick to walk  -  " + labels.jump + " to jump  -  " + labels.moo
+           + " to moo  -  right stick to look";
+}
+
+std::string foundPadText(const PadLabels& labels)
+{
+    return "you found her  -  " + labels.jump + " for another meadow";
+}
+
+std::string searchingText(Hints hints)
+{
+    if (isGamepad(hints))
+        return searchingPadText(padLabels(hints));
+
+    return hints == Hints::Touch ? searchingTouchText : searchingKeysText;
+}
+
+std::string foundText(Hints hints)
+{
+    if (isGamepad(hints))
+        return foundPadText(padLabels(hints));
+
+    return hints == Hints::Touch ? foundTouchText : foundKeysText;
+}
 
 float headingToward(Vec2 direction)
 {
@@ -190,10 +238,10 @@ bool Game::justFell() const
     return state == State::Searching && sinceFell < fellTime;
 }
 
-std::string footerText(const Game& game, const std::string& hint, bool touchHints)
+std::string footerText(const Game& game, const std::string& hint, Hints hints)
 {
     if (game.state == Game::State::Found)
-        return touchHints ? foundTouchText : foundText;
+        return foundText(hints);
 
     if (game.hintShowing())
         return hint;
@@ -201,6 +249,6 @@ std::string footerText(const Game& game, const std::string& hint, bool touchHint
     if (game.justFell())
         return fellText;
 
-    return touchHints ? searchingTouchText : searchingText;
+    return searchingText(hints);
 }
 } // namespace Cows

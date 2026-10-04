@@ -118,4 +118,21 @@ PadControls readPad(const Graphics::GameInputFrame& frame)
     controls.zoom = std::clamp(controls.zoom, -1.f, 1.f);
     return controls;
 }
+
+Hints padHints(Graphics::GamepadFamily family)
+{
+    switch (family)
+    {
+        case Graphics::GamepadFamily::Xbox:
+            return Hints::Xbox;
+        case Graphics::GamepadFamily::PlayStation:
+            return Hints::PlayStation;
+        case Graphics::GamepadFamily::Nintendo:
+            return Hints::Nintendo;
+        case Graphics::GamepadFamily::Generic:
+            break;
+    }
+
+    return Hints::Gamepad;
+}
 } // namespace Cows

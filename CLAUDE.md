@@ -88,12 +88,18 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   Links World.
   - `Game` — state machine, player movement, found test, moo cooldown, the moo
     hint, the level's clock (`seconds`, driving its movers), the checkpoint and
-    respawn below `killDepth` (`sinceFell`), and `footerText`; `reset(seed)` builds the level through its
+    respawn below `killDepth` (`sinceFell`), and `footerText` (for a `Hints`); `reset(seed)` builds the level through its
     `makeLevel` hook, which the app sets (the library never names a level)
   - `Ending` — the ending's numbers (title rise, kiss point, camera settle) and
     `titlePlacement`, `loops` (start again after the title)
-  - `Input` — held keys (wasd / hjkl / arrows, space) and the touch stick,
-    summed into walk ahead / turn
+  - `Input` — held keys (wasd / hjkl / arrows, space), the touch stick and the
+    controller (`setPad`, kept apart so neither clears the other), summed and
+    clamped into walk ahead / turn
+  - `Pad` — `readPad` turns eacp's `GameInputFrame` into `PadControls`: radial
+    deadzone, turn and look curves, D-pad, button edges (South jump, West / East
+    moo, North again, right stick click recentre), triggers as zoom; the largest
+    stick of several controllers wins. `padHints` names the footer's `Hints`
+    from the controller's family
   - `Title/TitleFont` — the tube-font title; `Title/TitleShader` — its shader
 - `Apps/CowsInLove/Source/Main.cpp` — runs `CowsApp`. On Android eacp sets the
   COWS_* settings before `main()` in a debug build, from the launch intent's
@@ -106,11 +112,16 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   seed comes from (`COWS_SEED`, else the clock) and the first stage
   (`COWS_STAGE`, else 0). `r` retries the stage with a fresh seed
 - `Apps/CowsInLove/Source/CowsApp` — the window: scene, footer, touch controls,
-  root view; wires them the same on every platform and ends by attaching the
-  platform (the app has no platform directories or branches)
+  root view, and the `GameInput` the scene polls for controllers; wires them the
+  same on every platform and ends by attaching the platform (the app has no
+  platform directories or branches). The footer names the last-used input's
+  controls; the touch controls hide while a controller was used last
 - `Apps/CowsInLove/Source/Scene/CowsView` — the `GPUView`: gathers instances,
   shadow pass, main pass (ending with the `Hud`), camera steering, mouse;
-  forwards keys to `Input`
+  forwards keys to `Input`; polls `GameInput` each `update`, sends the
+  controller's buttons through `control()` as touch does, orbits on the right
+  stick (a look, mouse drag included, holds off the chase for `lookHold`), and
+  tracks the last-used input as `hints`
 - `tools/Art` — `CowsArt`, a macOS tool that renders the icon, key art, logo
   and store screenshots from the game's own views; `tools/store-art.sh` and
   `tools/screenshots.sh` drive it. `tools/release-*.sh`, `release-msix.ps1`
