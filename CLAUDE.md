@@ -8,6 +8,12 @@ code in this repository.
 Claude must never commit or push without explicit permission from the user in
 the current conversation.
 
+Claude must never force-push, amend, rebase, squash or otherwise rewrite
+history on anything that has been pushed, in this repository or any other
+(eacp PR branches included). History is linear and append-only: every change
+after a push is a new commit, and a branch catches up with its base by merging
+the base in.
+
 ## Project Overview
 
 Cows In Love exists to stress-test [eacp](https://github.com/eyalamirmusic/eacp),
@@ -136,11 +142,21 @@ open build/Apps/CowsInLove/Cows.app
 
 Use `$HOME`, not `~`: CMake does not expand `~`.
 
+Windows: `tools\build-windows.bat Debug` configures and builds `build/` with the
+newest Visual Studio's tools and Ninja, native to the machine (arm64 on Arm
+boxes, x64 elsewhere; `COWS_ARCH=x64` overrides; `COWS_EACP=<path>` builds
+against a local eacp). `Release` is the x64 exe the stores ship, in
+`build-windows/`. Always build through the batch file (or `just`): the Ninja
+build needs the Visual Studio environment it sets up.
+
 iOS: `tools/ios.sh sim [shot.png]` builds `build-ios/` and runs it on the "Cows iPhone"
 simulator; `tools/ios.sh device` signs with `COWS_TEAM` (default: Jamie's Personal Team) and runs it on the phone.
 
-Shortcuts in the `justfile`: `just macos`, `just sim-ios [shot.png]`,
-`just ios [udid]` (defaults to pond), `just shot`, `just devices`, `just test`.
+Shortcuts in the `justfile`: `just build`, `just macos`, `just windows`,
+`just sim-ios [shot.png]`, `just ios [udid]` (defaults to pond), `just shot`,
+`just devices`, `just test`. On Windows, `just` runs the recipes in Git for
+Windows' bash, from PowerShell or git-bash alike; `just --list` shows only the
+recipes that work on the current platform.
 
 ## Rendering Rule
 
