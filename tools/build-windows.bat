@@ -32,6 +32,11 @@ call "%VSPATH%\VC\Auxiliary\Build\vcvarsall.bat" %VCARCH% >nul 2>nul || (
     echo vcvarsall.bat %VCARCH% failed: are the %ARCH% build tools installed?
     exit /b 1
 )
+rem vcvarsall reports success for a target whose compiler is not installed.
+if not exist "%VCToolsInstallDir%bin\Host%HOST%\%ARCH%\cl.exe" (
+    echo no %ARCH% compiler in "%VCToolsInstallDir%bin\Host%HOST%": install the MSVC %ARCH% build tools with the Visual Studio Installer
+    exit /b 1
+)
 
 set EACP=
 if not "%COWS_EACP%"=="" set EACP=-DCPM_eacp_SOURCE=%COWS_EACP%
