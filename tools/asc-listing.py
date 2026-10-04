@@ -4,8 +4,8 @@
 Usage: just asc <command> [--platform ios|macos]
        [--write] [flags]
 
-Commands: check, info, version, screenshots, build, price, testflight, submit,
-all.
+Commands: check, info, version, screenshots, build, price, testflight,
+invite <email> [--first NAME] [--last NAME], submit, all.
 Without --write every POST/PATCH/DELETE and upload is printed, not sent.
 Credentials come from COWS_ASC_KEY_ID, COWS_ASC_ISSUER_ID and COWS_ASC_KEY
 (path to the .p8) or COWS_ASC_KEY_P8 (its contents): `just asc` fills them
@@ -67,6 +67,7 @@ EDITABLE_VERSION_STATES = {
     "METADATA_REJECTED", "INVALID_BINARY", "WAITING_FOR_EXPORT_COMPLIANCE",
 }
 BETA_GROUP = "Cows"
+FRIENDS_GROUP = "Friends"
 WRITE = False
 NEW_ID = "(new)"
 
@@ -346,6 +347,10 @@ def cmd_check(args, app):
               f"{a.get('usesNonExemptEncryption')}, id {b['id']}")
         beta = api("GET", f"/v1/builds/{b['id']}/buildBetaDetail",
                    missing_ok=True).get("data") or {}
+        review = api("GET", f"/v1/builds/{b['id']}/betaAppReviewSubmission",
+                     missing_ok=True).get("data") or {}
+        print(f"    beta review: "
+              f"{review.get('attributes', {}).get('betaReviewState', 'not submitted')}")
         print(f"    TestFlight: internal "
               f"{beta.get('attributes', {}).get('internalBuildState')}, external "
               f"{beta.get('attributes', {}).get('externalBuildState')}")
@@ -670,11 +675,103 @@ def cmd_price(args, app):
                      for t in territories]})
 
 
-def cmd_testflight(args, app):
-    build = find_build(app["id"], args.platform, args.version_string, args.number)
+def ensure_beta_group(app, name, internal):
+    groups = get_all("/v1/betaGroups", {"filter[app]": app["id"],
+                                        "filter[name]": name})
+    if groups:
+        print(f"beta group {name} {groups[0]['id']}: exists")
+        return groups[0]
+    kind = "internal, all builds" if internal else "external"
+    print(f"beta group {name}: creating ({kind})")
+    attributes = {"name": name, "isInternalGroup": internal}
+    if internal:
+        attributes["hasAccessToAllBuilds"] = True
+    return create("betaGroups", attributes, {"app": resource("apps", app["id"])})
+
+
+def add_to_group(group, build, label):
+    in_group = [b["id"] for b in get_all(f"/v1/betaGroups/{group['id']}/builds")]
+    if build["id"] in in_group:
+        print(f"  {label} already in the group")
+    elif group["attributes"].get("hasAccessToAllBuilds"):
+        print(f"  {label}: the group gets every build")
+    else:
+        print(f"  adding {label}")
+        api("POST", f"/v1/betaGroups/{group['id']}/relationships/builds",
+            {"data": [{"type": "builds", "id": build["id"]}]})
+
+
+def valid_build(app, platform, args):
+    build = find_build(app["id"], platform, args.version_string, args.number)
     if not build or build["attributes"]["processingState"] != "VALID":
-        fail(f"no VALID {PLATFORMS[args.platform]} build {args.version_string}")
-    label = f"build {args.version_string} ({build['attributes']['version']})"
+        fail(f"no VALID {PLATFORMS[platform]} build {args.version_string}")
+    return build, f"{platform} build {args.version_string} " \
+                  f"({build['attributes']['version']})"
+
+
+def cmd_invite(args, app):
+    if not args.email:
+        fail("invite needs an email")
+    meta = metadata("ios")
+    print("beta app localization:")
+    wanted = {"description": meta["promotionalText"],
+              "feedbackEmail": required(args, "review_email"),
+              "marketingUrl": meta["marketingUrl"],
+              "privacyPolicyUrl": required(args, "privacy_url")}
+    loc = localization(f"/v1/apps/{app['id']}/betaAppLocalizations")
+    if loc:
+        update("betaAppLocalizations", loc["id"], wanted, loc["attributes"])
+    else:
+        create("betaAppLocalizations", {"locale": LOCALE, **wanted},
+               {"app": resource("apps", app["id"])})
+    name = required(args, "review_name").split()
+    detail = api("GET", f"/v1/apps/{app['id']}/betaAppReviewDetail")["data"]
+    print("beta review detail:")
+    update("betaAppReviewDetails", detail["id"],
+           {"contactFirstName": " ".join(name[:-1]) or name[0],
+            "contactLastName": name[-1],
+            "contactPhone": required(args, "review_phone"),
+            "contactEmail": required(args, "review_email"),
+            "demoAccountRequired": False,
+            "notes": args.review_notes or IOS_REVIEW_NOTES}, detail["attributes"])
+
+    group = ensure_beta_group(app, FRIENDS_GROUP, internal=False)
+    builds = [valid_build(app, platform, args) for platform in PLATFORMS]
+    for build, label in builds:
+        add_to_group(group, build, label)
+
+    email = args.email.lower()
+    testers = get_all("/v1/betaTesters", {"filter[email]": email,
+                                          "filter[apps]": app["id"]})
+    if not testers:
+        print(f"  adding tester {args.first} {args.last} <{email}>")
+        create("betaTesters", {"email": email, "firstName": args.first,
+                               "lastName": args.last},
+               {"betaGroups": {"data": [{"type": "betaGroups", "id": group["id"]}]}})
+    else:
+        tester = testers[0]
+        groups = [g["id"] for g in get_all(f"/v1/betaTesters/{tester['id']}/betaGroups")]
+        if group["id"] in groups:
+            print(f"  tester {email}: already in the group "
+                  f"({tester['attributes'].get('state')})")
+        else:
+            print(f"  adding tester {email} to the group")
+            api("POST", f"/v1/betaTesters/{tester['id']}/relationships/betaGroups",
+                {"data": [{"type": "betaGroups", "id": group["id"]}]})
+
+    for build, label in builds:
+        review = api("GET", f"/v1/builds/{build['id']}/betaAppReviewSubmission",
+                     missing_ok=True).get("data")
+        if review:
+            print(f"{label}: beta review {review['attributes']['betaReviewState']}")
+        else:
+            print(f"{label}: submitting for beta review")
+            create("betaAppReviewSubmissions", {},
+                   {"build": resource("builds", build["id"])})
+
+
+def cmd_testflight(args, app):
+    build, label = valid_build(app, args.platform, args)
     print(f"{label} {build['id']}:")
     loc = localization(f"/v1/builds/{build['id']}/betaBuildLocalizations")
     wanted = {"whatsNew": "First build."}
@@ -685,25 +782,8 @@ def cmd_testflight(args, app):
         create("betaBuildLocalizations", {"locale": LOCALE, **wanted},
                {"build": resource("builds", build["id"])})
 
-    groups = get_all("/v1/betaGroups", {"filter[app]": app["id"],
-                                        "filter[name]": BETA_GROUP})
-    if groups:
-        group = groups[0]
-        print(f"beta group {BETA_GROUP} {group['id']}: exists")
-    else:
-        print(f"beta group {BETA_GROUP}: creating (internal, all builds)")
-        group = create("betaGroups", {"name": BETA_GROUP, "isInternalGroup": True,
-                                      "hasAccessToAllBuilds": True},
-                       {"app": resource("apps", app["id"])})
-    in_group = [b["id"] for b in get_all(f"/v1/betaGroups/{group['id']}/builds")]
-    if build["id"] in in_group:
-        print(f"  {label} already in the group")
-    elif group["attributes"].get("hasAccessToAllBuilds"):
-        print(f"  {label}: the group gets every build")
-    else:
-        print(f"  adding {label}")
-        api("POST", f"/v1/betaGroups/{group['id']}/relationships/builds",
-            {"data": [{"type": "builds", "id": build["id"]}]})
+    group = ensure_beta_group(app, BETA_GROUP, internal=True)
+    add_to_group(group, build, label)
 
     email = args.review_email
     users = get_all("/v1/users", {"limit": 200})
@@ -735,7 +815,8 @@ def cmd_all(args, app):
 
 COMMANDS = {"check": cmd_check, "info": cmd_info, "version": cmd_version,
             "screenshots": cmd_screenshots, "build": cmd_build,
-            "price": cmd_price, "testflight": cmd_testflight, "submit": cmd_submit, "all": cmd_all}
+            "price": cmd_price, "testflight": cmd_testflight,
+            "invite": cmd_invite, "submit": cmd_submit, "all": cmd_all}
 
 
 def main():
@@ -743,6 +824,9 @@ def main():
     env = os.environ.get
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("command", choices=COMMANDS)
+    parser.add_argument("email", nargs="?", help="invite: the tester's email")
+    parser.add_argument("--first", default="Eyal")
+    parser.add_argument("--last", default="Amir")
     parser.add_argument("--platform", choices=PLATFORMS, default="ios")
     parser.add_argument("--write", action="store_true",
                         help="send writes; without it they are only printed")
