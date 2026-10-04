@@ -821,7 +821,8 @@ def cmd_invite(args, app):
             "notes": args.review_notes or IOS_REVIEW_NOTES}, detail["attributes"])
 
     group = ensure_beta_group(app, FRIENDS_GROUP, internal=False)
-    builds = [valid_build(app, platform, args) for platform in PLATFORMS]
+    platforms = [args.platform] if args.number else list(PLATFORMS)
+    builds = [valid_build(app, platform, args) for platform in platforms]
     for build, label in builds:
         add_to_group(group, build, label)
 
