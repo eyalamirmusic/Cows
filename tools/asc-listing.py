@@ -5,7 +5,8 @@ Usage: just asc <command> [--platform ios|macos]
        [--write] [flags]
 
 Commands: check, info, version, screenshots, build, price, testflight,
-invite [--internal] <email> [--first NAME] [--last NAME], submit, all.
+invite [--internal] <email> [--first NAME] [--last NAME], submit [--file MD],
+review-notes --file MD, review-attach <file>, all.
 Without --write every POST/PATCH/DELETE and upload is printed, not sent.
 Credentials come from COWS_ASC_KEY_ID, COWS_ASC_ISSUER_ID and COWS_ASC_KEY
 (path to the .p8) or COWS_ASC_KEY_P8 (its contents): `just asc` fills them
@@ -66,6 +67,7 @@ EDITABLE_VERSION_STATES = {
     "PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED",
     "METADATA_REJECTED", "INVALID_BINARY", "WAITING_FOR_EXPORT_COMPLIANCE",
 }
+REVIEW_NOTES_LIMIT = 4000
 BETA_GROUP = "Cows"
 FRIENDS_GROUP = "Friends"
 WRITE = False
@@ -329,6 +331,16 @@ def cmd_check(args, app):
             print(f"  version {a['versionString']} {a['platform']}: "
                   f"{a.get('appVersionState')} (store state {a.get('appStoreState')})"
                   f", id {v['id']}")
+            detail = review_detail(v["id"])
+            if not detail:
+                continue
+            notes = detail["attributes"].get("notes") or ""
+            print(f"    review detail {detail['id']}: notes {len(notes)} chars")
+            for f in review_attachments(detail["id"]):
+                fa = f["attributes"]
+                state = (fa.get("assetDeliveryState") or {}).get("state")
+                print(f"    attachment {fa.get('fileName')} ({fa.get('fileSize')} "
+                      f"bytes): {state}, id {f['id']}")
     raw = api("GET", "/v1/builds", params={"filter[app]": app["id"],
                                           "sort": "-uploadedDate",
                                           "include": "preReleaseVersion",
@@ -464,14 +476,14 @@ def pixel_size(path):
     return width, height
 
 
-def upload_screenshot(set_id, path):
+def upload_asset(type_, relationships, path):
     data = path.read_bytes()
     print(f"    uploading {path.name} ({len(data)} bytes)")
-    shot = create("appScreenshots", {"fileName": path.name, "fileSize": len(data)},
-                  {"appScreenshotSet": resource("appScreenshotSets", set_id)})
+    asset = create(type_, {"fileName": path.name, "fileSize": len(data)},
+                   relationships)
     if not WRITE:
-        return shot["id"]
-    for op in shot["attributes"]["uploadOperations"]:
+        return asset["id"]
+    for op in asset["attributes"]["uploadOperations"]:
         chunk = data[op["offset"]:op["offset"] + op["length"]]
         headers = {h["name"]: h["value"] for h in op.get("requestHeaders") or []}
         request = urllib.request.Request(op["url"], data=chunk, method=op["method"],
@@ -481,9 +493,14 @@ def upload_screenshot(set_id, path):
         except urllib.error.HTTPError as error:
             fail(f"upload of {path.name} chunk at {op['offset']} -> HTTP "
                  f"{error.code}\n{error.read().decode()}")
-    update("appScreenshots", shot["id"],
+    update(type_, asset["id"],
            {"uploaded": True, "sourceFileChecksum": hashlib.md5(data).hexdigest()})
-    return shot["id"]
+    return asset["id"]
+
+
+def upload_screenshot(set_id, path):
+    return upload_asset("appScreenshots", {"appScreenshotSet": resource(
+        "appScreenshotSets", set_id)}, path)
 
 
 def cmd_screenshots(args, app):
@@ -601,6 +618,74 @@ def cmd_build(args, app):
         resource("builds", build["id"]))
 
 
+def review_detail(version_id):
+    if version_id == NEW_ID:
+        return None
+    return api("GET", f"/v1/appStoreVersions/{version_id}/appStoreReviewDetail",
+               missing_ok=True).get("data")
+
+
+def review_attachments(detail_id):
+    return get_all(f"/v1/appStoreReviewDetails/{detail_id}/appStoreReviewAttachments")
+
+
+def notes_file(args):
+    if not args.file:
+        return None
+    text = Path(args.file).read_text().strip()
+    if len(text) > REVIEW_NOTES_LIMIT:
+        fail(f"{args.file} is {len(text)} characters; review notes take "
+             f"{REVIEW_NOTES_LIMIT}")
+    return text
+
+
+def cmd_review_notes(args, app):
+    notes = notes_file(args)
+    if notes is None:
+        fail("review-notes needs --file")
+    v = find_version(app["id"], args.platform, args.version_string)
+    print(f"version {v['id']} {PLATFORMS[args.platform]} "
+          f"({v['attributes'].get('appVersionState')}): notes {len(notes)} chars")
+    detail = review_detail(v["id"])
+    if detail:
+        update("appStoreReviewDetails", detail["id"], {"notes": notes},
+               detail["attributes"])
+    else:
+        ensure_review_detail(args, v["id"], notes)
+
+
+def cmd_review_attach(args, app):
+    if not args.email:
+        fail("review-attach needs a file")
+    path = Path(args.email).resolve()
+    if not path.is_file():
+        fail(f"no file {path}")
+    v = find_version(app["id"], args.platform, args.version_string)
+    detail = review_detail(v["id"])
+    if not detail:
+        fail(f"version {v['id']} has no review detail; run `submit` or "
+             "`review-notes` first")
+    print(f"review detail {detail['id']} ({PLATFORMS[args.platform]} "
+          f"{v['attributes'].get('appVersionState')}):")
+    for f in review_attachments(detail["id"]):
+        fa = f["attributes"]
+        state = (fa.get("assetDeliveryState") or {}).get("state")
+        if fa.get("fileName") != path.name:
+            continue
+        if state in ("COMPLETE", "UPLOAD_COMPLETE"):
+            print(f"  attachment {path.name} {f['id']}: already {state}")
+            return
+        print(f"  deleting attachment {path.name} {f['id']} ({state})")
+        api("DELETE", f"/v1/appStoreReviewAttachments/{f['id']}")
+    attachment = upload_asset("appStoreReviewAttachments", {
+        "appStoreReviewDetail": resource("appStoreReviewDetails", detail["id"])},
+        path)
+    if WRITE:
+        a = api("GET", f"/v1/appStoreReviewAttachments/{attachment}")["data"]
+        state = (a["attributes"].get("assetDeliveryState") or {}).get("state")
+        print(f"  attachment {attachment}: {state}")
+
+
 def ensure_review_detail(args, version_id, notes):
     name = required(args, "review_name").split()
     wanted = {"contactFirstName": " ".join(name[:-1]) or name[0],
@@ -622,18 +707,20 @@ def cmd_submit(args, app):
     platform = PLATFORMS[args.platform]
     meta = metadata(args.platform)
     v = find_version(app["id"], args.platform, args.version_string)
-    ensure_review_detail(args, v["id"], args.review_notes or meta["reviewNotes"])
+    ensure_review_detail(args, v["id"], notes_file(args) or args.review_notes
+                         or meta["reviewNotes"])
     submissions = get_all("/v1/reviewSubmissions", {
         "filter[app]": app["id"], "filter[platform]": platform,
         "filter[state]": "READY_FOR_REVIEW,WAITING_FOR_REVIEW,IN_REVIEW,"
                          "UNRESOLVED_ISSUES"})
     for s in submissions:
-        if s["attributes"]["state"] != "READY_FOR_REVIEW":
+        if s["attributes"]["state"] in ("WAITING_FOR_REVIEW", "IN_REVIEW"):
             print(f"review submission {s['id']} is already {s['attributes']['state']}")
             return
     if submissions:
         submission = submissions[0]
-        print(f"review submission {submission['id']}: reusing (READY_FOR_REVIEW)")
+        print(f"review submission {submission['id']}: reusing "
+              f"({submission['attributes']['state']})")
     else:
         print(f"review submission: creating for {platform}")
         submission = create("reviewSubmissions", {"platform": platform},
@@ -898,7 +985,9 @@ def cmd_all(args, app):
 COMMANDS = {"check": cmd_check, "info": cmd_info, "version": cmd_version,
             "screenshots": cmd_screenshots, "build": cmd_build,
             "price": cmd_price, "testflight": cmd_testflight,
-            "invite": cmd_invite, "submit": cmd_submit, "all": cmd_all}
+            "invite": cmd_invite, "submit": cmd_submit,
+            "review-notes": cmd_review_notes, "review-attach": cmd_review_attach,
+            "all": cmd_all}
 
 
 def main():
@@ -906,7 +995,9 @@ def main():
     env = os.environ.get
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("command", choices=COMMANDS)
-    parser.add_argument("email", nargs="?", help="invite: the tester's email")
+    parser.add_argument("email", nargs="?", metavar="EMAIL|FILE",
+                        help="invite: the tester's email; review-attach: the file")
+    parser.add_argument("--file", help="review-notes, submit: the review notes")
     parser.add_argument("--first")
     parser.add_argument("--last")
     parser.add_argument("--internal", action="store_true",
