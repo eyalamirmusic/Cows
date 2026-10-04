@@ -52,9 +52,10 @@ screenshots:
 release-macos:
     tools/release-macos.sh
 
-# App Store archive and export (COWS_TEAM; --upload sends it to App Store Connect).
+# App Store archive and export (--upload sends it to App Store Connect), signed
+# and uploaded with the API key in the "Cows In Love" 1Password vault.
 release-ios *args:
-    tools/release-ios.sh {{args}}
+    tools/with-asc-key.sh tools/release-ios.sh {{args}}
 
 # Google Play .aab, Release arm64-v8a + x86_64, through Gradle's bundleRelease
 # (args go to the configure: -DCOWS_BUILD_NUMBER=<n>).

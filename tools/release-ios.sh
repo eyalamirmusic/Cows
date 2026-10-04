@@ -2,9 +2,11 @@
 # Usage: COWS_TEAM=<team id> [COWS_BUILD_NUMBER=n] [COWS_BUNDLE_ID=id]
 #        tools/release-ios.sh [--upload]
 # Builds a Release archive for the App Store and exports the .ipa into
-# Deploy/Apple-iOS/out/. --upload sends it straight to App Store Connect
-# (Xcode must be signed into an account on the team). Signing is automatic:
-# Xcode creates the distribution certificate and profile when it needs to.
+# Deploy/Apple-iOS/out/. --upload sends it straight to App Store Connect.
+# Signing is automatic: Xcode creates the distribution certificate and profile
+# when it needs to, through the account Xcode is signed into, or without one
+# when COWS_ASC_KEY_ID, COWS_ASC_ISSUER_ID and COWS_ASC_KEY (the .p8 path) name
+# an App Store Connect API key (`just release-ios` takes them from 1Password).
 # COWS_TEAM=none builds an unsigned archive, to check the build only.
 set -euo pipefail
 
@@ -20,6 +22,11 @@ archive="$out/CowsInLove.xcarchive"
 
 signing=(-DCOWS_IOS_TEAM="$team" -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE=Automatic)
 xcode_signing=(-allowProvisioningUpdates)
+if [[ -n "${COWS_ASC_KEY_ID:-}" ]]; then
+    xcode_signing+=(-authenticationKeyPath "$COWS_ASC_KEY"
+        -authenticationKeyID "$COWS_ASC_KEY_ID"
+        -authenticationKeyIssuerID "$COWS_ASC_ISSUER_ID")
+fi
 if [[ "$team" == none ]]; then
     signing=(-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO)
     xcode_signing=()
@@ -51,5 +58,5 @@ sed -e "s/TEAM_ID/$team/" \
     Deploy/Apple-iOS/ExportOptions.plist > "$options"
 
 xcodebuild -exportArchive -archivePath "$archive" -exportPath "$out" \
-    -exportOptionsPlist "$options" -allowProvisioningUpdates
+    -exportOptionsPlist "$options" "${xcode_signing[@]}"
 ls "$out"

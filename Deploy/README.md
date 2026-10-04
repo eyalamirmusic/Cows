@@ -86,19 +86,26 @@ just screenshots     # store screenshots (only when the game looks different)
 One-time, on the Apple account:
 1. Register the bundle id (`COWS_BUNDLE_ID`) in Certificates, Identifiers &
    Profiles, and create the app in App Store Connect with it.
-2. Sign Xcode into the account (Xcode > Settings > Accounts). Automatic signing
-   creates the distribution certificate and profile on first export.
+2. Make an App Store Connect API key (Users and Access > Integrations > Team
+   Keys, role App Manager) and put it in the "Cows In Love" vault of the
+   personal 1Password account as an item named "App Store Connect API" with
+   the fields `team id`, `key id`, `issuer id` and the `.p8` attached as
+   `private key`. `tools/with-asc-key.sh` reads them; automatic signing then
+   creates the distribution certificate and profile on first export with no
+   Xcode login.
 3. Fill in App Store Connect from `Deploy/Apple-iOS/Metadata/app-store.md`,
    host `privacy-policy.md`, upload the screenshots.
 
 Each release:
 ```bash
-COWS_TEAM=<team id> COWS_BUILD_NUMBER=<n> just release-ios --upload
+COWS_BUILD_NUMBER=<n> just release-ios --upload
 ```
 This archives Release (iPhone-only, iOS 15+), exports with
 `ExportOptions.plist` (app-store-connect, symbols uploaded) and uploads. Without
 `--upload` the .ipa lands in `Deploy/Apple-iOS/out/` for Transporter. Then
-pick the build on the version page and **Submit for Review**.
+pick the build on the version page and **Submit for Review**. Without the
+vault, `COWS_TEAM=<team id> tools/release-ios.sh --upload` signs and uploads
+through the account Xcode is signed into.
 
 Checked on this Mac with Jamie's Personal Team: the archive builds and signs;
 export stops at "does not have permission to create iOS App Store
