@@ -5,7 +5,7 @@ Usage: just asc <command> [--platform ios|macos]
        [--write] [flags]
 
 Commands: check, info, version, screenshots, build, price, testflight,
-invite <email> [--first NAME] [--last NAME], submit, all.
+invite [--internal] <email> [--first NAME] [--last NAME], submit, all.
 Without --write every POST/PATCH/DELETE and upload is printed, not sent.
 Credentials come from COWS_ASC_KEY_ID, COWS_ASC_ISSUER_ID and COWS_ASC_KEY
 (path to the .p8) or COWS_ASC_KEY_P8 (its contents): `just asc` fills them
@@ -709,9 +709,54 @@ def valid_build(app, platform, args):
                   f"({build['attributes']['version']})"
 
 
+def add_internal_tester(group, user):
+    a = user["attributes"]
+    testers = get_all(f"/v1/betaGroups/{group['id']}/betaTesters")
+    if any(t["attributes"].get("email", "").lower() == a["username"].lower()
+           for t in testers):
+        print(f"  tester {a['username']}: already in the group")
+        return
+    print(f"  adding tester {a['firstName']} {a['lastName']} <{a['username']}>")
+    create("betaTesters", {"email": a["username"], "firstName": a["firstName"],
+                           "lastName": a["lastName"]},
+           {"betaGroups": {"data": [{"type": "betaGroups", "id": group["id"]}]}})
+
+
+def invite_internal(args, app):
+    email = args.email.lower()
+    users = [u for u in get_all("/v1/users", {"limit": 200})
+             if u["attributes"]["username"].lower() == email]
+    if users:
+        print(f"team user {email}: exists")
+        group = ensure_beta_group(app, BETA_GROUP, internal=True)
+        add_internal_tester(group, users[0])
+        return
+    invitations = get_all("/v1/userInvitations", {"filter[email]": email})
+    if invitations:
+        a = invitations[0]["attributes"]
+        print(f"team invitation {invitations[0]['id']} for {email}: pending, "
+              f"expires {a.get('expirationDate')}; rerun once accepted")
+        return
+    if not (args.first and args.last):
+        fail("invite --internal needs --first and --last")
+    print(f"team invitation for {args.first} {args.last} <{email}>: creating "
+          "(CUSTOMER_SUPPORT, Cows In Love only)")
+    invitation = create("userInvitations",
+                        {"email": email, "firstName": args.first,
+                         "lastName": args.last, "roles": ["CUSTOMER_SUPPORT"],
+                         "allAppsVisible": False, "provisioningAllowed": False},
+                        {"visibleApps": {"data": [{"type": "apps",
+                                                   "id": app["id"]}]}})
+    print(f"  invitation {invitation['id']}; rerun once accepted to add the "
+          f"tester to {BETA_GROUP}")
+
+
 def cmd_invite(args, app):
     if not args.email:
         fail("invite needs an email")
+    if args.internal:
+        invite_internal(args, app)
+        return
     meta = metadata("ios")
     print("beta app localization:")
     wanted = {"description": meta["promotionalText"],
@@ -794,16 +839,7 @@ def cmd_testflight(args, app):
         if len(admins) != 1:
             fail(f"no user {email} and {len(admins)} admins; pick one")
         user = admins[0]
-    a = user["attributes"]
-    testers = get_all(f"/v1/betaGroups/{group['id']}/betaTesters")
-    if any(t["attributes"].get("email", "").lower() == a["username"].lower()
-           for t in testers):
-        print(f"  tester {a['username']}: already in the group")
-        return
-    print(f"  adding tester {a['firstName']} {a['lastName']} <{a['username']}>")
-    create("betaTesters", {"email": a["username"], "firstName": a["firstName"],
-                           "lastName": a["lastName"]},
-           {"betaGroups": {"data": [{"type": "betaGroups", "id": group["id"]}]}})
+    add_internal_tester(group, user)
 
 
 def cmd_all(args, app):
@@ -825,8 +861,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("command", choices=COMMANDS)
     parser.add_argument("email", nargs="?", help="invite: the tester's email")
-    parser.add_argument("--first", default="Eyal")
-    parser.add_argument("--last", default="Amir")
+    parser.add_argument("--first")
+    parser.add_argument("--last")
+    parser.add_argument("--internal", action="store_true",
+                        help="invite: a team invitation and the internal group")
     parser.add_argument("--platform", choices=PLATFORMS, default="ios")
     parser.add_argument("--write", action="store_true",
                         help="send writes; without it they are only printed")
