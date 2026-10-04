@@ -546,6 +546,28 @@ def find_build(app_id, platform, version, number):
     return builds[0] if builds else None
 
 
+def withdraw_from_review(app, platform, v):
+    submissions = get_all("/v1/reviewSubmissions", {
+        "filter[app]": app["id"], "filter[platform]": PLATFORMS[platform],
+        "filter[state]": "WAITING_FOR_REVIEW,IN_REVIEW,UNRESOLVED_ISSUES"})
+    for submission in submissions:
+        print(f"  cancelling review submission {submission['id']} "
+              f"({submission['attributes']['state']})")
+        update("reviewSubmissions", submission["id"], {"canceled": True})
+    if not WRITE:
+        return
+    deadline = time.time() + 10 * 60
+    while True:
+        state = api("GET", f"/v1/appStoreVersions/{v['id']}")["data"][
+            "attributes"]["appVersionState"]
+        print(f"{time.strftime('%H:%M:%S')} version {v['id']}: {state}")
+        if state in EDITABLE_VERSION_STATES:
+            return
+        if time.time() > deadline:
+            fail(f"version {v['id']} still {state} after 10 minutes")
+        time.sleep(15)
+
+
 def cmd_build(args, app):
     v = find_version(app["id"], args.platform, args.version_string)
     deadline = time.time() + 20 * 60
@@ -569,6 +591,11 @@ def cmd_build(args, app):
     if attached and attached["id"] == build["id"]:
         print(f"  build {build['id']} already attached")
         return
+    if v["attributes"].get("appVersionState") not in EDITABLE_VERSION_STATES:
+        if not args.number:
+            fail(f"version {v['id']} is {v['attributes'].get('appVersionState')}; "
+                 "pass --number to pull it from review and swap the build")
+        withdraw_from_review(app, args.platform, v)
     print(f"  attaching build {build['id']} to version {v['id']}")
     api("PATCH", f"/v1/appStoreVersions/{v['id']}/relationships/build",
         resource("builds", build["id"]))
@@ -751,6 +778,19 @@ def invite_internal(args, app):
           f"tester to {BETA_GROUP}")
 
 
+def beta_review_in_progress(app, build):
+    pre = api("GET", f"/v1/builds/{build['id']}/preReleaseVersion")["data"]
+    others = get_all("/v1/builds", {"filter[app]": app["id"],
+                                    "filter[preReleaseVersion]": pre["id"]})
+    for other in others:
+        review = api("GET", f"/v1/builds/{other['id']}/betaAppReviewSubmission",
+                     missing_ok=True).get("data")
+        if review and review["attributes"]["betaReviewState"] in (
+                "WAITING_FOR_REVIEW", "IN_REVIEW"):
+            return other["attributes"]["version"]
+    return None
+
+
 def cmd_invite(args, app):
     if not args.email:
         fail("invite needs an email")
@@ -809,6 +849,11 @@ def cmd_invite(args, app):
                      missing_ok=True).get("data")
         if review:
             print(f"{label}: beta review {review['attributes']['betaReviewState']}")
+            continue
+        busy = beta_review_in_progress(app, build)
+        if busy:
+            print(f"{label}: not submitted, build {busy} of the same version is "
+                  "still in beta review (Apple allows one); rerun once it is done")
         else:
             print(f"{label}: submitting for beta review")
             create("betaAppReviewSubmissions", {},
