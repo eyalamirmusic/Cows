@@ -34,10 +34,10 @@ std::size_t mixFrames(float longestSeconds)
     return (std::size_t) (longestSeconds * (float) sampleRate);
 }
 
-MakeASound::SessionConfig ambientSession()
+MakeASound::SessionConfig playbackSession()
 {
     auto session = MakeASound::SessionConfig {};
-    session.category = MakeASound::SessionCategory::Ambient;
+    session.category = MakeASound::SessionCategory::Playback;
     session.options.mixWithOthers = true;
     return session;
 }
@@ -90,7 +90,7 @@ void SamplePlayer::start()
         return;
 
     config.sampleRate = (int) sampleRate;
-    device.setSessionConfig(ambientSession());
+    device.setSessionConfig(playbackSession());
     open = device.start(
                config, [this](MakeASound::AudioCallbackInfo& info) { render(info); })
            == MakeASound::Error::NoError;
