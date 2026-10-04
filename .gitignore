@@ -29,3 +29,4 @@ Deploy/Art/Renders
 Deploy/Apple-macOS/out
 Deploy/Microsoft-Store/out
 Deploy/Google-Play/out
+tools/__pycache__
