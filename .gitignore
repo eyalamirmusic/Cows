@@ -31,3 +31,6 @@ Deploy/Microsoft-Store/out
 Deploy/Google-Play/out
 tools/__pycache__
 secret-data
+
+# Partner Center values, filled in locally
+partner-center.env

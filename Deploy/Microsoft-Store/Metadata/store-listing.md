@@ -1,7 +1,5 @@
 # Cows In Love — Microsoft Store (Partner Center)
 
-**FILL IN** marks values from the Partner Center account.
-
 ## Product identity (Product management > Product identity)
 
 Copy these three into the environment before `tools/release-msix.ps1`:
@@ -64,4 +62,4 @@ wants 1366 x 768 or larger), in file order.
 
 ## Pricing and availability
 
-**FILL IN**: price, markets, release date.
+Free, worldwide, no in-app purchases, no ads.
