@@ -1,0 +1,5 @@
+9:16 Poster art (1440 x 2160): Deploy/Microsoft-Store/Store/poster_1440x2160.png
+1:1 Box art (2160 x 2160):     Deploy/Microsoft-Store/Store/boxart_2160x2160.png
+
+Store display images (300/150/71 tiles): leave empty, the Store takes them from the package.
+Trailers, Super hero art, Xbox images: none.

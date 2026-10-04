@@ -1,0 +1,8 @@
+cow
+love
+cute
+cozy
+casual
+meadow
+farm
+(one per line, press Enter after each)

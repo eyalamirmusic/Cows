@@ -1,0 +1,14 @@
+Somewhere in a foggy meadow, the other cow is waiting.
+
+Cows In Love is a small, gentle 3D game about finding someone. Walk your cow through hedgerows, groves, hay bales and barns. You can't see far, so moo: she moos back, and you can hear whether she is close by or far off, and which way. The nearer you get, the faster both your hearts beat.
+
+Then the meadow gives way. Hop logs and fences, cross a ravine on a narrow plank bridge while bales of hay roll across it, and find her on the other side.
+
+When you do, the two of you meet nose to nose, the hearts come out, and the next meadow begins.
+
+Features
+- A fresh meadow every round
+- Moo for a hint: she answers from where she is, in stereo
+- Jump fences, logs and barn roofs
+- A ravine crossing that is all about timing
+- Walk with WASD, HJKL or the arrow keys; space to jump; M to moo

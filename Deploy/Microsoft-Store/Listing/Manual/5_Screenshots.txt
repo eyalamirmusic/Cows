@@ -1,0 +1,7 @@
+Deploy/Steam/Screenshots/1-meadow.png
+Deploy/Steam/Screenshots/2-moo.png
+Deploy/Steam/Screenshots/3-ravine.png
+Deploy/Steam/Screenshots/4-bridge.png
+Deploy/Steam/Screenshots/5-jump.png
+Deploy/Steam/Screenshots/6-found.png
+(1920 x 1080, upload in this order)
