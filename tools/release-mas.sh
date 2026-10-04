@@ -4,12 +4,19 @@
 # Builds a sandboxed, universal Release archive for the Mac App Store and
 # exports the signed .pkg into Deploy/Apple-macOS/out/. --upload sends it
 # straight to App Store Connect. Signing is automatic (Apple Distribution and
-# 3rd Party Mac Developer Installer, created by Xcode on first export).
+# 3rd Party Mac Developer Installer, created by Xcode on first export), through
+# the account Xcode is signed into, or without one when COWS_ASC_KEY_ID,
+# COWS_ASC_ISSUER_ID and COWS_ASC_KEY or COWS_ASC_KEY_P8 name an App Store
+# Connect API key: `just release-mas` fills them from 1Password through
+# Deploy/asc.env, as release-ios.sh does.
 # COWS_TEAM=none builds an unsigned archive, to check the build only.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
+
+# Apple's rsync first for the export; see release-ios.sh.
+export PATH="/usr/bin:$PATH"
 
 team="${COWS_TEAM:?set COWS_TEAM to the Apple Developer team id (or none)}"
 build_number="${COWS_BUILD_NUMBER:-1}"
@@ -22,6 +29,17 @@ signing=(-DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="$team"
     -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE=Automatic
     -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="Apple Development")
 xcode_signing=(-allowProvisioningUpdates)
+if [[ -n "${COWS_ASC_KEY_ID:-}" ]]; then
+    if [[ -z "${COWS_ASC_KEY:-}" ]]; then
+        keydir="$(mktemp -d)"
+        trap 'rm -rf "$keydir"' EXIT
+        COWS_ASC_KEY="$keydir/AuthKey_$COWS_ASC_KEY_ID.p8"
+        printf '%s\n' "$COWS_ASC_KEY_P8" > "$COWS_ASC_KEY"
+    fi
+    xcode_signing+=(-authenticationKeyPath "$COWS_ASC_KEY"
+        -authenticationKeyID "$COWS_ASC_KEY_ID"
+        -authenticationKeyIssuerID "$COWS_ASC_ISSUER_ID")
+fi
 if [[ "$team" == none ]]; then
     signing=(-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO)
     xcode_signing=()
@@ -59,5 +77,5 @@ sed -e "s/TEAM_ID/$team/" \
     Deploy/Apple-macOS/ExportOptions.plist > "$options"
 
 xcodebuild -exportArchive -archivePath "$archive" -exportPath "$out" \
-    -exportOptionsPlist "$options" -allowProvisioningUpdates
+    -exportOptionsPlist "$options" "${xcode_signing[@]}"
 ls "$out"

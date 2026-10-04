@@ -1,6 +1,6 @@
 # Cows In Love — Privacy Policy
 
-_Last updated: 2026_
+_Last updated: 3 October 2026_
 
 Cows In Love does not collect, store or share any personal information.
 
@@ -12,4 +12,4 @@ Cows In Love does not collect, store or share any personal information.
 The store you downloaded it from (the App Store, Google Play, Steam or the Microsoft Store) may collect data
 under its own privacy policy; that is between you and the store.
 
-Questions: **FILL IN contact email**.
+Questions: open an issue at https://github.com/jamierpond/cowsinlove.com/issues.

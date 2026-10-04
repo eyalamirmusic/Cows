@@ -5,13 +5,19 @@
 # Deploy/Apple-iOS/out/. --upload sends it straight to App Store Connect.
 # Signing is automatic: Xcode creates the distribution certificate and profile
 # when it needs to, through the account Xcode is signed into, or without one
-# when COWS_ASC_KEY_ID, COWS_ASC_ISSUER_ID and COWS_ASC_KEY (the .p8 path) name
-# an App Store Connect API key (`just release-ios` takes them from 1Password).
+# when COWS_ASC_KEY_ID, COWS_ASC_ISSUER_ID and COWS_ASC_KEY (the .p8 path) or
+# COWS_ASC_KEY_P8 (its contents) name an App Store Connect API key:
+# `just release-ios` fills them from 1Password through Deploy/asc.env.
 # COWS_TEAM=none builds an unsigned archive, to check the build only.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
+
+# Xcode's export runs Apple's rsync, which starts a second rsync by name; a
+# newer one on the PATH (Homebrew, nix) rejects Apple's flags and the export
+# fails with "Copy failed".
+export PATH="/usr/bin:$PATH"
 
 team="${COWS_TEAM:?set COWS_TEAM to the Apple Developer team id (or none)}"
 build_number="${COWS_BUILD_NUMBER:-1}"
@@ -23,6 +29,12 @@ archive="$out/CowsInLove.xcarchive"
 signing=(-DCOWS_IOS_TEAM="$team" -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE=Automatic)
 xcode_signing=(-allowProvisioningUpdates)
 if [[ -n "${COWS_ASC_KEY_ID:-}" ]]; then
+    if [[ -z "${COWS_ASC_KEY:-}" ]]; then
+        keydir="$(mktemp -d)"
+        trap 'rm -rf "$keydir"' EXIT
+        COWS_ASC_KEY="$keydir/AuthKey_$COWS_ASC_KEY_ID.p8"
+        printf '%s\n' "$COWS_ASC_KEY_P8" > "$COWS_ASC_KEY"
+    fi
     xcode_signing+=(-authenticationKeyPath "$COWS_ASC_KEY"
         -authenticationKeyID "$COWS_ASC_KEY_ID"
         -authenticationKeyIssuerID "$COWS_ASC_ISSUER_ID")

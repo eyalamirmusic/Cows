@@ -8,8 +8,8 @@ publishing account.
 | Field | Value |
 | --- | --- |
 | Name | Cows In Love |
-| Developer | **FILL IN** |
-| Publisher | **FILL IN** |
+| Developer | Jamie Pond |
+| Publisher | Jamie Pond |
 | Genres | Casual, Adventure, Indie |
 | Tags | Cute, Casual, Relaxing, Cozy, 3D, Exploration, Short, Family Friendly, Wholesome, Colorful |
 | Supported languages | English (interface, full audio: none needed beyond the moo) |

@@ -89,12 +89,17 @@ One-time, on the Apple account:
 2. Make an App Store Connect API key (Users and Access > Integrations > Team
    Keys, role App Manager) and put it in the "Cows In Love" vault of the
    personal 1Password account as an item named "App Store Connect API" with
-   the fields `team id`, `key id`, `issuer id` and the `.p8` attached as
-   `private key`. `tools/with-asc-key.sh` reads them; automatic signing then
-   creates the distribution certificate and profile on first export with no
-   Xcode login.
-3. Fill in App Store Connect from `Deploy/Apple-iOS/Metadata/app-store.md`,
-   host `privacy-policy.md`, upload the screenshots.
+   the fields `team id`, `key id`, `issuer id`, the `.p8` attached as
+   `private key`, and `copyright`, `review name`, `review phone`,
+   `review email` for the listing. `Deploy/asc.env` maps them to the
+   environment for `op run`, which the justfile's `asc` prefix runs; automatic
+   signing then creates the distribution certificate and profile on first
+   export with no Xcode login. No contact details or secrets go in the repo.
+3. The listing is filled from `Deploy/Apple-iOS/Metadata/app-store.md` and
+   the screenshots by `just asc all --platform ios --write`
+   (`tools/asc-listing.py`; without `--write` it only prints). App Privacy
+   ("Data Not Collected") and the price are set in the web UI, which the API
+   does not cover.
 
 Each release:
 ```bash

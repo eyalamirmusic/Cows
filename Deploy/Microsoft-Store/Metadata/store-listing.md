@@ -17,9 +17,9 @@ Copy these three into the environment before `tools/release-msix.ps1`:
 | Field | Value |
 | --- | --- |
 | Category | Games > Family & kids (or Games > Other) |
-| Privacy policy URL | **FILL IN** (host `Deploy/Apple-iOS/Metadata/privacy-policy.md`) |
+| Privacy policy URL | https://cowsinlove.com/privacy |
 | Website | https://cowsinlove.com |
-| Support contact | **FILL IN** |
+| Support contact | https://cowsinlove.com/support |
 | System requirements | Minimum: Windows 10 version 1809 (17763), x64, DirectX 12 GPU, 4 GB RAM. Input: keyboard and mouse |
 | Game settings | Single player; no online features; no cross-device play |
 | Accessibility | Not declared |

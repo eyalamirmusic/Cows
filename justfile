@@ -52,10 +52,19 @@ screenshots:
 release-macos:
     tools/release-macos.sh
 
+# App Store Connect credentials, from the "Cows In Love" vault of the personal
+# 1Password account through Deploy/asc.env (never the Tamber service account).
+asc := "env -u OP_SERVICE_ACCOUNT_TOKEN op run --account my.1password.com --env-file Deploy/asc.env --"
+
 # App Store archive and export (--upload sends it to App Store Connect), signed
-# and uploaded with the API key in the "Cows In Love" 1Password vault.
+# and uploaded with the API key from 1Password.
 release-ios *args:
-    tools/with-asc-key.sh tools/release-ios.sh {{args}}
+    {{asc}} tools/release-ios.sh {{args}}
+
+# The App Store Connect listing: check, info, version, screenshots, build, submit
+# or all, with --platform ios|macos and --write (tools/asc-listing.py).
+asc *args:
+    {{asc}} tools/asc-listing.py {{args}}
 
 # Google Play .aab, Release arm64-v8a + x86_64, through Gradle's bundleRelease
 # (args go to the configure: -DCOWS_BUILD_NUMBER=<n>).
@@ -72,6 +81,7 @@ release-windows:
 steam-upload:
     tools/steam-upload.sh
 
-# Mac App Store archive and export (COWS_TEAM; --upload sends it to App Store Connect).
+# Mac App Store archive and export (--upload sends it to App Store Connect), signed
+# and uploaded with the API key from 1Password.
 release-mas *args:
-    tools/release-mas.sh {{args}}
+    {{asc}} tools/release-mas.sh {{args}}

@@ -63,7 +63,7 @@ Upload order: 1-meadow, 2-moo, 3-ravine, 4-bridge, 5-jump, 6-found.
 | --- | --- |
 | Category | Game > Casual |
 | Tags (up to 5) | Casual, Adventure, Relaxing, Cute, Offline (pick the nearest from Play's list) |
-| Email address | **FILL IN** support email |
+| Email address | 1Password: `review email` (Deploy/asc.env) |
 | Phone | optional |
 | Website | https://cowsinlove.com |
 | External marketing | leave on |
@@ -78,8 +78,8 @@ First release.
 
 ## App content (Policy > App content)
 
-**Privacy policy**: **FILL IN** the hosted URL of
-`Deploy/Apple-iOS/Metadata/privacy-policy.md` (one policy for every store).
+**Privacy policy**: https://cowsinlove.com/privacy (the text of
+`Deploy/Apple-iOS/Metadata/privacy-policy.md`, one policy for every store).
 
 **Ads**: No, my app does not contain ads.
 
@@ -90,7 +90,7 @@ login, no accounts).
 violence, blood, fear, sexuality, nudity, language, crude humour, controlled
 substances, gambling and simulated gambling, user interaction or user-generated
 content, sharing the user's location, digital purchases, and unrestricted
-internet. Email: **FILL IN**. Expected result: ESRB Everyone, PEGI 3, USK 0,
+internet. Email: the `review email` in 1Password. Expected result: ESRB Everyone, PEGI 3, USK 0,
 IARC 3+.
 
 **Target audience and content**: age groups **13–15, 16–17, 18 and over**;

@@ -16,10 +16,10 @@ page). Lines marked **FILL IN** need a value from the publishing account.
 | Game subcategories | Casual, Adventure |
 | Content rights | Does not contain, show or access third-party content |
 | Age rating | 4+ (see below) |
-| Copyright | **FILL IN** e.g. "2026 <legal name>" |
-| Support URL | **FILL IN** e.g. https://cowsinlove.com/support |
+| Copyright | 1Password: `copyright` (Deploy/asc.env) |
+| Support URL | https://cowsinlove.com/support |
 | Marketing URL | https://cowsinlove.com (optional) |
-| Privacy Policy URL | **FILL IN** e.g. https://cowsinlove.com/privacy — see privacy-policy.md |
+| Privacy Policy URL | https://cowsinlove.com/privacy (privacy-policy.md) |
 
 ## Version 1.0
 
@@ -64,7 +64,7 @@ First release.
 | Field | Value |
 | --- | --- |
 | Sign-in required | No |
-| Contact | **FILL IN** name, phone, email |
+| Contact | 1Password: `review name`, `review phone`, `review email` (Deploy/asc.env) |
 | Notes | See below |
 
 Notes for review:
