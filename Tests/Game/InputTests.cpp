@@ -99,3 +99,46 @@ auto tJumpKeys = test("Input/jump") = []
     input.jump();
     check(input.jumpPending);
 };
+
+auto tPadSums = test("Input/padAddsToKeysAndStickThenClamps") = []
+{
+    auto input = Input {};
+    input.setPad(0.5f, -0.25f, false);
+    check(input.walkAhead() == 0.5f);
+    check(input.walkTurn() == -0.25f);
+
+    input.setStick(0.25f, 0.f);
+    check(input.walkAhead() == 0.75f);
+
+    input.setHeld(W, true);
+    check(input.walkAhead() == 1.f);
+
+    input.setHeld(D, true);
+    input.setPad(0.f, -1.f, false);
+    check(input.walkTurn() == -1.f);
+};
+
+auto tPadKeepsStick = test("Input/padDoesNotClearTouchStick") = []
+{
+    auto input = Input {};
+    input.setStick(0.6f, 0.3f);
+    input.setPad(0.f, 0.f, false);
+    check(input.walkAhead() == 0.6f);
+    check(input.walkTurn() == 0.3f);
+
+    input.setPad(-0.6f, 0.f, false);
+    check(input.walkAhead() == 0.f);
+    check(input.stickAhead == 0.6f);
+};
+
+auto tPadJump = test("Input/padJumpingHolds") = []
+{
+    auto input = Input {};
+    input.setPad(0.f, 0.f, true);
+    check(input.padJumping);
+    check(!input.jumping);
+    check(!input.jumpPending);
+
+    input.setPad(0.f, 0.f, false);
+    check(!input.padJumping);
+};
