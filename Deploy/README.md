@@ -230,6 +230,9 @@ For x64 and arm64 (`-Arch x64` for one), it builds the Release exe if needed
 (`COWS_ARCH` on `build-windows.bat`), lays out the package, makes
 `resources.pri` and packs `Deploy\Microsoft-Store\out\CowsInLove-<version>.0-<arch>.msix`.
 Upload both to the submission's Packages page: Partner Center signs them.
+The arm64 package builds on an Arm64 Windows machine; cross-compiling it on
+x64 stops at ResEmbed's generator, which comes out arm64 too
+(eyalamirmusic/ResEmbed#4).
 `-Certificate <pfx> -Password <pw>` signs it locally, only for sideload
 testing (the certificate subject must equal the publisher).
 
