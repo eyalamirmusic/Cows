@@ -91,6 +91,19 @@ private:
     void animate(float delta, bool walking);
 };
 
+// What Escape, or Android's Back, does: nothing mid-swing, back to the menu
+// from the editor, the menu from play, and on the menu itself nothing of the
+// game's, so the key goes on to quit or to leave the app.
+enum class EscapeAction
+{
+    Swallow,
+    CloseEditor,
+    OpenMenu,
+    PassOn
+};
+
+EscapeAction escapeAction(Game::State state, bool dressing, bool swinging);
+
 // Whose controls the footer names: the keys, the touch controls, or a
 // controller by the labels it wears.
 enum class Hints

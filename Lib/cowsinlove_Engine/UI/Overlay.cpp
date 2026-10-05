@@ -78,6 +78,12 @@ void RootView::resized()
 
 void RootView::keyDown(const Graphics::KeyEvent& event)
 {
+    if (event.keyCode == Graphics::KeyCode::Back)
+    {
+        backKey(event);
+        return;
+    }
+
     if (event.keyCode == Graphics::KeyCode::Escape && !event.isRepeat && onEscape())
         return;
 
@@ -93,6 +99,23 @@ void RootView::keyDown(const Graphics::KeyEvent& event)
 
 void RootView::keyUp(const Graphics::KeyEvent& event)
 {
+    if (event.keyCode == Graphics::KeyCode::Back)
+    {
+        backKey(event);
+        return;
+    }
+
     onKeyUp(event);
+}
+
+void RootView::backKey(const Graphics::KeyEvent& event)
+{
+    auto pressed = event.type == Graphics::KeyEventType::Down && !event.isRepeat;
+
+    if (pressed)
+        passingBack = !onEscape();
+
+    if (passingBack)
+        passKeyOn();
 }
 } // namespace Cows

@@ -282,6 +282,20 @@ bool Game::justFell() const
     return state == State::Searching && sinceFell < fellTime;
 }
 
+EscapeAction escapeAction(Game::State state, bool dressing, bool swinging)
+{
+    if (swinging)
+        return EscapeAction::Swallow;
+
+    if (dressing)
+        return EscapeAction::CloseEditor;
+
+    if (state == Game::State::Menu)
+        return EscapeAction::PassOn;
+
+    return EscapeAction::OpenMenu;
+}
+
 std::string editorText(Hints hints)
 {
     if (isGamepad(hints))
