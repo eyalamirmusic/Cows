@@ -36,7 +36,7 @@ void settle(CowsView& view, float seconds)
     for (auto time = 0.f; time < seconds; time += step)
     {
         view.game.update(step, 0.f, 0.f, false);
-        view.steerCamera(step);
+        view.steerCamera(step, step);
         view.elapsed += step;
     }
 }
@@ -116,7 +116,7 @@ Vector<Shot> shots()
                   for (auto frame = 0; frame < 16; ++frame)
                   {
                       game.update(step, 1.f, 0.f, false);
-                      view.steerCamera(step);
+                      view.steerCamera(step, step);
                   }
               }});
 

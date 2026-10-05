@@ -2,6 +2,8 @@
 
 #include "Render/Common.h"
 
+#include <optional>
+
 namespace Cows
 {
 // Where an OrbitCamera stands: everything that places its eye.
@@ -20,6 +22,17 @@ CameraPose blend(const CameraPose& from, const CameraPose& to, float amount);
 
 // Fast out of the start, settling gently: 0 at 0, 1 at 1.
 float easeOut(float amount);
+
+// eacp clamps FrameTime::delta to 0.1 s, so at a slow phone's few frames a
+// second the game runs in slow motion; the camera's swings between the menu,
+// the editor and play take their steps from here instead, the clock's own time
+// between frames, so Start lands on time however few frames there are.
+struct SwingClock final
+{
+    float step(Threads::FrameTime time);
+
+    std::optional<double> last;
+};
 
 // The idle sway drift() gives at `seconds`, as yaw and pitch.
 Maths::Vec2 driftAt(float seconds);

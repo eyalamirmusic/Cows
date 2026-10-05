@@ -39,7 +39,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `Render/Instances` — per-instance data and per-mesh batches
   - `Render/ShadowMap` — the key light's depth target
   - `Camera/OrbitCamera` — drag to orbit, scroll to zoom, idle drift;
-    `CameraPose`, `blend` and `easeOut` for the menu's camera swing
+    `CameraPose`, `blend` and `easeOut` for the menu's camera swing, `SwingClock`
+    (the swing's step on the clock, past eacp's 0.1 s delta clamp)
   - `UI/Hud` — draws the HUD at the end of the scene's own pass: discs and
     rings through eacp's `UI::ShapeBatch`, text through `Text::TextRenderer`
     (Menlo), on every platform; `CowsView` owns one and calls `drawHud`;
@@ -128,7 +129,9 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     `start()` leaves the menu, `openMenu()` pauses into it, `playing()` is the
     state behind it; a `reset` from play skips the menu), player movement, found test, moo cooldown, the moo
     hint, the level's clock (`seconds`, driving its movers), the checkpoint and
-    respawn below `killDepth` (`sinceFell`), and `footerText` (for a `Hints`); `reset(seed)` builds the level through its
+    respawn below `killDepth` (`sinceFell`), `footerText` (for a `Hints`), and
+    `inputOwner` (menu, editor or play takes touches; play from the moment Start
+    swings the camera down); `reset(seed)` builds the level through its
     `makeLevel` hook, which the app sets (the library never names a level)
   - `Ending` — the ending's numbers (title rise, kiss point, camera settle) and
     `titlePlacement`, `loops` (start again after the title)

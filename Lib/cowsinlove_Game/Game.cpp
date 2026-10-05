@@ -296,6 +296,14 @@ EscapeAction escapeAction(Game::State state, bool dressing, bool swinging)
     return EscapeAction::OpenMenu;
 }
 
+InputOwner inputOwner(Game::State state, bool dressing, bool startingPlay)
+{
+    if (state != Game::State::Menu || startingPlay)
+        return InputOwner::Play;
+
+    return dressing ? InputOwner::Editor : InputOwner::Menu;
+}
+
 std::string editorText(Hints hints)
 {
     if (isGamepad(hints))

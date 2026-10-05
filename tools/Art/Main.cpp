@@ -76,7 +76,7 @@ void playEnding(CowsView& view, float sinceFound)
     while (game.sinceFound < sinceFound)
     {
         game.update(step, 0.f, 0.f, false);
-        view.steerCamera(step);
+        view.steerCamera(step, step);
         view.elapsed += step;
     }
 }
