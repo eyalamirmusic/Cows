@@ -227,3 +227,25 @@ auto tAgainSkipsMenu = test("Game/anotherMeadowAfterTheEndingSkipsTheMenu") = []
     check(game.state == Game::State::Menu);
     check(game.playing() == Game::State::Searching);
 };
+
+auto tMenuAnimates = test("Game/theMenuPausesTheGameButNotTheHeartbeat") = []
+{
+    auto game = openField();
+    game.update(0.5f, 1.f, 0.f, false);
+    check(game.bounce > 0.5f);
+
+    game.openMenu();
+    auto player = game.player;
+    auto seconds = game.seconds;
+    auto beat = game.beatClock;
+    auto hop = game.hopClock;
+
+    for (auto step = 0; step < 100; ++step)
+        game.update(frame, 1.f, 1.f, true);
+
+    check(game.player.x == player.x && game.player.z == player.z);
+    check(game.seconds == seconds);
+    check(game.beatClock > beat);
+    check(near(game.hopClock - hop, 1.f));
+    check(game.bounce < 0.01f);
+};
