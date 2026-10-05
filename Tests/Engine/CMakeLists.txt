@@ -5,6 +5,7 @@ nano_add_executable(EngineTests
             HudSnapshotTests.cpp
             InstancesTests.cpp
             MenuSnapshotTests.cpp
+            MenuTouchTests.cpp
             MeshTests.cpp
             OrbitCameraTests.cpp
             PaletteTests.cpp

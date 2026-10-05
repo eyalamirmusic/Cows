@@ -35,7 +35,12 @@ struct Menu final : Graphics::View
 
     int itemAt(Graphics::Point position) const;
 
-    Graphics::View* hitTest(const Graphics::Point& point) override;
+    // Hidden, it takes no mouse or touch, so they reach the views under it.
+    // eacp finds a finger's view without calling hitTest, so this clears the
+    // handles flags rather than overriding hitTest.
+    void setShowing(bool shouldShow);
+    bool isShowing() const;
+
     void mouseMoved(const Graphics::MouseEvent& event) override;
     void mouseExited(const Graphics::MouseEvent& event) override;
     void mouseDown(const Graphics::MouseEvent& event) override;
@@ -61,12 +66,14 @@ struct Menu final : Graphics::View
 
     Vector<MenuItem> items;
     Vector<Placed> placed;
-    bool showing = true;
     float opacity = 1.f;
     bool showSelection = false;
     int selected = 0;
     int hovered = -1;
     int pressed = -1;
+
+private:
+    bool showing = true;
 };
 
 // The family Comic Neue Bold registered under, embedded with the Engine; the

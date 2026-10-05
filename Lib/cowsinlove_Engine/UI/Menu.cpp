@@ -75,8 +75,7 @@ const std::string& menuFontFamily()
 
 Menu::Menu()
 {
-    setHandlesMouseEvents(true);
-    setHandlesTouchEvents(true);
+    setShowing(true);
 }
 
 bool Menu::wide() const
@@ -246,12 +245,16 @@ void Menu::choose(int index)
     onChoose(index);
 }
 
-Graphics::View* Menu::hitTest(const Point& point)
+void Menu::setShowing(bool shouldShow)
 {
-    if (!showing)
-        return nullptr;
+    showing = shouldShow;
+    setHandlesMouseEvents(shouldShow);
+    setHandlesTouchEvents(shouldShow);
+}
 
-    return View::hitTest(point);
+bool Menu::isShowing() const
+{
+    return showing;
 }
 
 void Menu::mouseMoved(const Graphics::MouseEvent& event)
