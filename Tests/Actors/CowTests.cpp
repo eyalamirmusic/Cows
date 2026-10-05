@@ -152,3 +152,55 @@ auto tCowSnapshot = test("Cow/snapshot") = []
     check(isClearColor(image.at(1, height - 2)));
     check(isClearColor(image.at(width - 2, height - 2)));
 };
+
+namespace
+{
+bool isEyePink(const Graphics::Color& color)
+{
+    return color.r > 0.75f && color.g < 0.3f && color.b > 0.1f && color.b < 0.6f;
+}
+
+int eyePixels(const Graphics::Image& image)
+{
+    auto count = 0;
+
+    for (auto y = 0; y < image.height(); ++y)
+        for (auto x = 0; x < image.width(); ++x)
+            if (isEyePink(image.at(x, y)))
+                ++count;
+
+    return count;
+}
+
+Graphics::Image cowSeenFrom(float distance, const std::string& name)
+{
+    auto cow = Cow {};
+    auto view = SnapshotView {makeCowMesh};
+    cow.addTo(view.batch,
+              view.glows,
+              makeCowParts(),
+              cow.freePose({}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f));
+    view.camera.target = {1.2f, 1.6f, 0.f};
+    view.camera.yaw = 1.15f;
+    view.camera.pitch = 0.05f;
+    view.camera.distance = distance;
+
+    return snapshot(view, 960.f, 720.f, name);
+}
+} // namespace
+
+auto tEyesInTheMist = test("Cow/eyesFadeIntoTheMist") = []
+{
+    if (!hasDevice())
+        return;
+
+    auto near = cowSeenFrom(6.5f, "actors-cow-mist-near");
+    auto far = cowSeenFrom(45.f, "actors-cow-mist-far");
+    check(near.isValid() && far.isValid());
+
+    if (!near.isValid() || !far.isValid())
+        return;
+
+    check(eyePixels(near) > 20);
+    check(eyePixels(far) == 0);
+};

@@ -26,7 +26,11 @@ Float shadowAt(const SceneUniforms& scene,
                const Float3& world,
                const Float3& normal);
 
-// Haze thickening with distance and thinning with height, toward the horizon.
+// How thick the haze is between the eye and `world`: 0 for none, rising with
+// distance and thinning with height.
+Float hazeAt(const Float3& eye, const Float3& world);
+
+// `color` seen through hazeAt's haze, toward the horizon.
 Float3
     withHaze(const SceneUniforms& scene, const Float3& color, const Float3& world);
 

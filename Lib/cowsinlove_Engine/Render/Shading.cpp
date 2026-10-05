@@ -101,13 +101,16 @@ Float shadowAt(const SceneUniforms& scene, const Float3& world, const Float3& no
     return 1.f - inside * (1.f - lit);
 }
 
+Float hazeAt(const Float3& eye, const Float3& world)
+{
+    auto distance = length(world - eye);
+    return (1.f - exp(-max(distance - hazeStart, 0.f) * hazeDensity))
+           * exp(-max(world.y(), 0.f) * hazeFalloff);
+}
+
 Float3 withHaze(const SceneUniforms& scene, const Float3& color, const Float3& world)
 {
-    auto distance = length(world - scene.eyePosition);
-    auto thickness = (1.f - exp(-max(distance - hazeStart, 0.f) * hazeDensity))
-                     * exp(-max(world.y(), 0.f) * hazeFalloff);
-
-    return mix(color, scene.horizonColor, thickness);
+    return mix(color, scene.horizonColor, hazeAt(scene.eyePosition, world));
 }
 
 Float3 toDisplay(const Float3& linear)

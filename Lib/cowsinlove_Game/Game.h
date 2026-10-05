@@ -34,7 +34,8 @@ struct Game final
     // `ahead` walks forward (1) or back (-1) along the cow's heading; `turn`
     // turns it left (1) or right (-1); `jump` leaps if it is on its feet.
     // Falling below the level's killDepth puts the cow back on its checkpoint:
-    // the last firm ground it stood on.
+    // the last firm ground it stood on. In the menu the game waits, but the
+    // heartbeat in the eyes runs on and a hop in the air lands.
     void update(float delta, float ahead, float turn, bool jump);
 
     // Moos, if she has not just mooed.
@@ -85,6 +86,9 @@ struct Game final
     float checkpointHeading = 0.f;
     float sinceFell = 100.f;
     float seconds = 0.f;
+
+private:
+    void animate(float delta, bool walking);
 };
 
 // Whose controls the footer names: the keys, the touch controls, or a

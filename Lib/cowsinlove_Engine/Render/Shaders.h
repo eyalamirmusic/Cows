@@ -62,6 +62,7 @@ struct ShadowCasterShader final : ShaderProgram
 };
 
 // Soft additive light around bright things: the sun, the eyes, the hearts.
+// It fades into the mist as the surfaces do, by each glow's `mist`.
 struct GlowShader final : ShaderProgram
 {
     GlowShader();
@@ -71,7 +72,8 @@ struct GlowShader final : ShaderProgram
     Uniform<Float4x4> viewProjection;
     Uniform<Float3> cameraRight;
     Uniform<Float3> cameraUp;
+    Uniform<Float3> eyePosition;
 
-    EACP_SHADER(viewProjection, cameraRight, cameraUp)
+    EACP_SHADER(viewProjection, cameraRight, cameraUp, eyePosition)
 };
 } // namespace Cows

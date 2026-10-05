@@ -70,6 +70,7 @@ void addSun(SurfaceBatch& batch,
     auto core = Material {yellow};
     core.emission = 1.25f + 0.35f * pulse;
     core.gloss = 0.f;
+    core.mist = 0.f;
 
     batch.add(
         Shape::Sphere,
@@ -93,8 +94,9 @@ void addSun(SurfaceBatch& batch,
     auto halo = Vec3 {1.f, 0.85f, 0.35f} * (0.28f + 0.14f * pulse);
     auto inner = Vec3 {1.f, 0.9f, 0.2f} * (0.25f + 0.15f * pulse);
 
-    glows.add(makeGlow(center + Vec3 {0.f, 0.f, 2.f}, 15.f + 1.5f * pulse, halo));
-    glows.add(makeGlow(center + Vec3 {0.f, 0.f, 2.5f}, 6.5f, inner));
+    glows.add(
+        makeGlow(center + Vec3 {0.f, 0.f, 2.f}, 15.f + 1.5f * pulse, halo, 0.f));
+    glows.add(makeGlow(center + Vec3 {0.f, 0.f, 2.5f}, 6.5f, inner, 0.f));
 }
 
 void addClouds(SurfaceBatch& batch, float seconds, Vec3 origin)

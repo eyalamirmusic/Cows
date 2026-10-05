@@ -161,7 +161,10 @@ Game::State Game::playing() const
 void Game::update(float delta, float ahead, float turn, bool jump)
 {
     if (state == State::Menu)
+    {
+        animate(delta, false);
         return;
+    }
 
     sinceMoo += delta;
     sinceFell += delta;
@@ -220,12 +223,7 @@ void Game::update(float delta, float ahead, float turn, bool jump)
         sinceFell = 0.f;
     }
 
-    bounce += ((moving && grounded ? 1.f : 0.f) - bounce)
-              * std::min(1.f, delta * bounceRate);
-    hopClock += delta;
-
-    auto period = coldBeat + (warmBeat - coldBeat) * warmth();
-    beatClock += delta * Choreography::heartbeatPeriod / period;
+    animate(delta, moving && grounded);
 
     if (distance() > foundDistance || std::abs(player.y - partner.y) > foundClimb)
         return;
@@ -235,6 +233,15 @@ void Game::update(float delta, float ahead, float turn, bool jump)
     stageCenter = partner;
     stageHeading = headingToward(normalize(between));
     sinceFound = 0.f;
+}
+
+void Game::animate(float delta, bool walking)
+{
+    bounce += ((walking ? 1.f : 0.f) - bounce) * std::min(1.f, delta * bounceRate);
+    hopClock += delta;
+
+    auto period = coldBeat + (warmBeat - coldBeat) * warmth();
+    beatClock += delta * Choreography::heartbeatPeriod / period;
 }
 
 void Game::moo()

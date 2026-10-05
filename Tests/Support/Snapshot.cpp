@@ -144,6 +144,7 @@ void SnapshotView::drawGlows(RenderPass& pass, const Mat4& viewProjection)
     glowShader.viewProjection = viewProjection;
     glowShader.cameraRight = camera.right();
     glowShader.cameraUp = camera.up();
+    glowShader.eyePosition = camera.eye();
     glowShader.setInstances(1, glows.data(), glows.size());
 
     pass.drawInstanced(glowShader, glows.size());

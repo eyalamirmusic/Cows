@@ -839,7 +839,7 @@ void CowsView::addAnswerFlare()
         auto lift =
             flareHeight * (since / flareTime) * (1.f - 0.12f * (float) flare);
         auto at = game.partner + Vec3 {0.f, 2.5f + lift, 0.f};
-        glows.add(makeGlow(at, 2.4f - 0.2f * (float) flare, color));
+        glows.add(makeGlow(at, 2.4f - 0.2f * (float) flare, color, 0.f));
     }
 }
 
@@ -1179,6 +1179,7 @@ void CowsView::drawGlows(RenderPass& pass, const Mat4& viewProjection)
     glowShader.viewProjection = viewProjection;
     glowShader.cameraRight = camera.right();
     glowShader.cameraUp = camera.up();
+    glowShader.eyePosition = camera.eye();
     glowShader.setInstances(1, glows.data(), glows.size());
 
     pass.drawInstanced(glowShader, glows.size());
