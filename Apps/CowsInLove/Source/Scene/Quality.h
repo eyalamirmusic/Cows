@@ -33,6 +33,8 @@ struct QualitySettings final
     int shadowTaps = 16;
     int shadowResolution = 2048;
     float renderScale = 1.f;
+    // How finely the cows, props and hats are cut (see `detailed`).
+    float meshDetail = 1.f;
 };
 
 QualitySettings settingsFor(Quality quality);

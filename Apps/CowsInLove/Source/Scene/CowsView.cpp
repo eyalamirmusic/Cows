@@ -178,8 +178,8 @@ float startTime()
 
 // What COWS_PROFILE runs vary, one at a time, to find what a frame costs:
 // COWS_BLADES caps the blades drawn per tile, COWS_MSAA, COWS_RENDER_SCALE and
-// COWS_SHADOW override the tier's sample count, render scale and shadow map
-// side, and COWS_SKIP names parts of the frame left out (sky, ground,
+// COWS_SHADOW and COWS_DETAIL override the tier's sample count, render scale,
+// shadow map side and mesh detail, and COWS_SKIP names parts of the frame left out (sky, ground,
 // objects, grass, glow, hud, shadows).
 struct ProfileSettings final
 {
@@ -192,6 +192,7 @@ struct ProfileSettings final
     std::optional<int> samples;
     std::optional<int> shadowResolution;
     std::optional<float> renderScale;
+    std::optional<float> meshDetail;
     std::string skip;
 };
 
@@ -212,6 +213,9 @@ const ProfileSettings& profileSettings()
 
         if (auto resolution = getEnv("COWS_SHADOW"))
             read.shadowResolution = std::stoi(*resolution);
+
+        if (auto detail = getEnv("COWS_DETAIL"))
+            read.meshDetail = std::stof(*detail);
 
         read.skip = getEnvValue("COWS_SKIP");
         return read;
@@ -273,6 +277,8 @@ void CowsView::useQuality(Quality chosen)
     setSampleCount(profileSettings().samples.value_or(settings.samples));
     setRenderScale(profileSettings().renderScale.value_or(settings.renderScale));
     grassDensity = settings.grass;
+    auto detail = profileSettings().meshDetail.value_or(settings.meshDetail);
+    shapes = ShapeMeshes {cowMeshes(detail), detail};
     shadowMap.reset();
     shadowMap.emplace(
         profileSettings().shadowResolution.value_or(settings.shadowResolution));
@@ -289,6 +295,7 @@ void CowsView::useQuality(Quality chosen)
     auto blade = makeBlade();
     grassShader->setVertices(blade.vertices.data(), blade.vertices.size());
     grassShader->setIndices(blade.indices.data(), blade.indices.size());
+    bladeTriangles = (int) blade.indices.size() / 3;
     grassShader->setInstances(1, grass.tile.data(), grass.tile.size());
     uploadedBlades = &grass.tile;
 
@@ -1175,9 +1182,10 @@ void CowsView::drawShadows(Frame& frame)
 
     auto pass = frame.beginPass(shadowMap->texture, descriptor);
     shadowCaster.lightViewProjection = lightViewProjection;
-    drawBatch(pass, shadowCaster, cowBatch, lightViewProjection);
-    drawBatch(pass, shadowCaster, game.level.batch, lightViewProjection);
-    drawBatch(pass, shadowCaster, game.level.moving, lightViewProjection);
+    auto counted = FrameProfile::Pass::Shadows;
+    drawBatch(pass, shadowCaster, cowBatch, lightViewProjection, counted);
+    drawBatch(pass, shadowCaster, game.level.batch, lightViewProjection, counted);
+    drawBatch(pass, shadowCaster, game.level.moving, lightViewProjection, counted);
 }
 
 void CowsView::drawSky(RenderPass& pass, float aspect)
@@ -1203,6 +1211,7 @@ void CowsView::drawGround(RenderPass& pass)
 
     pass.bind(*groundShader, ground.vertices);
     pass.drawIndexed(ground.indices, ground.indexCount);
+    FrameProfile::shared().drew(FrameProfile::Pass::Scene, 1, ground.indexCount / 3);
 }
 
 void CowsView::drawGrass(RenderPass& pass, const Mat4& viewProjection)
@@ -1244,6 +1253,7 @@ void CowsView::drawGrassTile(RenderPass& pass,
 
     grassShader->patchOffset = draw.corner;
     pass.drawInstanced(*grassShader, count);
+    FrameProfile::shared().drew(FrameProfile::Pass::Scene, count, bladeTriangles);
 }
 
 void CowsView::drawTitle(RenderPass& pass)
@@ -1301,7 +1311,8 @@ void CowsView::drawGlows(RenderPass& pass, const Mat4& viewProjection)
 void CowsView::drawBatch(RenderPass& pass,
                          ShaderProgram& shader,
                          const SurfaceBatch& batch,
-                         const Mat4& cullWith)
+                         const Mat4& cullWith,
+                         FrameProfile::Pass counted)
 {
     for (auto index = 0; index < shapeCount; ++index)
     {
@@ -1320,6 +1331,8 @@ void CowsView::drawBatch(RenderPass& pass,
         pass.bind(shader, mesh.vertices);
         shader.bindInstances(pass);
         pass.drawIndexedInstanced(mesh.indices, mesh.indexCount, visible.size());
+        FrameProfile::shared().drew(
+            counted, (int) visible.size(), mesh.indexCount / 3);
     }
 }
 

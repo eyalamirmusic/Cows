@@ -10,7 +10,9 @@ namespace Cows
 {
 // COWS_PROFILE=1: once a second, logs the frame interval (average, p95, max),
 // frames per second, the CPU time of each part of a frame, and the GPU time
-// of the frame and of each labelled pass. Off, every call is one branch.
+// of the frame and of each labelled pass, and the instances and triangles
+// drawn per frame in the shadow and scene passes. Off, every call is one
+// branch.
 struct FrameProfile final
 {
     enum class Part
@@ -20,6 +22,13 @@ struct FrameProfile final
         Shadows,
         Scene,
         Hud,
+        Count
+    };
+
+    enum class Pass
+    {
+        Shadows,
+        Scene,
         Count
     };
 
@@ -39,6 +48,7 @@ struct FrameProfile final
 
     void frameStarted();
     void add(Part part, double milliseconds);
+    void drew(Pass pass, int instances, int triangles);
 
     void report(Clock::time_point now);
     std::string passesText() const;
@@ -48,6 +58,8 @@ struct FrameProfile final
 
     std::array<double, maxFrames> intervals {};
     std::array<double, (int) Part::Count> totals {};
+    std::array<double, (int) Pass::Count> instances {};
+    std::array<double, (int) Pass::Count> triangles {};
     int frames = 0;
     double gpuMilliseconds = 0.0;
     std::array<double, maxPasses> gpuPasses {};

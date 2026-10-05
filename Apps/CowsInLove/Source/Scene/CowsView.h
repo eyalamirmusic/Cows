@@ -18,6 +18,7 @@
 #include "Terrain/TerrainShaders.h"
 #include "Cow/Moo.h"
 #include "Camera/OrbitCamera.h"
+#include "Render/FrameProfile.h"
 #include "Render/QualityGovernor.h"
 #include "Render/ShadowMap.h"
 #include "Render/Shaders.h"
@@ -112,7 +113,8 @@ struct CowsView final : GPUView
     void drawBatch(RenderPass& pass,
                    ShaderProgram& shader,
                    const SurfaceBatch& batch,
-                   const Maths::Mat4& cullWith);
+                   const Maths::Mat4& cullWith,
+                   FrameProfile::Pass counted = FrameProfile::Pass::Scene);
 
     Stages stages;
     Game game;
@@ -154,6 +156,7 @@ struct CowsView final : GPUView
     bool measuring = false;
     std::uint64_t lastTimedFrame = 0;
     const Vector<BladeInstance>* uploadedBlades = nullptr;
+    int bladeTriangles = 0;
     Vector<SurfaceInstance> visible;
     SurfaceBatch chasms;
 

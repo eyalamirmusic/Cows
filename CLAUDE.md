@@ -190,10 +190,12 @@ screenshots; `COWS_SEED=<n>` fixes the level, `COWS_STAGE=<n>` starts on
 stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her, skipping the menu; `COWS_MENU=0` skips
 the menu, `COWS_DRESS=1` opens the cow editor and `COWS_START=<seconds>` presses Start after that long (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).
 `COWS_PROFILE=1` logs, once a second, the frame interval, the CPU time of each
-part of a frame and the GPU time of the frame and of each pass (`shadows`,
-`scene`); a profiling run varies one of `COWS_BLADES=<n>` (blades drawn per
-grass tile), `COWS_MSAA=<n>`, `COWS_SHADOW=<texels>` (the shadow map's side)
-or `COWS_SKIP=<parts>` (any of sky, ground, objects, grass, glow, hud,
+part of a frame, the GPU time of the frame and of each pass (`shadows`,
+`scene`) and the instances and triangles each pass drew; a profiling run
+varies one of `COWS_BLADES=<n>` (blades drawn per grass tile), `COWS_MSAA=<n>`,
+`COWS_SHADOW=<texels>` (the shadow map's side), `COWS_RENDER_SCALE=<share>`,
+`COWS_DETAIL=<share>` (mesh detail, see `detailed` in `Render/Mesh`) or
+`COWS_SKIP=<parts>` (any of sky, ground, objects, grass, glow, hud,
 shadows, left out of the frame) and compares.
 `COWS_QUALITY=low|mid|high` forces a quality tier (`Scene/Quality`); without
 it the first run starts at high, `QualityGovernor` (`Render/QualityGovernor`)

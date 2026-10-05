@@ -430,6 +430,12 @@ MeshData makeCone(int segments)
     return mesh;
 }
 
+int detailed(int count, float detail, int least)
+{
+    auto steps = 4 * (int) std::lround((float) count * detail / 4.f);
+    return std::max(std::min(least, count), steps);
+}
+
 MeshData makeBox()
 {
     auto mesh = MeshData {};

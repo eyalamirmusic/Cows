@@ -209,3 +209,14 @@ auto tRadius = test("Mesh/boundingRadiusReachesTheFurthestVertex") = []
     data.vertices.add(Vertex {{3.f, 4.f, 0.f}, {0.f, 0.f, 1.f}});
     check(boundingRadius(data) == 5.f);
 };
+
+auto tDetailed = test("Mesh/detailedCoarsensInFours") = []
+{
+    check(detailed(48, 1.f) == 48);
+    check(detailed(48, 0.5f) == 24);
+    check(detailed(32, 0.75f) == 24);
+    check(detailed(28, 0.5f) == 16);
+    check(detailed(48, 0.05f) == 8);
+    check(detailed(4, 0.5f, 4) == 4);
+    check(detailed(4, 0.1f) == 4);
+};

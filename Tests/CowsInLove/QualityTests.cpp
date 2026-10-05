@@ -17,6 +17,7 @@ auto tHighIsTheGame = test("Quality/highIsTheGameAsDesigned") = []
     check(high.shadowTaps == 16);
     check(high.shadowResolution == 2048);
     check(high.renderScale == 1.f);
+    check(high.meshDetail == 1.f);
     check(high.grass.tilesAround == design.tilesAround);
     check(high.grass.nearShare == 1.f);
     check(high.grass.farShare == 1.f);
@@ -33,6 +34,8 @@ auto tLowerCostsLess = test("Quality/eachTierAsksNoMoreThanTheOneAbove") = []
     check(low.shadowResolution <= mid.shadowResolution);
     check(low.renderScale <= mid.renderScale);
     check(mid.renderScale <= high.renderScale);
+    check(low.meshDetail <= mid.meshDetail);
+    check(mid.meshDetail <= high.meshDetail);
     check(low.grass.tilesAround <= mid.grass.tilesAround);
     check(low.grass.nearShare <= mid.grass.nearShare);
     check(mid.grass.nearShare <= high.grass.nearShare);

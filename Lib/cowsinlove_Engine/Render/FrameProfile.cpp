@@ -97,6 +97,15 @@ void FrameProfile::add(Part part, double milliseconds)
         totals[(size_t) part] += milliseconds;
 }
 
+void FrameProfile::drew(Pass pass, int instanceCount, int triangleCount)
+{
+    if (!enabled)
+        return;
+
+    instances[(size_t) pass] += instanceCount;
+    triangles[(size_t) pass] += (double) instanceCount * triangleCount;
+}
+
 std::string FrameProfile::passesText() const
 {
     auto text = std::string {};
@@ -127,6 +136,11 @@ void FrameProfile::report(Clock::time_point now)
         auto seconds = millisecondsBetween(windowStart, now) / 1000.0;
         auto perFrame = [&](Part part)
         { return fixed(totals[(size_t) part] / frames, 2); };
+        auto drawn = [&](Pass pass)
+        {
+            return fixed(instances[(size_t) pass] / frames, 0) + " / "
+                   + fixed(triangles[(size_t) pass] / frames / 1000.0, 0) + "k";
+        };
         auto gpu = gpuSamples > 0 ? fixed(gpuMilliseconds / gpuSamples, 2)
                                   : std::string {"-"};
 
@@ -150,7 +164,11 @@ void FrameProfile::report(Clock::time_point now)
             perFrame(Part::Hud),
             " | gpu ms ",
             gpu,
-            passesText());
+            passesText(),
+            " | drawn shadows ",
+            drawn(Pass::Shadows),
+            " scene ",
+            drawn(Pass::Scene));
     }
 
     frames = 0;
@@ -158,6 +176,8 @@ void FrameProfile::report(Clock::time_point now)
     gpuPasses = {};
     gpuSamples = 0;
     totals = {};
+    instances = {};
+    triangles = {};
     windowStart = now;
 }
 } // namespace Cows

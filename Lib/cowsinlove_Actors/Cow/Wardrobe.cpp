@@ -396,18 +396,25 @@ void addHat(Vector<CowPart>& parts, Hat hat)
     }
 }
 
-MeshData makePantsMesh(Shape shape)
+MeshData makePantsMesh(Shape shape, float detail)
 {
+    auto cut = [detail](BarrelPatch patch)
+    {
+        patch.rings = detailed(patch.rings, detail, 4);
+        patch.segments = detailed(patch.segments, detail);
+        return makeBarrelPatch(patch);
+    };
+
     switch (shape)
     {
         case Shape::Belly:
-            return makeBarrelPatch(belly());
+            return cut(belly());
         case Shape::BellyBand:
-            return makeBarrelPatch(bellyTrim());
+            return cut(bellyTrim());
         case Shape::Seat:
-            return makeBarrelPatch(seat());
+            return cut(seat());
         case Shape::SeatBand:
-            return makeBarrelPatch(belt());
+            return cut(belt());
         default:
             return {};
     }
@@ -415,7 +422,7 @@ MeshData makePantsMesh(Shape shape)
 
 namespace
 {
-MeshData makeBucketCrown()
+MeshData makeBucketCrown(float detail)
 {
     auto corner = Vec2 {bucketTop - bucketCorner, bucketHeight - bucketCorner};
     auto lean = std::atan2(bucketBand - bucketTop, bucketHeight);
@@ -435,10 +442,10 @@ MeshData makeBucketCrown()
              bucketHeight + bucketDome * (1.f - (1.f - along) * (1.f - along))});
     }
 
-    return makeLathe(profile, latheSegments);
+    return makeLathe(profile, detailed(latheSegments, detail));
 }
 
-MeshData makeBucketBrim()
+MeshData makeBucketBrim(float detail)
 {
     auto down = Vec2 {std::cos(brimSlope), -std::sin(brimSlope)};
     auto under = Vec2 {-std::sin(brimSlope), -std::cos(brimSlope)};
@@ -458,23 +465,33 @@ MeshData makeBucketBrim()
 
     profile.add(edge);
     profile.add(inner);
-    return makeLathe(profile, latheSegments);
+    return makeLathe(profile, detailed(latheSegments, detail));
 }
-} // namespace
 
-MeshData makeCowMesh(Shape shape)
+MeshData makeCowMeshAt(Shape shape, float detail)
 {
     switch (shape)
     {
         case Shape::Heart:
-            return makeHeart();
+            return makeHeart(detail);
         case Shape::BucketCrown:
-            return makeBucketCrown();
+            return makeBucketCrown(detail);
         case Shape::BucketBrim:
-            return makeBucketBrim();
+            return makeBucketBrim(detail);
         default:
-            return makePantsMesh(shape);
+            return makePantsMesh(shape, detail);
     }
+}
+} // namespace
+
+std::function<MeshData(Shape)> cowMeshes(float detail)
+{
+    return [detail](Shape shape) { return makeCowMeshAt(shape, detail); };
+}
+
+MeshData makeCowMesh(Shape shape)
+{
+    return makeCowMeshAt(shape, 1.f);
 }
 
 Vector<CowPart> makeCowParts(const CowSkin& skin)
