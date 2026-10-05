@@ -177,9 +177,10 @@ float startTime()
 }
 
 // What COWS_PROFILE runs vary, one at a time, to find what a frame costs:
-// COWS_BLADES caps the blades drawn per tile, COWS_MSAA sets the sample count,
-// and COWS_SKIP names parts of the frame left out (sky, ground, objects,
-// grass, glow, hud, shadows).
+// COWS_BLADES caps the blades drawn per tile, COWS_MSAA, COWS_RENDER_SCALE and
+// COWS_SHADOW override the tier's sample count, render scale and shadow map
+// side, and COWS_SKIP names parts of the frame left out (sky, ground,
+// objects, grass, glow, hud, shadows).
 struct ProfileSettings final
 {
     bool skips(std::string_view part) const
@@ -190,6 +191,7 @@ struct ProfileSettings final
     int blades = std::numeric_limits<int>::max();
     std::optional<int> samples;
     std::optional<int> shadowResolution;
+    std::optional<float> renderScale;
     std::string skip;
 };
 
@@ -204,6 +206,9 @@ const ProfileSettings& profileSettings()
 
         if (auto samples = getEnv("COWS_MSAA"))
             read.samples = std::stoi(*samples);
+
+        if (auto scale = getEnv("COWS_RENDER_SCALE"))
+            read.renderScale = std::stof(*scale);
 
         if (auto resolution = getEnv("COWS_SHADOW"))
             read.shadowResolution = std::stoi(*resolution);
@@ -266,6 +271,7 @@ void CowsView::useQuality(Quality chosen)
     auto settings = settingsFor(chosen);
 
     setSampleCount(profileSettings().samples.value_or(settings.samples));
+    setRenderScale(profileSettings().renderScale.value_or(settings.renderScale));
     grassDensity = settings.grass;
     shadowMap.reset();
     shadowMap.emplace(

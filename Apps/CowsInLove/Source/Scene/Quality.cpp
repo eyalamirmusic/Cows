@@ -16,6 +16,7 @@ QualitySettings settingsFor(Quality quality)
         return settings;
 
     settings.cheapNoise = true;
+    settings.renderScale = 0.75f;
     settings.grass.nearShare = 0.5f;
     settings.grass.farShare = 0.1f;
     settings.grass.thinFrom = 10.f;
@@ -25,6 +26,7 @@ QualitySettings settingsFor(Quality quality)
         return settings;
 
     settings.samples = 1;
+    settings.renderScale = 0.5f;
     settings.shadowTaps = 4;
     settings.shadowResolution = 1024;
     settings.grass.tilesAround = 1;

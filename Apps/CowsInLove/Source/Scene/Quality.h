@@ -13,7 +13,9 @@ namespace Cows
 // How much of the scene a GPU can afford. High is the game as designed; Mid
 // thins the far grass and reads the ground's noise from a texture; Low keeps
 // the sky, the haze, the cows and the props and leaves only a sparse meadow
-// round the player, with no MSAA and softer, cheaper shadows.
+// round the player, with no MSAA and softer, cheaper shadows. Below high the
+// scene is drawn into fewer pixels than the panel has (renderScale) and
+// stretched over it.
 enum class Quality
 {
     Low,
@@ -30,6 +32,7 @@ struct QualitySettings final
     bool cheapNoise = false;
     int shadowTaps = 16;
     int shadowResolution = 2048;
+    float renderScale = 1.f;
 };
 
 QualitySettings settingsFor(Quality quality);
