@@ -141,10 +141,12 @@ auto tHatSnapshots = test("Wardrobe/snapshots") = []
                   "actors-hat-" + std::string {Miro::enumToString(hat)});
 
     for (auto pants: {Pants::BothLegs, Pants::BackLegs})
-        for (const auto& shot: {Shot {"-side", body, 0.f, 0.12f, 5.f},
-                                Shot {"", body, 0.6f, 0.12f, 5.f},
-                                Shot {"-low", {0.f, 0.7f, 0.f}, -0.8f, -0.02f, 3.6f},
-                                Shot {"-back", body, -halfPi, 0.1f, 4.f}})
+        for (const auto& shot:
+             {Shot {"-side", body, 0.f, 0.12f, 5.f},
+              Shot {"", body, 0.6f, 0.12f, 5.f},
+              Shot {"-low", {0.f, 0.7f, 0.f}, -0.8f, -0.02f, 3.6f},
+              Shot {"-back", body, -halfPi, 0.1f, 4.f},
+              Shot {"-high", {-0.6f, 1.f, 0.f}, -0.9f, 0.6f, 3.8f}})
             shoot(dressed(Hat::None, pants),
                   shot,
                   "actors-pants-" + std::string {Miro::enumToString(pants)});

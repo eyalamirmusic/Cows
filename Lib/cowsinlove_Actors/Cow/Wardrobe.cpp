@@ -19,12 +19,11 @@ constexpr auto sleeveOut = 1.08f;
 constexpr auto cuffOut = 1.15f;
 constexpr auto cuffHeight = 0.075f;
 constexpr auto clothRim = 0.04f;
-constexpr auto bandWidth = 0.14f;
-constexpr auto bandOverlap = 0.03f;
-constexpr Vec2 bellyLatitude {-halfPi, halfPi};
-constexpr Vec2 bellyLongitude {-halfPi, halfPi};
-constexpr Vec2 seatLatitude {-halfPi, -0.22f};
-constexpr Vec2 seatLongitude {-0.75f * pi, 0.75f * pi};
+constexpr auto bandWidth = 0.05f;
+constexpr auto bandOverlap = 0.015f;
+constexpr auto seatWaist = 1.55f;
+constexpr auto tailHole = 0.06f;
+constexpr auto seatHips = -0.22f;
 
 Material cloth(std::uint32_t hex, float gloss = 0.2f)
 {
@@ -202,20 +201,40 @@ Mat4 aroundTorso(float scale)
            * Mat4::translation(-middle);
 }
 
-MeshData makeWaistband(Vec2 latitude, Vec2 longitude)
+Vec3 onTorso(Vec3 point)
 {
-    auto band = makeBarrelPatch(latitude,
-                                {longitude.y - bandWidth, longitude.y + bandOverlap},
-                                clothRim,
-                                48,
-                                3);
-    append(band,
-           makeBarrelPatch(latitude,
-                           {longitude.x - bandOverlap, longitude.x + bandWidth},
-                           clothRim,
-                           48,
-                           3));
-    return band;
+    return transformPoint(torsoPlacement().inverted(), point);
+}
+
+BarrelPatch denimBelow(float waist)
+{
+    auto patch = BarrelPatch {};
+    patch.across = {waist, 1.f};
+    patch.rim = clothRim;
+    patch.rings = 48;
+    patch.segments = 32;
+    return patch;
+}
+
+BarrelPatch waistbandOn(BarrelPatch patch)
+{
+    patch.across = {patch.across.x - bandOverlap, patch.across.x + bandWidth};
+    return patch;
+}
+
+BarrelPatch belly()
+{
+    return denimBelow(0.f);
+}
+
+BarrelPatch seat()
+{
+    auto patch = denimBelow(onTorso({0.f, seatWaist, 0.f}).x);
+    patch.latitude = {-halfPi, seatHips};
+    patch.hole = onTorso(tailRoot());
+    patch.holeRadius = tailHole;
+    patch.segments = 48;
+    return patch;
 }
 
 void addSleeves(Vector<CowPart>& parts, LegPair pair)
@@ -300,13 +319,13 @@ MeshData makePantsMesh(Shape shape)
     switch (shape)
     {
         case Shape::Belly:
-            return makeBarrelPatch(bellyLatitude, bellyLongitude, clothRim, 48, 24);
+            return makeBarrelPatch(belly());
         case Shape::BellyBand:
-            return makeWaistband(bellyLatitude, bellyLongitude);
+            return makeBarrelPatch(waistbandOn(belly()));
         case Shape::Seat:
-            return makeBarrelPatch(seatLatitude, seatLongitude, clothRim, 24, 36);
+            return makeBarrelPatch(seat());
         case Shape::SeatBand:
-            return makeWaistband(seatLatitude, seatLongitude);
+            return makeBarrelPatch(waistbandOn(seat()));
         default:
             return {};
     }

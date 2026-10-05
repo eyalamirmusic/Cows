@@ -158,12 +158,19 @@ auto tConeShape = test("Mesh/coneNarrowsToItsPoint") = []
 
 auto tBarrelPatch = test("Mesh/barrelPatchLiesOnTheBarrel") = []
 {
-    auto lowerHalf =
-        makeBarrelPatch({-halfPi, halfPi}, {-halfPi, halfPi}, 0.f, 16, 8);
-    auto corner =
-        makeBarrelPatch({-halfPi, 0.f}, {-0.75f * pi, 0.75f * pi}, 0.05f, 8, 12);
+    auto lowerHalf = BarrelPatch {};
+    lowerHalf.across = {0.f, 1.f};
+    lowerHalf.rings = 16;
+    lowerHalf.segments = 8;
 
-    for (const auto& mesh: {lowerHalf, corner})
+    auto holed = lowerHalf;
+    holed.across = {-0.3f, 1.f};
+    holed.latitude = {-halfPi, 0.f};
+    holed.hole = {-0.25f, 0.03f, 0.f};
+    holed.holeRadius = 0.06f;
+    holed.rim = 0.04f;
+
+    for (const auto& mesh: {makeBarrelPatch(lowerHalf), makeBarrelPatch(holed)})
     {
         check(!mesh.indices.empty());
         check(indicesInRange(mesh));
@@ -171,10 +178,23 @@ auto tBarrelPatch = test("Mesh/barrelPatchLiesOnTheBarrel") = []
         check(facesOutward(mesh));
     }
 
-    for (const auto& vertex: lowerHalf.vertices)
+    for (const auto& vertex: makeBarrelPatch(lowerHalf).vertices)
     {
         check(vertex.position.x >= -1e-5f);
         check(vertex.position.y > -1e-5f && vertex.position.y < 1.f + 1e-5f);
         check(length(Vec2 {vertex.position.x, vertex.position.z}) < 0.5f + 1e-5f);
+    }
+
+    auto mesh = makeBarrelPatch(holed);
+
+    for (auto first = 0; first + 2 < mesh.indices.size(); first += 3)
+    {
+        auto middle = Vec3 {};
+
+        for (auto corner = 0; corner < 3; ++corner)
+            middle +=
+                mesh.vertices[(int) mesh.indices[first + corner]].position / 3.f;
+
+        check(length(middle - holed.hole) > 0.5f * holed.holeRadius);
     }
 };

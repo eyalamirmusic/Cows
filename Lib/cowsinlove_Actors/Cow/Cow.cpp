@@ -15,6 +15,8 @@ constexpr auto hopLift = 0.15f;
 constexpr auto eyeSize = 0.13f;
 constexpr Vec3 neckPivot {1.1f, 1.5f, 0.f};
 constexpr Vec3 tailPivot {-1.07f, 1.42f, 0.f};
+constexpr auto tailSwing = -0.3f;
+constexpr auto tailUnderHide = 0.08f;
 
 Material hideMaterial()
 {
@@ -108,7 +110,7 @@ void addTorso(Vector<CowPart>& parts)
 
 void addTail(Vector<CowPart>& parts)
 {
-    auto swing = Mat4::rotationZ(-0.3f);
+    auto swing = Mat4::rotationZ(tailSwing);
     auto tail = Mat4::translation(tailPivot) * swing;
 
     parts.add({Shape::Capsule,
@@ -214,6 +216,12 @@ std::array<Mat4, 2> legPlacements(LegPair pair)
     auto x = legsAt(pair);
     return {place({x, 0.1f, -0.27f}, {1.25f, 0.95f, 1.25f}),
             place({x, 0.1f, 0.27f}, {1.25f, 0.95f, 1.25f})};
+}
+
+Vec3 tailRoot()
+{
+    auto hanging = transformDirection(Mat4::rotationZ(tailSwing), {0.f, -1.f, 0.f});
+    return tailPivot + hanging * tailUnderHide;
 }
 
 Vector<CowPart> makeCowParts()

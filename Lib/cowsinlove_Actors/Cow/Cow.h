@@ -36,6 +36,9 @@ enum class LegPair
 Maths::Mat4 torsoPlacement();
 std::array<Maths::Mat4, 2> legPlacements(LegPair pair);
 
+// Where the tail comes out of the rump in the rest pose.
+Maths::Vec3 tailRoot();
+
 // The top of each hoof, which the legs run down into.
 constexpr auto hoofTop = 0.22f;
 
