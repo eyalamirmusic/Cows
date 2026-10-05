@@ -74,16 +74,16 @@ struct Shot final
     float yaw;
     float pitch;
     float distance;
+    float lean = 0.f;
 };
 
 void shoot(const CowSkin& skin, const Shot& shot, const std::string& name)
 {
     auto cow = Cow {};
     auto view = SnapshotView {makeCowMesh};
-    cow.addTo(view.batch,
-              view.glows,
-              makeCowParts(skin),
-              cow.freePose({}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f));
+    auto pose = cow.freePose({}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f);
+    pose.lean = shot.lean;
+    cow.addTo(view.batch, view.glows, makeCowParts(skin), pose);
     view.camera.target = shot.target;
     view.camera.yaw = shot.yaw;
     view.camera.pitch = shot.pitch;
@@ -131,9 +131,11 @@ auto tHatSnapshots = test("Wardrobe/snapshots") = []
     auto body = Vec3 {0.f, 0.9f, 0.f};
 
     for (auto hat: hats)
-        for (const auto& shot: {Shot {"", head, 0.9f, 0.12f, 2.6f},
-                                Shot {"-side", head, 0.f, 0.12f, 2.6f},
-                                Shot {"-front", head, halfPi, 0.12f, 2.6f}})
+        for (const auto& shot:
+             {Shot {"", head, 0.9f, 0.12f, 2.6f},
+              Shot {"-side", head, 0.f, 0.12f, 2.6f},
+              Shot {"-front", head, halfPi, 0.12f, 2.6f},
+              Shot {"-kiss", {1.25f, 1.75f, 0.f}, 1.2f, 0.08f, 2.6f, 1.f}})
             shoot(wearing(hat),
                   shot,
                   "actors-hat-" + std::string {Miro::enumToString(hat)});
