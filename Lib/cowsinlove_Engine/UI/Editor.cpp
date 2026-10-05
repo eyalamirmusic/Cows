@@ -35,8 +35,7 @@ float bottom(const Rect& rect)
 
 Editor::Editor()
 {
-    setHandlesMouseEvents(true);
-    setHandlesTouchEvents(true);
+    setShowing(false);
 }
 
 bool Editor::wide() const
@@ -351,12 +350,16 @@ void Editor::act(Target target)
     }
 }
 
-Graphics::View* Editor::hitTest(const Point& point)
+void Editor::setShowing(bool shouldShow)
 {
-    if (!showing)
-        return nullptr;
+    showing = shouldShow;
+    setHandlesMouseEvents(shouldShow);
+    setHandlesTouchEvents(shouldShow);
+}
 
-    return View::hitTest(point);
+bool Editor::isShowing() const
+{
+    return showing;
 }
 
 void Editor::mouseMoved(const Graphics::MouseEvent& event)

@@ -89,17 +89,17 @@ CowsApp::CowsApp()
     {
         auto inMenu = scene.game.state == Game::State::Menu;
         touchControls.showAgain = scene.game.state == Game::State::Found;
-        menu.showing = inMenu && !scene.dressing;
+        menu.setShowing(inMenu && !scene.dressing);
         menu.hovered = -1;
         menu.pressed = -1;
-        editor.showing = inMenu && scene.dressing;
+        editor.setShowing(inMenu && scene.dressing);
         editor.hovered = {};
         editor.pressed = {};
 
-        if (menu.showing)
+        if (menu.isShowing())
             menu.showSelection = isGamepad(scene.hints);
 
-        if (editor.showing)
+        if (editor.isShowing())
             editor.showSelection = isGamepad(scene.hints);
     };
 
@@ -136,7 +136,7 @@ CowsApp::CowsApp()
     if (opensOnMenu())
         scene.openMenu(false);
     else
-        menu.showing = false;
+        menu.setShowing(false);
 
     if (opensOnMenu() && opensDressing())
         scene.openEditor();

@@ -57,7 +57,12 @@ struct Editor final : Graphics::View
 
     Target targetAt(Graphics::Point position) const;
 
-    Graphics::View* hitTest(const Graphics::Point& point) override;
+    // Hidden, it takes no mouse or touch, so they reach the views under it.
+    // eacp finds a finger's view without calling hitTest, so this clears the
+    // handles flags rather than overriding hitTest.
+    void setShowing(bool shouldShow);
+    bool isShowing() const;
+
     void mouseMoved(const Graphics::MouseEvent& event) override;
     void mouseExited(const Graphics::MouseEvent& event) override;
     void mouseDown(const Graphics::MouseEvent& event) override;
@@ -111,7 +116,6 @@ struct Editor final : Graphics::View
     // Points at the top kept clear of anything clickable, for a title bar the
     // safe area does not count.
     float topClearance = 0.f;
-    bool showing = false;
     float opacity = 1.f;
     bool showSelection = false;
     int selected = 0;
@@ -119,5 +123,8 @@ struct Editor final : Graphics::View
     Target pressed;
     int lookingTouch = -1;
     Graphics::Point lookedFrom;
+
+private:
+    bool showing = false;
 };
 } // namespace Cows
