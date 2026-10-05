@@ -8,6 +8,8 @@ add_library(cowsinlove_Engine STATIC
         Render/ShadowMap.cpp
         UI/Hud.cpp
         UI/Menu.cpp
+        UI/MenuStyle.cpp
+        UI/Editor.cpp
         UI/Overlay.cpp
         UI/TouchControls.cpp)
 
