@@ -116,6 +116,12 @@ Vertex barrelPoint(float latitude, float longitude)
             {slope.x * c, slope.y, slope.x * s}};
 }
 
+float barrelLatitudeAt(float along)
+{
+    auto height = std::clamp(2.f * along - 1.f, -1.f, 1.f);
+    return std::asin(signedPower(height, 1.f / barrelRoundness));
+}
+
 Vec3 directionOr(Vec3 direction, Vec3 fallback)
 {
     auto size = length(direction);
@@ -136,11 +142,12 @@ Vec2 longitudesAcross(Vec2 across, float radius)
 void addBarrelHalf(MeshData& mesh, const BarrelPatch& patch, float side)
 {
     auto base = (std::uint32_t) mesh.vertices.size();
+    auto first = std::max(patch.latitude.x, barrelLatitudeAt(patch.along.x));
+    auto last = std::min(patch.latitude.y, barrelLatitudeAt(patch.along.y));
 
     for (auto ring = 0; ring <= patch.rings; ++ring)
     {
-        auto latitude = std::lerp(
-            patch.latitude.x, patch.latitude.y, (float) ring / (float) patch.rings);
+        auto latitude = std::lerp(first, last, (float) ring / (float) patch.rings);
         auto kept = longitudesAcross(patch.across, barrelProfile(latitude).x);
         auto from = std::max(kept.x, patch.longitude.x);
         auto to = std::max(std::min(kept.y, patch.longitude.y), from);

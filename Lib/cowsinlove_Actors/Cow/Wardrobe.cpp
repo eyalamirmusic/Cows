@@ -21,9 +21,10 @@ constexpr auto cuffHeight = 0.075f;
 constexpr auto clothRim = 0.04f;
 constexpr auto bandWidth = 0.05f;
 constexpr auto bandOverlap = 0.015f;
-constexpr auto seatWaist = 1.55f;
+constexpr auto hipLine = -0.35f;
+constexpr auto beltWidth = 0.05f;
+constexpr auto beltOverlap = 0.01f;
 constexpr auto tailHole = 0.06f;
-constexpr auto seatHips = -0.22f;
 
 Material cloth(std::uint32_t hex, float gloss = 0.2f)
 {
@@ -206,33 +207,50 @@ Vec3 onTorso(Vec3 point)
     return transformPoint(torsoPlacement().inverted(), point);
 }
 
-BarrelPatch denimBelow(float waist)
+float hips()
+{
+    return onTorso({hipLine, 0.f, 0.f}).y;
+}
+
+BarrelPatch denim()
 {
     auto patch = BarrelPatch {};
-    patch.across = {waist, 1.f};
     patch.rim = clothRim;
     patch.rings = 48;
     patch.segments = 32;
     return patch;
 }
 
-BarrelPatch waistbandOn(BarrelPatch patch)
+BarrelPatch belly()
 {
-    patch.across = {patch.across.x - bandOverlap, patch.across.x + bandWidth};
+    auto patch = denim();
+    patch.along = {hips(), 1.f};
+    patch.across = {0.f, 1.f};
     return patch;
 }
 
-BarrelPatch belly()
+BarrelPatch bellyTrim()
 {
-    return denimBelow(0.f);
+    auto patch = belly();
+    patch.across = {-bandOverlap, bandWidth};
+    return patch;
 }
 
 BarrelPatch seat()
 {
-    auto patch = denimBelow(onTorso({0.f, seatWaist, 0.f}).x);
-    patch.latitude = {-halfPi, seatHips};
+    auto patch = denim();
+    patch.along = {0.f, hips()};
     patch.hole = onTorso(tailRoot());
     patch.holeRadius = tailHole;
+    patch.segments = 48;
+    return patch;
+}
+
+BarrelPatch belt()
+{
+    auto patch = denim();
+    patch.along = {hips() - beltWidth, hips() + beltOverlap};
+    patch.rings = 4;
     patch.segments = 48;
     return patch;
 }
@@ -276,6 +294,7 @@ void addPants(Vector<CowPart>& parts, Pants pants)
         case Pants::BothLegs:
             addSleeves(parts, LegPair::Back);
             addSleeves(parts, LegPair::Front);
+            addGarment(parts, Shape::Seat, Shape::SeatBand);
             addGarment(parts, Shape::Belly, Shape::BellyBand);
             break;
         case Pants::BackLegs:
@@ -321,11 +340,11 @@ MeshData makePantsMesh(Shape shape)
         case Shape::Belly:
             return makeBarrelPatch(belly());
         case Shape::BellyBand:
-            return makeBarrelPatch(waistbandOn(belly()));
+            return makeBarrelPatch(bellyTrim());
         case Shape::Seat:
             return makeBarrelPatch(seat());
         case Shape::SeatBand:
-            return makeBarrelPatch(waistbandOn(seat()));
+            return makeBarrelPatch(belt());
         default:
             return {};
     }

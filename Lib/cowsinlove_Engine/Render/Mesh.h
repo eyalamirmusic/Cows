@@ -41,6 +41,9 @@ struct BarrelPatch final
     // Radians about y, 0 at +x, turning towards +z; kept on both sides of x, so
     // (0, pi) is the whole way round.
     Maths::Vec2 longitude {0.f, Maths::pi};
+    // Keeps what lies between the planes y = along.x and y = along.y, across
+    // the barrel's length.
+    Maths::Vec2 along {0.f, 1.f};
     // Keeps what lies between the planes x = across.x and x = across.y.
     Maths::Vec2 across {-1.f, 1.f};
     // Leaves out a round hole about `hole`.
