@@ -81,10 +81,13 @@ enum class Shape
     Seat,
     SeatBand,
     BucketCrown,
-    BucketBrim
+    BucketBrim,
+    WizardCone,
+    WizardBrim,
+    Star
 };
 
-constexpr auto shapeCount = 15;
+constexpr auto shapeCount = 18;
 
 // A frame's worth of instances, one list per mesh.
 struct SurfaceBatch final

@@ -21,7 +21,8 @@ enum class Hat
     Crown,
     FrogHat,
     CowBucketHat,
-    TrafficCone
+    TrafficCone,
+    WizardHat
 };
 
 enum class Pants

@@ -87,7 +87,9 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     `CowSkin` field and one line there. `Cow/Wardrobe` — each hat as parts
     on the head bone (`addHat`), seated on the crown (the cow bucket hat a lathed
     crown and sloping brim, `Shape::BucketCrown` and `BucketBrim` from
-    `makeCowMesh`, in her own spots, smaller through `CowPart::spotScale`); pants on the body
+    `makeCowMesh`, in her own spots, smaller through `CowPart::spotScale`; the
+    wizard hat a lathed cone whose top third is bent over, a waved brim and
+    flat stars, `Shape::WizardCone`, `WizardBrim` and `Star`); pants on the body
     (`addPants`) cut from the cow's own parts (`torsoPlacement`,
     `legPlacements`, `tailRoot`): the torso's barrel scaled out as the seat
     (everything behind the hips, a hole for the tail, a waistband round the
