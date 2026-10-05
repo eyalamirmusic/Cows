@@ -1138,6 +1138,7 @@ void CowsView::drawSky(RenderPass& pass, float aspect)
 
 void CowsView::drawGround(RenderPass& pass)
 {
+    groundShader.noise = noiseLattice.texture;
     groundShader.firstContact = contacts[0];
     groundShader.secondContact = contacts[1];
 

@@ -1,6 +1,7 @@
 #include "Render/Shading.h"
 
 #include <array>
+#include <cmath>
 
 namespace Cows::Shading
 {
@@ -155,4 +156,79 @@ Float valueNoise(const Float3& position)
 
     return mix(bottom, top, eased.y());
 }
+
+Float latticeNoise(const Uniform<Texture2D>& lattice,
+                   const Float2& position,
+                   int plane)
+{
+    auto cell = floor(position);
+    auto local = fract(position);
+    auto eased = local * local * (3.f - local * 2.f);
+    auto at = (cell + eased + 0.5f) * (1.f / (float) NoiseLattice::size);
+    auto texel = sample(lattice, at, 0.f);
+
+    return plane == 0   ? texel.x()
+           : plane == 1 ? texel.y()
+           : plane == 2 ? texel.z()
+                        : texel.w();
+}
 } // namespace Cows::Shading
+
+namespace Cows
+{
+namespace
+{
+float hashOnCpu(float x, float y, float z)
+{
+    auto value = std::sin(x * 127.1f + y * 311.7f + z * 74.7f) * 43758.5f;
+    return value - std::floor(value);
+}
+
+float latticeValue(int x, int y, float z)
+{
+    auto cell = std::floor(z);
+    auto local = z - cell;
+    auto eased = local * local * (3.f - local * 2.f);
+    auto below = hashOnCpu((float) x, (float) y, cell);
+    auto above = hashOnCpu((float) x, (float) y, cell + 1.f);
+    return below + (above - below) * eased;
+}
+} // namespace
+
+Vector<std::uint8_t> makeNoiseLattice()
+{
+    constexpr auto size = NoiseLattice::size;
+    auto texels = Vector<std::uint8_t> {};
+    texels.resize(size * size * 4);
+
+    for (auto y = 0; y < size; ++y)
+        for (auto x = 0; x < size; ++x)
+            for (auto plane = 0; plane < 4; ++plane)
+            {
+                auto value = latticeValue(x, y, latticePlanes[(size_t) plane]);
+                texels[(size_t) ((y * size + x) * 4 + plane)] =
+                    (std::uint8_t) std::lround(value * 255.f);
+            }
+
+    return texels;
+}
+
+namespace
+{
+Texture makeLatticeTexture()
+{
+    auto descriptor = TextureDescriptor {};
+    descriptor.width = NoiseLattice::size;
+    descriptor.height = NoiseLattice::size;
+    descriptor.format = TextureFormat::RGBA8Unorm;
+
+    auto texels = makeNoiseLattice();
+    return Device::shared().makeTexture(descriptor, texels.data());
+}
+} // namespace
+
+NoiseLattice::NoiseLattice()
+    : texture(makeLatticeTexture())
+{
+}
+} // namespace Cows

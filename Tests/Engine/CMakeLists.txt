@@ -9,6 +9,7 @@ nano_add_executable(EngineTests
             MenuTouchTests.cpp
             RootKeyTests.cpp
             MeshTests.cpp
+            NoiseLatticeTests.cpp
             OrbitCameraTests.cpp
             PaletteTests.cpp
             RenderSnapshotTests.cpp

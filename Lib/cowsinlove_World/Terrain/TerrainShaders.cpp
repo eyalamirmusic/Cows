@@ -6,8 +6,10 @@ using namespace Maths;
 
 namespace Cows
 {
-GroundShader::GroundShader()
+GroundShader::GroundShader(bool cheapNoiseToUse)
+    : cheapNoise(cheapNoiseToUse)
 {
+    noise.sampling = latticeSampling;
     compile();
 }
 
@@ -20,8 +22,10 @@ void GroundShader::define()
     auto ground = world.xz();
     auto up = float3(constant(0.f), 1.f, 0.f);
 
-    auto broad = Shading::valueNoise(float3(ground * 0.22f, 0.5f));
-    auto fine = Shading::valueNoise(float3(ground * 1.7f, 2.5f));
+    auto broad = cheapNoise ? Shading::latticeNoise(noise, ground * 0.22f, 0)
+                            : Shading::valueNoise(float3(ground * 0.22f, 0.5f));
+    auto fine = cheapNoise ? Shading::latticeNoise(noise, ground * 1.7f, 1)
+                           : Shading::valueNoise(float3(ground * 1.7f, 2.5f));
     auto meadow = broad * 0.7f + fine * 0.3f;
 
     auto deep = float3(constant(0.004f), 0.1f, 0.006f);

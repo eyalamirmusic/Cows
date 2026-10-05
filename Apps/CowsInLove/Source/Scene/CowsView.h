@@ -9,6 +9,7 @@
 #include "Terrain/Grass.h"
 #include "Terrain/Ground.h"
 #include "Render/Lighting.h"
+#include "Render/Shading.h"
 #include "Render/Mesh.h"
 #include "Render/ShapeMeshes.h"
 #include "Title/MenuTitle.h"
@@ -131,6 +132,7 @@ struct CowsView final : GPUView
     SurfaceShader translucentShader;
     ShadowCasterShader shadowCaster;
     GroundShader groundShader;
+    NoiseLattice noiseLattice;
     GrassShader grassShader;
     TitleShader titleShader;
     TitleShader menuTitleShader;

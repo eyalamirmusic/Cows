@@ -2,6 +2,9 @@
 
 #include "Render/Lighting.h"
 
+#include <array>
+#include <cstdint>
+
 // The shading every surface in the scene shares, as shader-graph functions: they
 // run inside a ShaderProgram's define().
 namespace Cows::Shading
@@ -39,4 +42,35 @@ Float3 toDisplay(const Float3& linear);
 
 Float hash(const Float3& cell);
 Float valueNoise(const Float3& position);
+
+// valueNoise at a fixed z, read from NoiseLattice in one filtered fetch where
+// valueNoise takes eight sines. `plane` picks the lattice channel (see
+// latticePlanes). The same noise, give or take the hash's last bits and the
+// filter's weights, repeating every NoiseLattice::size cells.
+Float latticeNoise(const Uniform<Texture2D>& lattice,
+                   const Float2& position,
+                   int plane);
 } // namespace Cows::Shading
+
+namespace Cows
+{
+// The z each channel of NoiseLattice holds valueNoise at.
+constexpr std::array<float, 4> latticePlanes {0.5f, 2.5f, 3.5f, 7.5f};
+
+// valueNoise's lattice for the four latticePlanes, already mixed across z, as
+// RGBA8 texels: one per cell, size cells on a side, tiling.
+Vector<std::uint8_t> makeNoiseLattice();
+
+struct NoiseLattice final
+{
+    NoiseLattice();
+
+    static constexpr int size = 256;
+
+    Texture texture;
+};
+
+// How a shader samples NoiseLattice::texture.
+constexpr TextureSampling latticeSampling {TextureFilter::Linear,
+                                           TextureAddressMode::Repeat};
+} // namespace Cows
