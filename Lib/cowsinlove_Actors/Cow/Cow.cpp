@@ -338,7 +338,9 @@ void Cow::addTo(SurfaceBatch& batch,
         }
 
         batch.add(part.shape,
-                  makeInstance(world * pose, material, seed * part.transform));
+                  makeInstance(world * pose,
+                               material,
+                               seed * Mat4::scale(part.spotScale) * part.transform));
     }
 }
 

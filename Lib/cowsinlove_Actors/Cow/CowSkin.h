@@ -19,7 +19,9 @@ enum class Hat
     PartyHat,
     Beanie,
     Crown,
-    FrogHat
+    FrogHat,
+    CowBucketHat,
+    TrafficCone
 };
 
 enum class Pants

@@ -20,6 +20,8 @@ struct CowPart final
     Bone bone = Bone::Body;
     Maths::Mat4 transform;
     Material material;
+    // How much smaller its spots are than the hide's, for a print.
+    float spotScale = 1.f;
 };
 
 // The cow, standing on y = 0 and facing +x, in its rest pose.

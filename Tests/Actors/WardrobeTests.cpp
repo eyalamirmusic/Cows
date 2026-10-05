@@ -17,7 +17,9 @@ constexpr auto hats = std::to_array({Hat::TopHat,
                                      Hat::PartyHat,
                                      Hat::Beanie,
                                      Hat::Crown,
-                                     Hat::FrogHat});
+                                     Hat::FrogHat,
+                                     Hat::CowBucketHat,
+                                     Hat::TrafficCone});
 
 CowSkin wearing(Hat hat)
 {
