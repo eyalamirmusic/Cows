@@ -11,6 +11,7 @@ namespace
 {
 constexpr Vec3 crownOfHead {1.38f, 1.99f, 0.f};
 constexpr auto crownPoints = 5;
+constexpr auto frogEye = 0.11f;
 
 Material cloth(std::uint32_t hex, float gloss = 0.2f)
 {
@@ -148,6 +149,37 @@ void addCrown(Vector<CowPart>& parts)
             {0.025f, 0.035f, 0.035f},
             shiny(Palette::heart));
 }
+void addFrogHat(Vector<CowPart>& parts)
+{
+    auto hat = HatParts {parts, seatAt(0.f, 0.f)};
+    auto plush = cloth(Palette::frog, 0.1f);
+    auto lining = cloth(Palette::frogLining, 0.1f);
+
+    hat.add(Shape::Sphere, {-0.04f, -0.1f, 0.f}, {0.36f, 0.24f, 0.34f}, plush);
+
+    for (auto side: {-1.f, 1.f})
+    {
+        auto eye = Vec3 {0.06f, 0.15f, 0.14f * side};
+        hat.add(Shape::Sphere, eye, {frogEye, frogEye, frogEye}, plush);
+        hat.add(Shape::Sphere,
+                eye + Vec3 {0.085f, 0.03f, 0.f},
+                {0.035f, 0.08f, 0.08f},
+                cloth(Palette::cloud, 0.6f));
+        hat.add(Shape::Sphere,
+                eye + Vec3 {0.11f, 0.035f, 0.f},
+                {0.02f, 0.045f, 0.04f},
+                cloth(Palette::spot, 0.9f));
+
+        hat.add(Shape::Capsule,
+                {0.f, -0.52f, 0.33f * side},
+                {0.85f, 0.44f, 0.25f},
+                plush);
+        hat.add(Shape::Capsule,
+                {0.f, -0.48f, 0.355f * side},
+                {0.4f, 0.34f, 0.1f},
+                lining);
+    }
+}
 } // namespace
 
 void addHat(Vector<CowPart>& parts, Hat hat)
@@ -168,6 +200,9 @@ void addHat(Vector<CowPart>& parts, Hat hat)
             break;
         case Hat::Crown:
             addCrown(parts);
+            break;
+        case Hat::FrogHat:
+            addFrogHat(parts);
             break;
         case Hat::None:
             break;

@@ -34,6 +34,8 @@ constexpr std::uint32_t pompom = 0xffff87;
 constexpr std::uint32_t beanie = 0x5f87d7;
 constexpr std::uint32_t beanieCuff = 0x4a6cb4;
 constexpr std::uint32_t gold = 0xffd75f;
+constexpr std::uint32_t frog = 0x87d700;
+constexpr std::uint32_t frogLining = 0xd7ffaf;
 
 constexpr Graphics::Color display(std::uint32_t hex)
 {

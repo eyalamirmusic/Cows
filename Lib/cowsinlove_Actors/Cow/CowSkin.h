@@ -18,7 +18,8 @@ enum class Hat
     CowboyHat,
     PartyHat,
     Beanie,
-    Crown
+    Crown,
+    FrogHat
 };
 
 // What the player's cow wears: one choice per item class, saved as the

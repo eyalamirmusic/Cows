@@ -47,7 +47,8 @@ auto tRoundTrip = test("CowSkin/jsonRoundTrip") = []
                     Hat::CowboyHat,
                     Hat::PartyHat,
                     Hat::Beanie,
-                    Hat::Crown})
+                    Hat::Crown,
+                    Hat::FrogHat})
         check(cowSkinFromJSON(toJSON(wearing(hat))) == wearing(hat));
 };
 
@@ -63,13 +64,14 @@ auto tStableNames = test("CowSkin/hatNamesAreStable") = []
 {
     auto names = Miro::enumNames<Hat>();
 
-    check(names.size() == 6);
+    check(names.size() == 7);
     check(names[0] == "None");
     check(names[1] == "TopHat");
     check(names[2] == "CowboyHat");
     check(names[3] == "PartyHat");
     check(names[4] == "Beanie");
     check(names[5] == "Crown");
+    check(names[6] == "FrogHat");
 };
 
 auto tLoadsNames = test("CowSkin/loadsByName") = []
@@ -118,7 +120,8 @@ auto tHatChoices = test("CowSkin/hatChoicesAreSpelledOut") = []
 
     check(hat.key == "hat");
     check(hat.name == "Hat");
-    check(hat.choices.size() == 6);
+    check(hat.choices.size() == 7);
+    check(hat.choices[6] == "Frog Hat");
     check(hat.choices[1] == "Top Hat");
     check(hat.choices[2] == "Cowboy Hat");
     check(hat.choice(wearing(Hat::PartyHat)) == 3);
@@ -127,9 +130,9 @@ auto tHatChoices = test("CowSkin/hatChoicesAreSpelledOut") = []
 auto tStepWraps = test("CowSkin/stepWrapsBothWays") = []
 {
     check(stepped(CowSkin {}, 0, 1).hat == Hat::TopHat);
-    check(stepped(CowSkin {}, 0, -1).hat == Hat::Crown);
-    check(stepped(wearing(Hat::Crown), 0, 1).hat == Hat::None);
-    check(stepped(CowSkin {}, 0, 7).hat == Hat::TopHat);
+    check(stepped(CowSkin {}, 0, -1).hat == Hat::FrogHat);
+    check(stepped(wearing(Hat::FrogHat), 0, 1).hat == Hat::None);
+    check(stepped(CowSkin {}, 0, 8).hat == Hat::TopHat);
     check(stepped(wearing(Hat::Beanie), 5, 1) == wearing(Hat::Beanie));
     check(stepped(wearing(Hat::Beanie), -1, 1) == wearing(Hat::Beanie));
 };
