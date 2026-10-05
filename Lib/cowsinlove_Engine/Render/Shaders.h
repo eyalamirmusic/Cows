@@ -38,9 +38,7 @@ struct SkyShader final
 
 // Every mesh in the scene but the grass and the title, drawn instanced: each
 // instance brings its own transform and material.
-struct SurfaceShader final
-    : ShaderProgram
-    , SceneUniforms
+struct SurfaceShader final : LitProgram
 {
     SurfaceShader();
 

@@ -74,31 +74,38 @@ Float3 shade(const SceneUniforms& scene, const Surface& surface)
            + scene.rimColor * rim * 0.55f;
 }
 
-Float shadowAt(const SceneUniforms& scene, const Float3& world, const Float3& normal)
+Float shadowAt(LitProgram& scene, const Float3& world, const Float3& normal)
 {
     auto lifted = world + normal * 0.03f;
     auto clip = scene.lightViewProjection * float4(lifted, 1.f);
     auto uv = float2(clip.x() * 0.5f + 0.5f, 0.5f - clip.y() * 0.5f);
     auto depth = clip.z() - shadowBias;
 
-    auto litAt = [&](const std::array<float, 2>& tap)
-    {
-        auto offset = float2(uv.x() + tap[0] * shadowTexel * shadowSpread,
-                             uv.y() + tap[1] * shadowTexel * shadowSpread);
-        return step(depth, sample(scene.shadowMap, offset).x());
-    };
-
-    auto lit = litAt(taps[0]);
-
-    for (auto index = 1; index < tapCount; ++index)
-        lit = lit + litAt(taps[index]);
-
-    lit = lit / (float) tapCount;
-
     auto inside = step(0.002f, uv.x()) * step(uv.x(), 0.998f) * step(0.002f, uv.y())
                   * step(uv.y(), 0.998f) * step(clip.z(), 0.995f);
 
-    return 1.f - inside * (1.f - lit);
+    auto shadow = scene.var(1.f);
+
+    scene.ifThen(
+        inside > 0.5f,
+        [&]
+        {
+            auto litAt = [&](const std::array<float, 2>& tap)
+            {
+                auto offset = float2(uv.x() + tap[0] * shadowTexel * shadowSpread,
+                                     uv.y() + tap[1] * shadowTexel * shadowSpread);
+                return step(depth, sample(scene.shadowMap, offset, 0.f).x());
+            };
+
+            auto lit = litAt(taps[0]);
+
+            for (auto index = 1; index < tapCount; ++index)
+                lit = lit + litAt(taps[index]);
+
+            shadow = lit / (float) tapCount;
+        });
+
+    return shadow.get();
 }
 
 Float hazeAt(const Float3& eye, const Float3& world)

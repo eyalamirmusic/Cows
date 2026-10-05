@@ -21,10 +21,9 @@ Float3 ambient(const LightingUniforms& light, const Float3& normal);
 Float3 shade(const SceneUniforms& scene, const Surface& surface);
 
 // 1 where the key light reaches `world`, 0 where something stands in its way,
-// softened over a few texels of the shadow map.
-Float shadowAt(const SceneUniforms& scene,
-               const Float3& world,
-               const Float3& normal);
+// softened over a few texels of the shadow map. Outside the map it reads no
+// texel at all and answers 1.
+Float shadowAt(LitProgram& scene, const Float3& world, const Float3& normal);
 
 // How thick the haze is between the eye and `world`: 0 for none, rising with
 // distance and thinning with height.

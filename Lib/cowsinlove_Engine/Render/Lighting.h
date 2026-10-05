@@ -81,4 +81,14 @@ struct SceneUniforms : LightingUniforms
     Uniform<Float> time;
     Uniform<Texture2D> shadowMap;
 };
+
+// A shader lit by the scene: its uniforms, and the control flow the shared
+// shading functions branch with.
+struct LitProgram
+    : ShaderProgram
+    , SceneUniforms
+{
+    using ShaderProgram::ifThen;
+    using ShaderProgram::var;
+};
 } // namespace Cows

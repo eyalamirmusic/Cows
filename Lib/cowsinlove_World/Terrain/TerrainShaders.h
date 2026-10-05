@@ -8,9 +8,7 @@
 namespace Cows
 {
 // Each contact is (x, z, strength): the soft dark patch right under a cow.
-struct GroundShader final
-    : ShaderProgram
-    , SceneUniforms
+struct GroundShader final : LitProgram
 {
     GroundShader();
 
@@ -26,9 +24,7 @@ struct GroundShader final
     Uniform<Float3> secondContact;
 };
 
-struct GrassShader final
-    : ShaderProgram
-    , SceneUniforms
+struct GrassShader final : LitProgram
 {
     GrassShader();
 
