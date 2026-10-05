@@ -1,4 +1,5 @@
 #include "Cow/Wardrobe.h"
+#include "Cow/HeartMesh.h"
 #include "Render/Palette.h"
 
 #include <cmath>
@@ -12,12 +13,18 @@ namespace
 constexpr Vec3 crownOfHead {1.38f, 1.99f, 0.f};
 constexpr auto crownPoints = 5;
 constexpr auto frogEye = 0.11f;
-constexpr auto backLegs = -0.6f;
-constexpr auto frontLegs = 0.58f;
-constexpr auto legApart = 0.27f;
-constexpr auto cuffHeight = 0.26f;
-constexpr auto sleeveTop = 0.86f;
-constexpr auto sleeveWidth = 0.4f;
+constexpr auto clothOut = 1.035f;
+constexpr auto bandOut = 1.05f;
+constexpr auto sleeveOut = 1.08f;
+constexpr auto cuffOut = 1.15f;
+constexpr auto cuffHeight = 0.075f;
+constexpr auto clothRim = 0.04f;
+constexpr auto bandWidth = 0.14f;
+constexpr auto bandOverlap = 0.03f;
+constexpr Vec2 bellyLatitude {-halfPi, halfPi};
+constexpr Vec2 bellyLongitude {-halfPi, halfPi};
+constexpr Vec2 seatLatitude {-halfPi, -0.22f};
+constexpr Vec2 seatLongitude {-0.75f * pi, 0.75f * pi};
 
 Material cloth(std::uint32_t hex, float gloss = 0.2f)
 {
@@ -186,62 +193,59 @@ void addFrogHat(Vector<CowPart>& parts)
                 lining);
     }
 }
-CowPart bodyPart(Shape shape,
-                 Vec3 position,
-                 Vec3 size,
-                 const Material& material,
-                 const Mat4& rotation = {})
+
+Mat4 aroundTorso(float scale)
 {
-    return {shape,
-            Bone::Body,
-            Mat4::translation(position) * rotation * Mat4::scale(size),
-            material};
+    auto middle = Vec3 {0.f, 0.5f, 0.f};
+    return torsoPlacement() * Mat4::translation(middle) * Mat4::scale(scale)
+           * Mat4::translation(-middle);
 }
 
-void addSleeves(Vector<CowPart>& parts, float legsAt)
+MeshData makeWaistband(Vec2 latitude, Vec2 longitude)
+{
+    auto band = makeBarrelPatch(latitude,
+                                {longitude.y - bandWidth, longitude.y + bandOverlap},
+                                clothRim,
+                                48,
+                                3);
+    append(band,
+           makeBarrelPatch(latitude,
+                           {longitude.x - bandOverlap, longitude.x + bandWidth},
+                           clothRim,
+                           48,
+                           3));
+    return band;
+}
+
+void addSleeves(Vector<CowPart>& parts, LegPair pair)
 {
     auto denim = cloth(Palette::denim, 0.15f);
     auto seam = cloth(Palette::denimSeam, 0.15f);
 
-    for (auto z: {-legApart, legApart})
+    for (const auto& leg: legPlacements(pair))
     {
-        parts.add(bodyPart(Shape::Cylinder,
-                           {legsAt, cuffHeight, z},
-                           {sleeveWidth, sleeveTop - cuffHeight, sleeveWidth},
-                           denim));
-        parts.add(bodyPart(Shape::Cylinder,
-                           {legsAt, cuffHeight - 0.01f, z},
-                           {sleeveWidth + 0.02f, 0.06f, sleeveWidth + 0.02f},
-                           seam));
+        auto foot = leg.column(3);
+        auto cuffLift = Mat4::translation({0.f, hoofTop - 0.02f - foot.y, 0.f});
+
+        parts.add({Shape::Capsule,
+                   Bone::Body,
+                   leg * Mat4::scale({sleeveOut, 1.f, sleeveOut}),
+                   denim});
+        parts.add({Shape::Capsule,
+                   Bone::Body,
+                   cuffLift * leg * Mat4::scale({cuffOut, cuffHeight, cuffOut}),
+                   seam});
     }
 }
 
-void addBellyBand(Vector<CowPart>& parts)
+void addGarment(Vector<CowPart>& parts, Shape garment, Shape waistband)
 {
-    parts.add(bodyPart(Shape::Sphere,
-                       {-0.01f, 0.72f, 0.f},
-                       {0.98f, 0.24f, 0.5f},
-                       cloth(Palette::denim, 0.15f)));
-    parts.add(bodyPart(Shape::Sphere,
-                       {-0.01f, 0.76f, 0.f},
-                       {0.99f, 0.05f, 0.51f},
-                       cloth(Palette::denimSeam, 0.15f)));
-}
-
-void addHipBand(Vector<CowPart>& parts)
-{
-    auto lengthwise = Mat4::rotationZ(-halfPi);
-
-    parts.add(bodyPart(Shape::Barrel,
-                       {-1.16f, 1.1f, 0.f},
-                       {1.16f, 0.66f, 1.1f},
-                       cloth(Palette::denim, 0.15f),
-                       lengthwise));
-    parts.add(bodyPart(Shape::Cylinder,
-                       {-0.54f, 1.1f, 0.f},
-                       {1.17f, 0.06f, 1.11f},
-                       cloth(Palette::denimSeam, 0.15f),
-                       lengthwise));
+    parts.add(
+        {garment, Bone::Body, aroundTorso(clothOut), cloth(Palette::denim, 0.15f)});
+    parts.add({waistband,
+               Bone::Body,
+               aroundTorso(bandOut),
+               cloth(Palette::denimSeam, 0.15f)});
 }
 } // namespace
 
@@ -250,13 +254,13 @@ void addPants(Vector<CowPart>& parts, Pants pants)
     switch (pants)
     {
         case Pants::BothLegs:
-            addSleeves(parts, backLegs);
-            addSleeves(parts, frontLegs);
-            addBellyBand(parts);
+            addSleeves(parts, LegPair::Back);
+            addSleeves(parts, LegPair::Front);
+            addGarment(parts, Shape::Belly, Shape::BellyBand);
             break;
         case Pants::BackLegs:
-            addSleeves(parts, backLegs);
-            addHipBand(parts);
+            addSleeves(parts, LegPair::Back);
+            addGarment(parts, Shape::Seat, Shape::SeatBand);
             break;
         case Pants::None:
             break;
@@ -288,6 +292,28 @@ void addHat(Vector<CowPart>& parts, Hat hat)
         case Hat::None:
             break;
     }
+}
+
+MeshData makePantsMesh(Shape shape)
+{
+    switch (shape)
+    {
+        case Shape::Belly:
+            return makeBarrelPatch(bellyLatitude, bellyLongitude, clothRim, 48, 24);
+        case Shape::BellyBand:
+            return makeWaistband(bellyLatitude, bellyLongitude);
+        case Shape::Seat:
+            return makeBarrelPatch(seatLatitude, seatLongitude, clothRim, 24, 36);
+        case Shape::SeatBand:
+            return makeWaistband(seatLatitude, seatLongitude);
+        default:
+            return {};
+    }
+}
+
+MeshData makeCowMesh(Shape shape)
+{
+    return shape == Shape::Heart ? makeHeart() : makePantsMesh(shape);
 }
 
 Vector<CowPart> makeCowParts(const CowSkin& skin)

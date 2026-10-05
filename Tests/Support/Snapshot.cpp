@@ -67,16 +67,8 @@ bool hasDevice()
     return Device::shared().isValid();
 }
 
-SnapshotView::SnapshotView(const MeshData& heartMesh)
-    : sphere(makeSphere(32, 48))
-    , capsule(makeCapsule(0.14f, 32))
-    , horn(makeHorn(24))
-    , heart(heartMesh)
-    , barrel(makeBarrel(48))
-    , box(makeBox())
-    , wedge(makeWedge())
-    , cylinder(makeCylinder(32))
-    , cone(makeCone(32))
+SnapshotView::SnapshotView(const std::function<MeshData(Shape)>& content)
+    : shapes(content)
 {
     setDepth(true);
 
@@ -126,16 +118,16 @@ void SnapshotView::setSceneUniforms(SceneUniforms& uniforms,
 
 void SnapshotView::draw(RenderPass& pass,
                         SurfaceShader& shader,
-                        SurfaceBatch& shapes)
+                        SurfaceBatch& instances)
 {
     for (auto index = 0; index < shapeCount; ++index)
     {
-        const auto& list = shapes.lists[index];
+        const auto& list = instances.lists[index];
 
         if (list.empty())
             continue;
 
-        const auto& mesh = meshFor((Shape) index);
+        const auto& mesh = shapes[(Shape) index];
 
         shader.setInstances(1, list.data(), list.size());
         pass.bind(shader, mesh.vertices);
@@ -155,33 +147,6 @@ void SnapshotView::drawGlows(RenderPass& pass, const Mat4& viewProjection)
     glowShader.setInstances(1, glows.data(), glows.size());
 
     pass.drawInstanced(glowShader, glows.size());
-}
-
-const Mesh& SnapshotView::meshFor(Shape shape) const
-{
-    switch (shape)
-    {
-        case Shape::Capsule:
-            return capsule;
-        case Shape::Horn:
-            return horn;
-        case Shape::Heart:
-            return heart;
-        case Shape::Barrel:
-            return barrel;
-        case Shape::Box:
-            return box;
-        case Shape::Wedge:
-            return wedge;
-        case Shape::Cylinder:
-            return cylinder;
-        case Shape::Cone:
-            return cone;
-        case Shape::Sphere:
-            break;
-    }
-
-    return sphere;
 }
 
 Graphics::Image

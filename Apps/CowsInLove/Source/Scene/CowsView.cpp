@@ -1,5 +1,4 @@
 #include "CowsView.h"
-#include "Cow/HeartMesh.h"
 #include "Cow/KissHearts.h"
 #include "Cow/Wardrobe.h"
 #include "Ending.h"
@@ -185,15 +184,7 @@ Graphics::Color displayColor(const Vec3& linear)
 } // namespace
 
 CowsView::CowsView()
-    : sphere(makeSphere(32, 48))
-    , capsule(makeCapsule(0.14f, 32))
-    , horn(makeHorn(24))
-    , heart(makeHeart())
-    , barrel(makeBarrel(48))
-    , box(makeBox())
-    , wedge(makeWedge())
-    , cylinder(makeCylinder(32))
-    , cone(makeCone(32))
+    : shapes(makeCowMesh)
     , ground(makePlane(groundSize))
     , cowParts(makeCowParts())
     , playerParts(cowParts)
@@ -1204,7 +1195,7 @@ void CowsView::drawBatch(RenderPass& pass,
         if (list.empty())
             continue;
 
-        const auto& mesh = meshFor((Shape) index);
+        const auto& mesh = shapes[(Shape) index];
 
         shader.setInstances(1, list.data(), list.size());
         pass.bind(shader, mesh.vertices);
@@ -1213,30 +1204,4 @@ void CowsView::drawBatch(RenderPass& pass,
     }
 }
 
-const Mesh& CowsView::meshFor(Shape shape) const
-{
-    switch (shape)
-    {
-        case Shape::Capsule:
-            return capsule;
-        case Shape::Horn:
-            return horn;
-        case Shape::Heart:
-            return heart;
-        case Shape::Barrel:
-            return barrel;
-        case Shape::Box:
-            return box;
-        case Shape::Wedge:
-            return wedge;
-        case Shape::Cylinder:
-            return cylinder;
-        case Shape::Cone:
-            return cone;
-        case Shape::Sphere:
-            break;
-    }
-
-    return sphere;
-}
 } // namespace Cows

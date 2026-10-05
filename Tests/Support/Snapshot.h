@@ -4,6 +4,7 @@
 #include "Render/Instances.h"
 #include "Render/Lighting.h"
 #include "Render/Mesh.h"
+#include "Render/ShapeMeshes.h"
 #include "Render/Shaders.h"
 #include "Render/ShadowMap.h"
 
@@ -21,13 +22,15 @@ bool hasDevice();
 
 // Draws `batch`, then `translucent` blended over it, then the additive `glows`,
 // under the default Lighting with nothing casting shadows, seen by `camera`, on
-// clearColor. `heart` is the mesh for Shape::Heart, which the Engine has not.
+// clearColor. `content` makes the meshes the Engine has not (ShapeMeshes); by
+// default each is a sphere.
 // `drawOpaque` draws anything else solid after `batch`, for shaders the
 // support library does not know; give them the scene with setSceneUniforms.
 // `drawOverlay` draws last, over everything, as the game's HUD does.
 struct SnapshotView final : GPUView
 {
-    explicit SnapshotView(const MeshData& heart = makeSphere(16, 24));
+    explicit SnapshotView(const std::function<MeshData(Shape)>& content = [](Shape)
+                          { return makeSphere(16, 24); });
 
     void render(Frame& frame) override;
 
@@ -47,20 +50,11 @@ struct SnapshotView final : GPUView
 
 private:
     void clearShadows(Frame& frame);
-    void draw(RenderPass& pass, SurfaceShader& shader, SurfaceBatch& shapes);
+    void draw(RenderPass& pass, SurfaceShader& shader, SurfaceBatch& instances);
     void drawGlows(RenderPass& pass, const Maths::Mat4& viewProjection);
-    const Mesh& meshFor(Shape shape) const;
 
     ShadowMap shadowMap;
-    Mesh sphere;
-    Mesh capsule;
-    Mesh horn;
-    Mesh heart;
-    Mesh barrel;
-    Mesh box;
-    Mesh wedge;
-    Mesh cylinder;
-    Mesh cone;
+    ShapeMeshes shapes;
     SurfaceShader surfaceShader;
     SurfaceShader translucentShader;
     GlowShader glowShader;

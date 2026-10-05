@@ -32,6 +32,14 @@ MeshData makeCapsule(float radius, int segments);
 // turned about its axis, flatter-ended than a sphere.
 MeshData makeBarrel(int segments);
 
+// The part of makeBarrel's surface between two latitudes (radians, -pi/2 at its
+// y = 0 end, pi/2 at its y = 1 end) and two longitudes (radians about y, 0 at
+// +x, turning towards +z, and may run past pi), each as (from, to). Every edge
+// turns in `rim` along its normals, so laid a little outside the barrel it reads
+// as cloth with a thickness rather than a painted line.
+MeshData makeBarrelPatch(
+    Maths::Vec2 latitude, Maths::Vec2 longitude, float rim, int rings, int segments);
+
 // A tapered, rounded cone along y from 0 to 1: a horn.
 MeshData makeHorn(int segments);
 

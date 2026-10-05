@@ -1,5 +1,4 @@
 #include "Cow/Wardrobe.h"
-#include "Cow/HeartMesh.h"
 #include "Snapshot.h"
 
 #include <NanoTest/NanoTest.h>
@@ -68,24 +67,29 @@ CowSkin dressed(Hat hat, Pants pants)
     return skin;
 }
 
-void shoot(const CowSkin& skin,
-           Maths::Vec3 target,
-           float yaw,
-           float distance,
-           const std::string& name)
+struct Shot final
+{
+    const char* name;
+    Maths::Vec3 target;
+    float yaw;
+    float pitch;
+    float distance;
+};
+
+void shoot(const CowSkin& skin, const Shot& shot, const std::string& name)
 {
     auto cow = Cow {};
-    auto view = SnapshotView {makeHeart()};
+    auto view = SnapshotView {makeCowMesh};
     cow.addTo(view.batch,
               view.glows,
               makeCowParts(skin),
               cow.freePose({}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f));
-    view.camera.target = target;
-    view.camera.yaw = yaw;
-    view.camera.pitch = 0.12f;
-    view.camera.distance = distance;
+    view.camera.target = shot.target;
+    view.camera.yaw = shot.yaw;
+    view.camera.pitch = shot.pitch;
+    view.camera.distance = shot.distance;
 
-    check(snapshot(view, 360.f, 270.f, name).isValid());
+    check(snapshot(view, 360.f, 270.f, name + shot.name).isValid());
 }
 
 auto tPantsOnBody = test("Wardrobe/pantsSitOnTheBody") = []
@@ -104,7 +108,8 @@ auto tPantsOnBody = test("Wardrobe/pantsSitOnTheBody") = []
         {
             auto at = transformPoint(part.transform, {});
             check(part.bone == Bone::Body);
-            check(at.y > 0.2f && at.y < 1.4f);
+            check(at.y > 0.f && at.y < 1.4f);
+            check(std::abs(at.x) < 1.2f && std::abs(at.z) < 0.6f);
         }
     }
 
@@ -122,29 +127,23 @@ auto tHatSnapshots = test("Wardrobe/snapshots") = []
     if (!hasDevice())
         return;
 
-    struct Angle final
-    {
-        const char* name;
-        float yaw;
-    };
+    auto head = Vec3 {1.3f, 1.9f, 0.f};
+    auto body = Vec3 {0.f, 0.9f, 0.f};
 
     for (auto hat: hats)
-        for (auto angle: {Angle {"", 0.9f},
-                          Angle {"-side", 0.f},
-                          Angle {"-front", Maths::halfPi}})
+        for (const auto& shot: {Shot {"", head, 0.9f, 0.12f, 2.6f},
+                                Shot {"-side", head, 0.f, 0.12f, 2.6f},
+                                Shot {"-front", head, halfPi, 0.12f, 2.6f}})
             shoot(wearing(hat),
-                  {1.3f, 1.9f, 0.f},
-                  angle.yaw,
-                  2.6f,
-                  "actors-hat-" + std::string {Miro::enumToString(hat)}
-                      + angle.name);
+                  shot,
+                  "actors-hat-" + std::string {Miro::enumToString(hat)});
 
     for (auto pants: {Pants::BothLegs, Pants::BackLegs})
-        for (auto angle: {Angle {"-side", 0.f}, Angle {"", 0.6f}})
+        for (const auto& shot: {Shot {"-side", body, 0.f, 0.12f, 5.f},
+                                Shot {"", body, 0.6f, 0.12f, 5.f},
+                                Shot {"-low", {0.f, 0.7f, 0.f}, -0.8f, -0.02f, 3.6f},
+                                Shot {"-back", body, -halfPi, 0.1f, 4.f}})
             shoot(dressed(Hat::None, pants),
-                  {0.f, 0.9f, 0.f},
-                  angle.yaw,
-                  5.f,
-                  "actors-pants-" + std::string {Miro::enumToString(pants)}
-                      + angle.name);
+                  shot,
+                  "actors-pants-" + std::string {Miro::enumToString(pants)});
 };

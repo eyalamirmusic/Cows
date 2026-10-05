@@ -1,6 +1,6 @@
 #include "Animation/Choreography.h"
 #include "Cow/Cow.h"
-#include "Cow/HeartMesh.h"
+#include "Cow/Wardrobe.h"
 #include "Snapshot.h"
 
 #include <NanoTest/NanoTest.h>
@@ -121,7 +121,7 @@ auto tCowSnapshot = test("Cow/snapshot") = []
         return;
 
     auto cow = Cow {};
-    auto view = SnapshotView {makeHeart()};
+    auto view = SnapshotView {makeCowMesh};
     cow.addTo(view.batch,
               view.glows,
               makeCowParts(),

@@ -68,18 +68,21 @@ float kissLean(float seconds)
     return std::pow(Choreography::closeness(seconds), 3.f);
 }
 
+float legsAt(LegPair pair)
+{
+    return pair == LegPair::Back ? -0.6f : 0.58f;
+}
+
 void addLegs(Vector<CowPart>& parts)
 {
-    for (auto x: {-0.6f, 0.58f})
-        for (auto z: {-0.27f, 0.27f})
+    for (auto pair: {LegPair::Back, LegPair::Front})
+        for (const auto& leg: legPlacements(pair))
         {
+            auto foot = leg.column(3);
+            parts.add({Shape::Capsule, Bone::Body, leg, hideMaterial()});
             parts.add({Shape::Capsule,
                        Bone::Body,
-                       place({x, 0.1f, z}, {1.25f, 0.95f, 1.25f}),
-                       hideMaterial()});
-            parts.add({Shape::Capsule,
-                       Bone::Body,
-                       place({x, 0.f, z}, {1.5f, 0.22f, 1.5f}),
+                       place({foot.x, 0.f, foot.z}, {1.5f, hoofTop, 1.5f}),
                        plain(Palette::hoof, 0.5f)});
         }
 }
@@ -88,12 +91,7 @@ void addTorso(Vector<CowPart>& parts)
 {
     auto hide = hideMaterial();
 
-    auto lengthwise = Mat4::rotationZ(-halfPi);
-    parts.add({Shape::Barrel,
-               Bone::Body,
-               place({0.f, 1.13f, 0.f}, {1.12f, 2.24f, 1.04f}, lengthwise)
-                   * Mat4::translation({0.f, -0.5f, 0.f}),
-               hide});
+    parts.add({Shape::Barrel, Bone::Body, torsoPlacement(), hide});
     parts.add(ball(Bone::Body,
                    {0.93f, 1.38f, 0.f},
                    {0.42f, 0.36f, 0.32f},
@@ -204,6 +202,19 @@ Mat4 squashed(float hop, float squash)
     return Mat4::scale({widen, stretch, widen});
 }
 } // namespace
+
+Mat4 torsoPlacement()
+{
+    return place({0.f, 1.13f, 0.f}, {1.12f, 2.24f, 1.04f}, Mat4::rotationZ(-halfPi))
+           * Mat4::translation({0.f, -0.5f, 0.f});
+}
+
+std::array<Mat4, 2> legPlacements(LegPair pair)
+{
+    auto x = legsAt(pair);
+    return {place({x, 0.1f, -0.27f}, {1.25f, 0.95f, 1.25f}),
+            place({x, 0.1f, 0.27f}, {1.25f, 0.95f, 1.25f})};
+}
 
 Vector<CowPart> makeCowParts()
 {

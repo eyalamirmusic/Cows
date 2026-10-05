@@ -2,6 +2,8 @@
 
 #include "Render/Instances.h"
 
+#include <array>
+
 namespace Cows
 {
 enum class Bone
@@ -22,6 +24,20 @@ struct CowPart final
 
 // The cow, standing on y = 0 and facing +x, in its rest pose.
 Vector<CowPart> makeCowParts();
+
+enum class LegPair
+{
+    Front,
+    Back
+};
+
+// Where the rest pose's torso (a Barrel) and the capsules of each pair of legs
+// sit, for clothes cut to fit them.
+Maths::Mat4 torsoPlacement();
+std::array<Maths::Mat4, 2> legPlacements(LegPair pair);
+
+// The top of each hoof, which the legs run down into.
+constexpr auto hoofTop = 0.22f;
 
 // Everything that moves a cow this frame.
 struct CowPose final

@@ -83,6 +83,67 @@ void dropSlivers(MeshData& mesh)
     mesh.indices = kept;
 }
 
+constexpr auto barrelRoundness = 2.f / 2.6f;
+
+float signedPower(float value, float power)
+{
+    return std::copysign(std::pow(std::abs(value), power), value);
+}
+
+Vec2 barrelProfile(float angle)
+{
+    auto c = std::cos(angle);
+    auto s = std::sin(angle);
+    auto radius = 0.5f * std::pow(std::max(c, 0.f), barrelRoundness);
+    auto height = 0.5f + 0.5f * signedPower(s, barrelRoundness);
+
+    return {radius, height};
+}
+
+Vertex barrelPoint(float latitude, float longitude)
+{
+    auto profile = barrelProfile(latitude);
+    auto slope = normalize(
+        Vec2 {std::pow(std::max(std::cos(latitude), 0.f), 2.f - barrelRoundness),
+              signedPower(std::sin(latitude), 2.f - barrelRoundness)});
+    auto c = std::cos(longitude);
+    auto s = std::sin(longitude);
+
+    return {{profile.x * c, profile.y, profile.x * s},
+            {slope.x * c, slope.y, slope.x * s}};
+}
+
+Vec3 directionOr(Vec3 direction, Vec3 fallback)
+{
+    auto size = length(direction);
+    return size > 1e-6f ? direction / size : fallback;
+}
+
+void addRim(MeshData& mesh,
+            const Vector<int>& edge,
+            const Vector<int>& inside,
+            float rim)
+{
+    auto base = (std::uint32_t) mesh.vertices.size();
+
+    for (auto index = 0; index < edge.size(); ++index)
+    {
+        auto at = mesh.vertices[edge[index]];
+        auto away = at.position - mesh.vertices[inside[index]].position;
+        auto outward =
+            directionOr(away - at.normal * dot(away, at.normal), at.normal);
+
+        mesh.vertices.add({at.position, outward});
+        mesh.vertices.add({at.position - at.normal * rim, outward});
+    }
+
+    for (auto index = 0; index + 1 < edge.size(); ++index)
+    {
+        auto a = base + (std::uint32_t) (2 * index);
+        mesh.indices.add({a, a + 2, a + 3, a, a + 3, a + 1});
+    }
+}
+
 Vec2 profileNormal(const Vector<Vec2>& profile, int index)
 {
     auto last = profile.size() - 1;
@@ -168,23 +229,59 @@ MeshData makeCapsule(float radius, int segments)
 
 MeshData makeBarrel(int segments)
 {
-    constexpr auto roundness = 2.f / 2.6f;
     auto profile = Vector<Vec2> {};
     auto steps = segments / 2;
 
     for (auto step = 0; step <= steps; ++step)
-    {
-        auto angle = -halfPi + pi * (float) step / (float) steps;
-        auto c = std::cos(angle);
-        auto s = std::sin(angle);
-        auto radius = 0.5f * std::pow(std::max(c, 0.f), roundness);
-        auto height =
-            0.5f + 0.5f * std::copysign(std::pow(std::abs(s), roundness), s);
-
-        profile.add({radius, height});
-    }
+        profile.add(barrelProfile(-halfPi + pi * (float) step / (float) steps));
 
     return makeLathe(profile, segments);
+}
+
+MeshData makeBarrelPatch(
+    Vec2 latitude, Vec2 longitude, float rim, int rings, int segments)
+{
+    auto mesh = MeshData {};
+
+    for (auto ring = 0; ring <= rings; ++ring)
+        for (auto segment = 0; segment <= segments; ++segment)
+            mesh.vertices.add(barrelPoint(
+                std::lerp(latitude.x, latitude.y, (float) ring / (float) rings),
+                std::lerp(
+                    longitude.x, longitude.y, (float) segment / (float) segments)));
+
+    addGrid(mesh, rings, segments);
+
+    auto at = [&](int ring, int segment) { return ring * (segments + 1) + segment; };
+    auto edge = Vector<int> {};
+    auto inside = Vector<int> {};
+    auto addEdge = [&](auto&& edgeAt, auto&& insideAt, int count)
+    {
+        edge.clear();
+        inside.clear();
+
+        for (auto step = 0; step <= count; ++step)
+        {
+            edge.add(edgeAt(step));
+            inside.add(insideAt(step));
+        }
+
+        addRim(mesh, edge, inside, rim);
+    };
+
+    addEdge(
+        [&](int s) { return at(0, s); }, [&](int s) { return at(1, s); }, segments);
+    addEdge([&](int s) { return at(rings, s); },
+            [&](int s) { return at(rings - 1, s); },
+            segments);
+    addEdge([&](int r) { return at(r, 0); }, [&](int r) { return at(r, 1); }, rings);
+    addEdge([&](int r) { return at(r, segments); },
+            [&](int r) { return at(r, segments - 1); },
+            rings);
+
+    dropSlivers(mesh);
+    windOutward(mesh);
+    return mesh;
 }
 
 MeshData makeHorn(int segments)

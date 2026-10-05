@@ -155,3 +155,26 @@ auto tConeShape = test("Mesh/coneNarrowsToItsPoint") = []
         check(radius <= 0.5f * (1.f - vertex.position.y) + 1e-4f);
     }
 };
+
+auto tBarrelPatch = test("Mesh/barrelPatchLiesOnTheBarrel") = []
+{
+    auto lowerHalf =
+        makeBarrelPatch({-halfPi, halfPi}, {-halfPi, halfPi}, 0.f, 16, 8);
+    auto corner =
+        makeBarrelPatch({-halfPi, 0.f}, {-0.75f * pi, 0.75f * pi}, 0.05f, 8, 12);
+
+    for (const auto& mesh: {lowerHalf, corner})
+    {
+        check(!mesh.indices.empty());
+        check(indicesInRange(mesh));
+        check(normalsUnitLength(mesh));
+        check(facesOutward(mesh));
+    }
+
+    for (const auto& vertex: lowerHalf.vertices)
+    {
+        check(vertex.position.x >= -1e-5f);
+        check(vertex.position.y > -1e-5f && vertex.position.y < 1.f + 1e-5f);
+        check(length(Vec2 {vertex.position.x, vertex.position.z}) < 0.5f + 1e-5f);
+    }
+};

@@ -10,6 +10,7 @@
 #include "Terrain/Ground.h"
 #include "Render/Lighting.h"
 #include "Render/Mesh.h"
+#include "Render/ShapeMeshes.h"
 #include "Title/MenuTitle.h"
 #include "Title/TitleShader.h"
 #include "Terrain/TerrainShaders.h"
@@ -103,8 +104,6 @@ struct CowsView final : GPUView
     void drawGlows(RenderPass& pass, const Maths::Mat4& viewProjection);
     void drawBatch(RenderPass& pass, ShaderProgram& shader, SurfaceBatch& batch);
 
-    const Mesh& meshFor(Shape shape) const;
-
     Stages stages;
     Game game;
     Input input;
@@ -117,15 +116,7 @@ struct CowsView final : GPUView
     ShadowMap shadowMap;
     Maths::Mat4 lightViewProjection;
 
-    Mesh sphere;
-    Mesh capsule;
-    Mesh horn;
-    Mesh heart;
-    Mesh barrel;
-    Mesh box;
-    Mesh wedge;
-    Mesh cylinder;
-    Mesh cone;
+    ShapeMeshes shapes;
     Mesh ground;
     TitleMesh title;
     TitleMesh menuTitleWide;
