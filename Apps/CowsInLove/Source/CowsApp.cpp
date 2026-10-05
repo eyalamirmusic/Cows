@@ -25,6 +25,16 @@ bool opensOnMenu()
 {
     return getEnvValue("COWS_MENU") != "0" && getEnvValue("COWS_FOUND").empty();
 }
+
+bool opensDressing()
+{
+    return getEnvValue("COWS_DRESS") == "1";
+}
+
+float titlebarClearance()
+{
+    return Platform::isMac() ? 28.f : 0.f;
+}
 } // namespace
 
 CowsApp::CowsApp()
@@ -33,21 +43,43 @@ CowsApp::CowsApp()
     root.addSubview(scene);
     scene.gameInput = &gameInput;
     scene.menu = &menu;
+    scene.editor = &editor;
 
     menu.items.add({"Start", "", true});
-    menu.items.add({"Dress Your Cow", "Coming Soon!", false});
+    menu.items.add({"Dress Your Cow", "", true});
     menu.onChoose = [this](int index)
     {
         if (index == 0)
             scene.startGame();
+        else
+            scene.openEditor();
     };
+
+    for (const auto& item: itemClasses())
+        editor.rows.add({item.name, item.choices, item.choice(skin)});
+
+    editor.topClearance = titlebarClearance();
+    editor.onStep = [this](int row, int by) { dress(stepped(skin, row, by)); };
+    editor.onDone = [this] { scene.closeEditor(); };
+    editor.onControl = [this](const ControlEvent& event)
+    {
+        scene.useHints(scene.pointerHints);
+        scene.control(event);
+    };
+    scene.wear(skin);
 
     root.onKeyDown = [this](const Graphics::KeyEvent& event)
     { scene.keyDown(event); };
     root.onKeyUp = [this](const Graphics::KeyEvent& event) { scene.keyUp(event); };
     root.onEscape = [this] { return scene.escape(); };
 
-    footer.text = [this] { return footerText(scene.game, scene.hint, scene.hints); };
+    footer.text = [this]
+    {
+        if (scene.dressing)
+            return editorText(scene.hints);
+
+        return footerText(scene.game, scene.hint, scene.hints);
+    };
     touchControls.onControl = [this](const ControlEvent& event)
     {
         scene.useHints(scene.pointerHints);
@@ -57,12 +89,18 @@ CowsApp::CowsApp()
     {
         auto inMenu = scene.game.state == Game::State::Menu;
         touchControls.showAgain = scene.game.state == Game::State::Found;
-        menu.showing = inMenu;
+        menu.showing = inMenu && !scene.dressing;
         menu.hovered = -1;
         menu.pressed = -1;
+        editor.showing = inMenu && scene.dressing;
+        editor.hovered = {};
+        editor.pressed = {};
 
-        if (inMenu)
+        if (menu.showing)
             menu.showSelection = isGamepad(scene.hints);
+
+        if (editor.showing)
+            editor.showSelection = isGamepad(scene.hints);
     };
 
     if (touchScreen)
@@ -80,6 +118,8 @@ CowsApp::CowsApp()
         {
             menu.opacity = scene.menuOpacity();
             menu.draw(hud);
+            editor.opacity = scene.editorOpacity();
+            editor.draw(hud);
             return;
         }
 
@@ -91,10 +131,32 @@ CowsApp::CowsApp()
         root.addSubview(touchControls);
 
     root.addSubview(menu);
+    root.addSubview(editor);
 
     if (opensOnMenu())
         scene.openMenu(false);
     else
         menu.showing = false;
+
+    if (opensOnMenu() && opensDressing())
+        scene.openEditor();
+}
+
+void CowsApp::dress(const CowSkin& next)
+{
+    skin = next;
+    scene.wear(skin);
+    showSkin();
+
+    if (!saveCowSkin(skin, skinFile))
+        LOG("Cows: could not save ", skinFile.str());
+}
+
+void CowsApp::showSkin()
+{
+    const auto& classes = itemClasses();
+
+    for (auto index = 0; index < (int) classes.size(); ++index)
+        editor.rows[index].choice = classes[index].choice(skin);
 }
 } // namespace Cows
