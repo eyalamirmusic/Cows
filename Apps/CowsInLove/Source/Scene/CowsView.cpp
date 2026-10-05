@@ -489,20 +489,21 @@ void CowsView::wear(const CowSkin& skin)
 
 bool CowsView::escape()
 {
-    if (swinging)
-        return true;
-
-    if (dressing)
+    switch (escapeAction(game.state, dressing, swinging))
     {
-        closeEditor();
-        return true;
+        case EscapeAction::Swallow:
+            return true;
+        case EscapeAction::CloseEditor:
+            closeEditor();
+            return true;
+        case EscapeAction::OpenMenu:
+            openMenu();
+            return true;
+        case EscapeAction::PassOn:
+            return false;
     }
 
-    if (game.state == Game::State::Menu)
-        return false;
-
-    openMenu();
-    return true;
+    return false;
 }
 
 bool CowsView::menuKey(const Graphics::KeyEvent& event)

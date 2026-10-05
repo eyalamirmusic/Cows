@@ -25,7 +25,9 @@ struct Footer final
 };
 
 // Stacks its children over each other, quits on q, and on Escape unless
-// onEscape takes it, and passes every other key on.
+// onEscape takes it, and passes every other key on. Back is Escape that never
+// quits: what onEscape leaves goes on to the system, which on Android leaves
+// the app, and its repeats and release follow the press.
 struct RootView final : Graphics::View
 {
     void resized() override;
@@ -37,5 +39,10 @@ struct RootView final : Graphics::View
     std::function<void(const Graphics::KeyEvent&)> onKeyUp =
         [](const Graphics::KeyEvent&) {};
     std::function<bool()> onEscape = [] { return false; };
+
+private:
+    void backKey(const Graphics::KeyEvent& event);
+
+    bool passingBack = false;
 };
 } // namespace Cows

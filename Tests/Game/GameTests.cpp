@@ -249,3 +249,25 @@ auto tMenuAnimates = test("Game/theMenuPausesTheGameButNotTheHeartbeat") = []
     check(near(game.hopClock - hop, 1.f));
     check(game.bounce < 0.01f);
 };
+
+auto tEscapeInGameOpensMenu = test("Game/escapeInGameOpensMenu") = []
+{
+    check(escapeAction(Game::State::Searching, false, false)
+          == EscapeAction::OpenMenu);
+    check(escapeAction(Game::State::Found, false, false) == EscapeAction::OpenMenu);
+};
+
+auto tEscapeInEditorClosesIt = test("Game/escapeInEditorGoesBackToMenu") = []
+{
+    check(escapeAction(Game::State::Menu, true, false) == EscapeAction::CloseEditor);
+};
+
+auto tEscapeOnMenuPassesOn = test("Game/escapeOnMenuPassesOn") = []
+{ check(escapeAction(Game::State::Menu, false, false) == EscapeAction::PassOn); };
+
+auto tEscapeMidSwingIsSwallowed = test("Game/escapeMidSwingIsSwallowed") = []
+{
+    for (auto state: {Game::State::Menu, Game::State::Searching})
+        for (auto dressing: {false, true})
+            check(escapeAction(state, dressing, true) == EscapeAction::Swallow);
+};
