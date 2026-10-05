@@ -246,12 +246,11 @@ void CowsView::update(Threads::FrameTime time)
     auto timed = FrameProfile::Scope {profile, FrameProfile::Part::Update};
 
     auto delta = frozen ? 0.f : (float) time.delta;
+    auto wallDelta = swingClock.step(time);
     elapsed += delta;
     lookHold = std::max(0.f, lookHold - delta);
     dressAmount = std::clamp(
-        dressAmount + (dressing ? 1.f : -1.f) * (float) time.delta / dressLength,
-        0.f,
-        1.f);
+        dressAmount + (dressing ? 1.f : -1.f) * wallDelta / dressLength, 0.f, 1.f);
     readGameInput(delta);
 
     if (startAfter.has_value() && (*startAfter -= (float) time.delta) <= 0.f)
@@ -286,14 +285,14 @@ void CowsView::update(Threads::FrameTime time)
         onStateChanged();
     }
 
-    steerCamera(delta);
+    steerCamera(delta, frozen ? 0.f : wallDelta);
 }
 
-void CowsView::steerCamera(float delta)
+void CowsView::steerCamera(float delta, float wallDelta)
 {
     if (swinging)
     {
-        swingCamera(delta);
+        swingCamera(wallDelta);
         return;
     }
 

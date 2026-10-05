@@ -38,6 +38,14 @@ float easeOut(float amount)
     return 1.f - left * left * left;
 }
 
+float SwingClock::step(Threads::FrameTime time)
+{
+    auto since =
+        last.has_value() && time.time >= *last ? time.time - *last : time.delta;
+    last = time.time;
+    return (float) since;
+}
+
 Vec2 driftAt(float seconds)
 {
     return {0.07f * std::sin(seconds * 0.11f),
