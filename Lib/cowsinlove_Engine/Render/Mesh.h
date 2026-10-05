@@ -35,6 +35,13 @@ MeshData makeBarrel(int segments);
 // A tapered, rounded cone along y from 0 to 1: a horn.
 MeshData makeHorn(int segments);
 
+// A flat-topped cylinder along y from 0 to 1, half a unit in radius; squashed,
+// a disc.
+MeshData makeCylinder(int segments);
+
+// A cone along y, its base half a unit in radius at y = 0, its point at y = 1.
+MeshData makeCone(int segments);
+
 MeshData makePlane(float size);
 
 // A unit box, x and z from -0.5 to 0.5, y from 0 to 1.

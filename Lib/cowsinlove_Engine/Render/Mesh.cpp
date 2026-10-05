@@ -188,6 +188,30 @@ MeshData makeHorn(int segments)
     return makeLathe(profile, segments);
 }
 
+MeshData makeCylinder(int segments)
+{
+    auto profile = Vector<Vec2> {};
+    profile.add({0.f, 0.f});
+    profile.add({0.5f, 0.f});
+    profile.add({0.5f, 0.f});
+    profile.add({0.5f, 1.f});
+    profile.add({0.5f, 1.f});
+    profile.add({0.f, 1.f});
+
+    return makeLathe(profile, segments);
+}
+
+MeshData makeCone(int segments)
+{
+    auto profile = Vector<Vec2> {};
+    profile.add({0.f, 0.f});
+    profile.add({0.5f, 0.f});
+    profile.add({0.5f, 0.f});
+    profile.add({0.f, 1.f});
+
+    return makeLathe(profile, segments);
+}
+
 MeshData makeBox()
 {
     auto mesh = MeshData {};

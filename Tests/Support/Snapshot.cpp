@@ -75,6 +75,8 @@ SnapshotView::SnapshotView(const MeshData& heartMesh)
     , barrel(makeBarrel(48))
     , box(makeBox())
     , wedge(makeWedge())
+    , cylinder(makeCylinder(32))
+    , cone(makeCone(32))
 {
     setDepth(true);
 
@@ -171,6 +173,10 @@ const Mesh& SnapshotView::meshFor(Shape shape) const
             return box;
         case Shape::Wedge:
             return wedge;
+        case Shape::Cylinder:
+            return cylinder;
+        case Shape::Cone:
+            return cone;
         case Shape::Sphere:
             break;
     }

@@ -59,6 +59,8 @@ private:
     Mesh barrel;
     Mesh box;
     Mesh wedge;
+    Mesh cylinder;
+    Mesh cone;
     SurfaceShader surfaceShader;
     SurfaceShader translucentShader;
     GlowShader glowShader;
