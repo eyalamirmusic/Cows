@@ -2,6 +2,8 @@
 #include "Cow/HeartMesh.h"
 #include "Render/Palette.h"
 
+#include <algorithm>
+#include <array>
 #include <cmath>
 
 using namespace Maths;
@@ -35,6 +37,19 @@ constexpr auto brimWidth = 0.12f;
 constexpr auto brimSlope = 0.62f;
 constexpr auto brimThickness = 0.022f;
 constexpr auto latheSegments = 48;
+constexpr auto wizardBase = 0.2f;
+constexpr auto wizardHeight = 0.76f;
+constexpr auto wizardBendFrom = 0.62f;
+constexpr auto wizardDroop = 1.6f;
+constexpr auto wizardRings = 40;
+constexpr auto wizardBrimInner = 0.15f;
+constexpr auto wizardBrimOuter = 0.36f;
+constexpr auto wizardBrimDrop = 0.035f;
+constexpr auto wizardBrimThickness = 0.02f;
+constexpr auto wizardBrimWaves = 5;
+constexpr auto wizardBrimWave = 0.022f;
+constexpr auto starPoints = 5;
+constexpr auto starInner = 0.42f;
 
 Material cloth(std::uint32_t hex, float gloss = 0.2f)
 {
@@ -254,6 +269,48 @@ void addTrafficCone(Vector<CowPart>& parts)
     hat.add(Shape::Cylinder, {0.f, 0.52f, 0.f}, {0.157f, 0.06f, 0.157f}, reflective);
 }
 
+struct StarSpot final
+{
+    float azimuth;
+    float height;
+    float size;
+};
+
+float wizardRadiusAt(float height)
+{
+    return wizardBase * std::pow(1.f - height / wizardHeight, 1.15f);
+}
+
+void addWizardHat(Vector<CowPart>& parts)
+{
+    auto hat = HatParts {parts, seatAt(0.24f, 0.04f, {-0.03f, 0.f, 0.f})};
+    auto felt = cloth(Palette::wizardHat, 0.3f);
+    auto star = shiny(Palette::wizardStar);
+
+    hat.add(Shape::WizardBrim, {}, {1.f, 1.f, 1.f}, felt);
+    hat.add(Shape::WizardCone, {}, {1.f, 1.f, 1.f}, felt, Mat4::rotationY(-2.4f));
+    hat.add(Shape::Cylinder,
+            {0.f, 0.f, 0.f},
+            {2.f * wizardBase + 0.012f, 0.055f, 2.f * wizardBase + 0.012f},
+            shiny(Palette::gold));
+
+    auto tilt = std::atan2(wizardBase, wizardHeight);
+    auto stars = std::to_array<StarSpot>({{0.f, 0.17f, 0.075f},
+                                          {1.3f, 0.3f, 0.06f},
+                                          {-1.4f, 0.24f, 0.065f},
+                                          {2.6f, 0.13f, 0.07f}});
+
+    for (auto [azimuth, height, size]: stars)
+    {
+        auto out = wizardRadiusAt(height) + 0.004f;
+        hat.add(Shape::Star,
+                {out * std::cos(azimuth), height, out * std::sin(azimuth)},
+                {size, size, size},
+                star,
+                Mat4::rotationY(-azimuth) * Mat4::rotationZ(tilt - halfPi));
+    }
+}
+
 Mat4 aroundTorso(float scale)
 {
     auto middle = Vec3 {0.f, 0.5f, 0.f};
@@ -391,6 +448,9 @@ void addHat(Vector<CowPart>& parts, Hat hat)
         case Hat::TrafficCone:
             addTrafficCone(parts);
             break;
+        case Hat::WizardHat:
+            addWizardHat(parts);
+            break;
         case Hat::None:
             break;
     }
@@ -460,6 +520,119 @@ MeshData makeBucketBrim()
     profile.add(inner);
     return makeLathe(profile, latheSegments);
 }
+
+Vertex bentOver(Vertex vertex)
+{
+    auto bendStart = wizardBendFrom * wizardHeight;
+    auto along = vertex.position.y - bendStart;
+
+    if (along <= 0.f)
+        return vertex;
+
+    auto curve = wizardDroop / (wizardHeight - bendStart);
+    auto angle = along * curve;
+    auto out = 1.f / curve - vertex.position.x;
+    auto c = std::cos(angle);
+    auto s = std::sin(angle);
+    auto normal = vertex.normal;
+
+    vertex.position.x = 1.f / curve - out * c;
+    vertex.position.y = bendStart + out * s;
+    vertex.normal = {
+        normal.x * c + normal.y * s, normal.y * c - normal.x * s, normal.z};
+    return vertex;
+}
+
+MeshData makeWizardCone()
+{
+    auto profile = Vector<Vec2> {{0.f, 0.f}, {wizardBase, 0.f}, {wizardBase, 0.f}};
+
+    for (auto ring = 1; ring <= wizardRings; ++ring)
+    {
+        auto height = wizardHeight * (float) ring / (float) wizardRings;
+        profile.add({wizardRadiusAt(height), height});
+    }
+
+    auto mesh = makeLathe(profile, latheSegments);
+
+    for (auto& vertex: mesh.vertices)
+        vertex = bentOver(vertex);
+
+    return mesh;
+}
+
+Vertex waved(Vertex vertex)
+{
+    auto x = vertex.position.x;
+    auto z = vertex.position.z;
+    auto radius = std::sqrt(x * x + z * z);
+    auto span = wizardBrimOuter - wizardBrimInner;
+    auto t = std::max(0.f, (radius - wizardBrimInner) / span);
+
+    if (t <= 0.f)
+        return vertex;
+
+    auto azimuth = std::atan2(z, x);
+    auto phase = (float) wizardBrimWaves * azimuth;
+    auto outward = Vec3 {x, 0.f, z} / radius;
+    auto around = Vec3 {-outward.z, 0.f, outward.x};
+    auto slope = outward
+                     * (wizardBrimWave * std::sin(phase) * 2.f * t / span
+                        - wizardBrimDrop * 2.f * t / span)
+                 + around
+                       * (wizardBrimWave * (float) wizardBrimWaves * std::cos(phase)
+                          * t * t / radius);
+
+    vertex.position.y += (wizardBrimWave * std::sin(phase) - wizardBrimDrop) * t * t;
+    vertex.normal = normalize(vertex.normal - slope * vertex.normal.y);
+    return vertex;
+}
+
+MeshData makeWizardBrim()
+{
+    auto lip = 0.5f * wizardBrimThickness;
+    auto profile = Vector<Vec2> {{wizardBrimInner, -wizardBrimThickness},
+                                 {wizardBrimOuter, -wizardBrimThickness}};
+
+    for (auto step = 1; step < 8; ++step)
+    {
+        auto angle = -halfPi + pi * (float) step / 8.f;
+        profile.add(
+            {wizardBrimOuter + lip * std::cos(angle), -lip + lip * std::sin(angle)});
+    }
+
+    profile.add({wizardBrimOuter, 0.f});
+    profile.add({wizardBrimInner, 0.f});
+
+    auto mesh = makeLathe(profile, 96);
+
+    for (auto& vertex: mesh.vertices)
+        vertex = waved(vertex);
+
+    return mesh;
+}
+
+MeshData makeStar()
+{
+    auto profile = Vector<Vec2> {{0.f, 0.f},
+                                 {0.5f, 0.f},
+                                 {0.5f, 0.f},
+                                 {0.5f, 0.1f},
+                                 {0.5f, 0.1f},
+                                 {0.f, 0.1f}};
+    auto segments = 2 * starPoints;
+    auto mesh = makeLathe(profile, segments);
+
+    for (auto index = 0; index < mesh.vertices.size(); ++index)
+        if (index % (segments + 1) % 2 == 1)
+        {
+            auto& position = mesh.vertices[index].position;
+            position.x *= starInner;
+            position.z *= starInner;
+        }
+
+    return mesh;
+}
 } // namespace
 
 MeshData makeCowMesh(Shape shape)
@@ -472,6 +645,12 @@ MeshData makeCowMesh(Shape shape)
             return makeBucketCrown();
         case Shape::BucketBrim:
             return makeBucketBrim();
+        case Shape::WizardCone:
+            return makeWizardCone();
+        case Shape::WizardBrim:
+            return makeWizardBrim();
+        case Shape::Star:
+            return makeStar();
         default:
             return makePantsMesh(shape);
     }

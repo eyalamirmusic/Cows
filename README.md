@@ -14,9 +14,9 @@ The start menu's second choice dresses the cow: the camera swings round to her
 and a row per item class ("Hat  <  Top Hat  >") sits beside her while she
 stays live, and dragging (or the right stick) goes round her to see the hat
 from every side. Left / right change the item, up / down move between rows,
-and Done, Esc or the controller's East swings back to the menu. There are eight
+and Done, Esc or the controller's East swings back to the menu. There are nine
 hats: top hat, cowboy hat, party hat, beanie, crown, the frog hat, a cow-print
-bucket hat with horns and ears, and a traffic cone; and
+bucket hat with horns and ears, a traffic cone, and a starry wizard hat; and
 denim pants on both pairs of legs or on the back legs only.
 
 Every change is saved at once to `CowSkin.json` in the app's support folder,
