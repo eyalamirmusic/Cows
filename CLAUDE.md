@@ -30,7 +30,11 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     shadow caster, glow), and the shared shading functions (lighting, PCF
     shadows, haze, tone curve, value noise)
   - `Render/Lighting.h` — the light, and the uniforms lit shaders share
-  - `Render/Mesh` — procedural meshes: sphere, lathe shapes, box, wedge
+  - `Render/Mesh` — procedural meshes: sphere, lathe shapes, box, wedge, and
+    `makeBarrelPatch`, a latitude/longitude piece of the barrel with a rim
+    turned in, for clothes cut from a body part; `Render/ShapeMeshes` — one
+    mesh per `Shape`, the game making the ones the Engine has not (the heart,
+    the pants), shared by `CowsView` and `SnapshotView`
   - `Render/Instances` — per-instance data and per-mesh batches
   - `Render/ShadowMap` — the key light's depth target
   - `Camera/OrbitCamera` — drag to orbit, scroll to zoom, idle drift;
@@ -80,8 +84,12 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     unreadable or unnamed loads as the default. `itemClasses()` lists the
     classes for the editor, so a new class (Glasses, Trousers) is an enum, a
     `CowSkin` field and one line there. `Cow/Wardrobe` — each hat as parts
-    on the head bone (`addHat`), pants on the body (`addPants`), and
-    `makeCowParts(skin)`
+    on the head bone (`addHat`), seated on the crown; pants on the body
+    (`addPants`) cut from the cow's own parts (`torsoPlacement`,
+    `legPlacements`): the torso's barrel scaled out as the belly or the seat
+    with a waistband on its top rim (`makePantsMesh`), and the legs' capsules
+    widened into sleeves with a cuff above the hoof; `makeCowMesh` for
+    `ShapeMeshes`, and `makeCowParts(skin)`
   - `Sky/SkyDecor` — sun, clouds, hills
   - `Props/Collision` — `Collider` and `Block`; `Props/Scenery` — the batch,
     colliders and blocks props are added to; `Props/Props` — seeded draws,
