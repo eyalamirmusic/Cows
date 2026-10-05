@@ -209,7 +209,7 @@ void addFrogHat(Vector<CowPart>& parts)
 void addCowBucketHat(Vector<CowPart>& parts)
 {
     auto hat =
-        HatParts {parts, seatAt(0.2f, 0.f, {-0.03f, 0.08f, 0.f}), cowPrintSpots};
+        HatParts {parts, seatAt(0.2f, 0.f, {-0.03f, 0.03f, 0.f}), cowPrintSpots};
     auto print = cloth(Palette::hide, 0.15f);
     print.spots = 1.f;
 
