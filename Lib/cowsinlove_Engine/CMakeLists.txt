@@ -6,8 +6,11 @@ add_library(cowsinlove_Engine STATIC
         Render/Shaders.cpp
         Render/Shading.cpp
         Render/ShadowMap.cpp
+        Render/ShapeMeshes.cpp
         UI/Hud.cpp
         UI/Menu.cpp
+        UI/MenuStyle.cpp
+        UI/Editor.cpp
         UI/Overlay.cpp
         UI/TouchControls.cpp)
 

@@ -115,3 +115,86 @@ auto tAppendOffsetsIndices = test("Mesh/appendOffsetsIndices") = []
     check(indicesInRange(mesh));
     check(mesh.indices[36] >= 24);
 };
+
+auto tCylinderShape = test("Mesh/cylinderIsClosedAndFlatTopped") = []
+{
+    auto mesh = makeCylinder(16);
+
+    check(!mesh.indices.empty());
+    check(indicesInRange(mesh));
+    check(normalsUnitLength(mesh));
+    check(facesOutward(mesh));
+
+    auto tops = 0;
+
+    for (const auto& vertex: mesh.vertices)
+    {
+        auto radius = std::hypot(vertex.position.x, vertex.position.z);
+        check(radius < 0.5f + 1e-4f);
+        check(vertex.position.y > -1e-4f && vertex.position.y < 1.f + 1e-4f);
+
+        if (vertex.position.y > 1.f - 1e-4f && vertex.normal.y > 0.999f)
+            ++tops;
+    }
+
+    check(tops >= 2 * 17);
+};
+
+auto tConeShape = test("Mesh/coneNarrowsToItsPoint") = []
+{
+    auto mesh = makeCone(16);
+
+    check(!mesh.indices.empty());
+    check(indicesInRange(mesh));
+    check(normalsUnitLength(mesh));
+    check(facesOutward(mesh));
+
+    for (const auto& vertex: mesh.vertices)
+    {
+        auto radius = std::hypot(vertex.position.x, vertex.position.z);
+        check(radius <= 0.5f * (1.f - vertex.position.y) + 1e-4f);
+    }
+};
+
+auto tBarrelPatch = test("Mesh/barrelPatchLiesOnTheBarrel") = []
+{
+    auto lowerHalf = BarrelPatch {};
+    lowerHalf.across = {0.f, 1.f};
+    lowerHalf.rings = 16;
+    lowerHalf.segments = 8;
+
+    auto holed = lowerHalf;
+    holed.across = {-0.3f, 1.f};
+    holed.latitude = {-halfPi, 0.f};
+    holed.hole = {-0.25f, 0.03f, 0.f};
+    holed.holeRadius = 0.06f;
+    holed.rim = 0.04f;
+
+    for (const auto& mesh: {makeBarrelPatch(lowerHalf), makeBarrelPatch(holed)})
+    {
+        check(!mesh.indices.empty());
+        check(indicesInRange(mesh));
+        check(normalsUnitLength(mesh));
+        check(facesOutward(mesh));
+    }
+
+    for (const auto& vertex: makeBarrelPatch(lowerHalf).vertices)
+    {
+        check(vertex.position.x >= -1e-5f);
+        check(vertex.position.y > -1e-5f && vertex.position.y < 1.f + 1e-5f);
+        check(length(Vec2 {vertex.position.x, vertex.position.z}) < 0.5f + 1e-5f);
+    }
+
+    auto mesh = makeBarrelPatch(holed);
+
+    for (auto first = 0; first + 2 < mesh.indices.size(); first += 3)
+    {
+        auto middle = Vec3 {};
+
+        for (auto corner = 0; corner < 3; ++corner)
+            middle +=
+                mesh.vertices[(int) mesh.indices[first + corner]].position / 3.f;
+
+        check(length(middle - holed.hole) > 0.5f * holed.holeRadius);
+    }
+};

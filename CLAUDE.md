@@ -30,7 +30,12 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     shadow caster, glow), and the shared shading functions (lighting, PCF
     shadows, haze, tone curve, value noise)
   - `Render/Lighting.h` — the light, and the uniforms lit shaders share
-  - `Render/Mesh` — procedural meshes: sphere, lathe shapes, box, wedge
+  - `Render/Mesh` — procedural meshes: sphere, lathe shapes, box, wedge, and
+    `makeBarrelPatch`, a piece of the barrel between latitudes, longitudes
+    and two planes across it, with an optional round hole and a rim turned in,
+    for clothes cut from a body part; `Render/ShapeMeshes` — one
+    mesh per `Shape`, the game making the ones the Engine has not (the heart,
+    the pants), shared by `CowsView` and `SnapshotView`
   - `Render/Instances` — per-instance data and per-mesh batches
   - `Render/ShadowMap` — the key light's depth target
   - `Camera/OrbitCamera` — drag to orbit, scroll to zoom, idle drift;
@@ -46,6 +51,13 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     `titleArea` left at the top; hover and click, tap (targets at least
     64 pt), and a selection ring for keys and controllers; a disabled item is
     grey and never chosen; `opacity` fades it
+  - `UI/Editor` — the cow editor's rows ("Hat  <  Top Hat  >", then Done) in
+    the menu's look over the live scene, right of `sceneArea` when wide and
+    below it when tall; hover and click, tap, a selection ring for keys and
+    controllers; a drag or wheel off the rows goes out through `onControl` as
+    Look / Zoom. `topClearance` keeps it under the macOS title bar, which the
+    safe area does not count. `UI/MenuStyle` — the pink Comic Neue look the
+    menu and the editor share
   - `UI/Overlay` — `Footer` (the footer text, drawn through `Hud`), and
     `RootView` (q quits; Esc goes to `onEscape` first, quitting when it
     declines)
@@ -67,6 +79,19 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     `Cow/HeartMesh` — puffy heart; `Cow/KissHearts` — the heart burst at each
     kiss (stateless); `Cow/Moo` — the recorded moo and her answer, embedded
     from `Resources/moo.f32` (see `Resources/CREDITS.md`)
+  - `Cow/CowSkin` — what the player's cow wears: one enum per item class
+    (`Hat`, `Pants`), saved through Miro as enumerator names in `CowSkin.json`
+    (`cowSkinFile()`, in `FilePath::appSupportDirectory()`); anything
+    unreadable or unnamed loads as the default. `itemClasses()` lists the
+    classes for the editor, so a new class (Glasses, Trousers) is an enum, a
+    `CowSkin` field and one line there. `Cow/Wardrobe` — each hat as parts
+    on the head bone (`addHat`), seated on the crown; pants on the body
+    (`addPants`) cut from the cow's own parts (`torsoPlacement`,
+    `legPlacements`, `tailRoot`): the torso's barrel scaled out as the belly
+    or the seat, each cut level at the waist with a waistband on it, the seat
+    with a hole for the tail (`makePantsMesh`), and the legs' capsules
+    widened into sleeves with a cuff above the hoof; `makeCowMesh` for
+    `ShapeMeshes`, and `makeCowParts(skin)`
   - `Sky/SkyDecor` — sun, clouds, hills
   - `Props/Collision` — `Collider` and `Block`; `Props/Scenery` — the batch,
     colliders and blocks props are added to; `Props/Props` — seeded draws,
@@ -109,7 +134,7 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     clamped into walk ahead / turn
   - `Pad` — `readPad` turns eacp's `GameInputFrame` into `PadControls`: radial
     deadzone, turn and look curves, D-pad, button edges (South jump, West / East
-    moo, North again, right stick click recentre), triggers as zoom; the largest
+    moo and back, North again, right stick click recentre), triggers as zoom; the largest
     stick of several controllers wins. `padHints` names the footer's `Hints`
     from the controller's family
   - `Title/TitleFont` — the tube-font title; `Title/TitleShader` — its shader;
@@ -140,7 +165,11 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   Enter / Space / arrows / A D and the controller's South / Start / stick /
   D-pad; Start swings the camera behind the cow over 1.1 s with an ease-out
   while the menu fades and the title slides up, then play starts (`playPose`);
-  Esc and the controller's Start swing back
+  Esc and the controller's Start swing back. Dress Your Cow swings round to
+  the cow (`editorPose`) and hands keys and the controller to the `Editor`;
+  the camera orbits freely there (drag, right stick, touch drag), and Done,
+  Esc and the controller's East / Start swing back to the menu. `CowsApp`
+  saves the skin on every change
 - `tools/Art` — `CowsArt`, a macOS tool that renders the icon, key art, logo
   and store screenshots from the game's own views; `tools/store-art.sh` and
   `tools/screenshots.sh` drive it. `tools/release-*.sh`, `release-msix.ps1`
@@ -156,7 +185,7 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
 `COWS_TIME=<seconds>` starts the clock there and `COWS_FREEZE=1` stops it, for
 screenshots; `COWS_SEED=<n>` fixes the level, `COWS_STAGE=<n>` starts on
 stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her, skipping the menu; `COWS_MENU=0` skips
-the menu and `COWS_START=<seconds>` presses Start after that long (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).
+the menu, `COWS_DRESS=1` opens the cow editor and `COWS_START=<seconds>` presses Start after that long (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).
 
 ## Build Commands
 

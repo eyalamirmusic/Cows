@@ -39,11 +39,13 @@ constexpr auto searchingTouchText = "find her  -  drag to look  -  moo for a hin
 constexpr auto foundTouchText = "you found her";
 constexpr auto fellText = "back on your feet  -  mind the edge";
 constexpr auto menuKeysText = "enter to start  -  q to quit";
+constexpr auto editorKeysText = "arrows to choose  -  esc for the menu";
 
 struct PadLabels final
 {
     std::string jump;
     std::string moo;
+    std::string back;
 };
 
 PadLabels padLabels(Hints hints)
@@ -51,14 +53,14 @@ PadLabels padLabels(Hints hints)
     switch (hints)
     {
         case Hints::PlayStation:
-            return {"cross", "square"};
+            return {"cross", "square", "circle"};
         case Hints::Nintendo:
-            return {"B", "Y"};
+            return {"B", "Y", "A"};
         default:
             break;
     }
 
-    return {"A", "X"};
+    return {"A", "X", "B"};
 }
 
 std::string searchingPadText(const PadLabels& labels)
@@ -271,6 +273,14 @@ bool Game::hintShowing() const
 bool Game::justFell() const
 {
     return state == State::Searching && sinceFell < fellTime;
+}
+
+std::string editorText(Hints hints)
+{
+    if (isGamepad(hints))
+        return "left stick to choose  -  " + padLabels(hints).back + " for the menu";
+
+    return hints == Hints::Touch ? "" : editorKeysText;
 }
 
 std::string footerText(const Game& game, const std::string& hint, Hints hints)

@@ -32,8 +32,36 @@ MeshData makeCapsule(float radius, int segments);
 // turned about its axis, flatter-ended than a sphere.
 MeshData makeBarrel(int segments);
 
+// A piece of makeBarrel's surface, its edges turned in `rim` along the normals
+// so that, laid a little outside the barrel, it reads as cloth with a thickness.
+struct BarrelPatch final
+{
+    // Radians, -pi/2 at the y = 0 end and pi/2 at the y = 1 end.
+    Maths::Vec2 latitude {-Maths::halfPi, Maths::halfPi};
+    // Radians about y, 0 at +x, turning towards +z; kept on both sides of x, so
+    // (0, pi) is the whole way round.
+    Maths::Vec2 longitude {0.f, Maths::pi};
+    // Keeps what lies between the planes x = across.x and x = across.y.
+    Maths::Vec2 across {-1.f, 1.f};
+    // Leaves out a round hole about `hole`.
+    Maths::Vec3 hole;
+    float holeRadius = 0.f;
+    float rim = 0.f;
+    int rings = 24;
+    int segments = 24;
+};
+
+MeshData makeBarrelPatch(const BarrelPatch& patch);
+
 // A tapered, rounded cone along y from 0 to 1: a horn.
 MeshData makeHorn(int segments);
+
+// A flat-topped cylinder along y from 0 to 1, half a unit in radius; squashed,
+// a disc.
+MeshData makeCylinder(int segments);
+
+// A cone along y, its base half a unit in radius at y = 0, its point at y = 1.
+MeshData makeCone(int segments);
 
 MeshData makePlane(float size);
 

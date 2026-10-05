@@ -1,4 +1,5 @@
 #include "UI/Menu.h"
+#include "UI/MenuStyle.h"
 #include "Render/Palette.h"
 
 #include <ResEmbed/ResEmbed.h>
@@ -21,29 +22,6 @@ constexpr auto hoverScale = 1.08f;
 constexpr auto padding = 14.f;
 constexpr auto leastTarget = 64.f;
 constexpr auto ringWidth = 4.f;
-
-constexpr Graphics::Color disabledColor {0.5f, 0.5f, 0.52f, 0.9f};
-constexpr Graphics::Color shadowColor {0.f, 0.f, 0.f, 0.18f};
-
-Graphics::Color pink(float brighten = 0.f)
-{
-    auto color = Palette::display(Palette::heart);
-    return {color.r + (1.f - color.r) * brighten,
-            color.g + (1.f - color.g) * brighten,
-            color.b + (1.f - color.b) * brighten,
-            1.f};
-}
-
-Graphics::Color faded(Graphics::Color color, float opacity)
-{
-    color.a *= opacity;
-    return color;
-}
-
-Text::Font menuFont(float pointSize)
-{
-    return {menuFontFamily(), pointSize, Text::FontStyle::Bold};
-}
 
 Vector<std::string>
     wrapWords(const std::string& text,
@@ -77,10 +55,6 @@ Vector<std::string>
     return lines;
 }
 
-Rect grown(const Rect& rect, float by)
-{
-    return {rect.x - by, rect.y - by, rect.w + 2.f * by, rect.h + 2.f * by};
-}
 } // namespace
 
 const std::string& menuFontFamily()
@@ -206,7 +180,6 @@ void Menu::drawItem(Hud& hud, int index)
     auto font = menuFont(size);
     auto color =
         faded(item.enabled ? pink(lit ? 0.2f : 0.f) : disabledColor, opacity);
-    auto shadow = faded(shadowColor, opacity);
     auto lineHeight = size * lineSpacing;
     auto top = place.center.y - lineHeight * (float) place.lines.size() * 0.5f;
     auto ascent = hud.ascent(font);
@@ -235,10 +208,7 @@ void Menu::drawItem(Hud& hud, int index)
         auto width = hud.measure(text, font);
         auto baseline = top + ascent * 0.9f + lineHeight * (float) line;
         auto at = Point {place.center.x - width * 0.5f, baseline};
-        auto offset = std::max(1.f, size * 0.03f);
-
-        hud.drawText(text, {at.x + offset, at.y + offset}, font, shadow);
-        hud.drawText(text, at, font, color);
+        drawMenuText(hud, text, at, font, color, opacity);
     }
 }
 

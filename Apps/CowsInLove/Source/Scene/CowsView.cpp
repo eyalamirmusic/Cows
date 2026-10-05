@@ -1,6 +1,6 @@
 #include "CowsView.h"
-#include "Cow/HeartMesh.h"
 #include "Cow/KissHearts.h"
+#include "Cow/Wardrobe.h"
 #include "Ending.h"
 #include "Render/FrameProfile.h"
 #include "Render/Palette.h"
@@ -49,6 +49,12 @@ constexpr auto tallMenuPitch = 0.f;
 constexpr auto tallMenuDistance = 7.f;
 constexpr auto menuStick = 0.5f;
 constexpr auto swingLength = 1.1f;
+constexpr auto dressLength = 0.6f;
+constexpr auto editorHeight = 1.4f;
+constexpr auto editorDistance = 7.5f;
+constexpr auto editorTurn = 0.3f;
+constexpr auto tallEditorHeight = 0.2f;
+constexpr auto tallEditorDistance = 8.f;
 
 constexpr auto fullScreenTriangle = std::to_array<CornerVertex>({
     {{-1.f, -1.f}},
@@ -178,15 +184,10 @@ Graphics::Color displayColor(const Vec3& linear)
 } // namespace
 
 CowsView::CowsView()
-    : sphere(makeSphere(32, 48))
-    , capsule(makeCapsule(0.14f, 32))
-    , horn(makeHorn(24))
-    , heart(makeHeart())
-    , barrel(makeBarrel(48))
-    , box(makeBox())
-    , wedge(makeWedge())
+    : shapes(makeCowMesh)
     , ground(makePlane(groundSize))
     , cowParts(makeCowParts())
+    , playerParts(cowParts)
     , cows(makeCouple())
     , elapsed(startTime())
     , frozen(!getEnvValue("COWS_FREEZE").empty())
@@ -247,6 +248,10 @@ void CowsView::update(Threads::FrameTime time)
     auto delta = frozen ? 0.f : (float) time.delta;
     elapsed += delta;
     lookHold = std::max(0.f, lookHold - delta);
+    dressAmount = std::clamp(
+        dressAmount + (dressing ? 1.f : -1.f) * (float) time.delta / dressLength,
+        0.f,
+        1.f);
     readGameInput(delta);
 
     if (startAfter.has_value() && (*startAfter -= (float) time.delta) <= 0.f)
@@ -294,7 +299,9 @@ void CowsView::steerCamera(float delta)
 
     if (game.state == Game::State::Menu)
     {
-        camera.setPose(menuPose());
+        if (!dressing)
+            camera.setPose(menuPose());
+
         return;
     }
 
@@ -340,6 +347,19 @@ CameraPose CowsView::menuPose() const
     return pose;
 }
 
+CameraPose CowsView::editorPose() const
+{
+    auto tall = viewAspect < 1.f;
+
+    auto pose = CameraPose {};
+    pose.target =
+        game.player + Vec3 {0.f, tall ? tallEditorHeight : editorHeight, 0.f};
+    pose.yaw = game.playerHeading + startYaw + pi + editorTurn;
+    pose.pitch = menuPitch;
+    pose.distance = tall ? tallEditorDistance : editorDistance;
+    return pose;
+}
+
 CameraPose CowsView::playPose() const
 {
     auto pose = CameraPose {};
@@ -367,15 +387,18 @@ void CowsView::swingCamera(float delta)
 {
     swingTime = std::min(swingTime + delta, swingLength);
     auto amount = easeOut(swingTime / swingLength);
-    camera.setPose(
-        blend(swingFrom, swingingToPlay ? playPose() : menuPose(), amount));
+    camera.setPose(blend(swingFrom,
+                         swingGoal == SwingGoal::Play    ? playPose()
+                         : swingGoal == SwingGoal::Dress ? editorPose()
+                                                         : menuPose(),
+                         amount));
 
     if (swingTime < swingLength)
         return;
 
     swinging = false;
 
-    if (swingingToPlay)
+    if (swingGoal == SwingGoal::Play)
     {
         game.start();
         onStateChanged();
@@ -384,11 +407,20 @@ void CowsView::swingCamera(float delta)
 
 float CowsView::menuOpacity() const
 {
-    if (!swinging)
-        return game.state == Game::State::Menu ? 1.f : 0.f;
+    auto behindEditor = 1.f - editorOpacity();
+    auto aroundCow =
+        swingGoal == SwingGoal::Dress || swingGoal == SwingGoal::Undress;
+
+    if (!swinging || aroundCow)
+        return game.state == Game::State::Menu ? behindEditor : 0.f;
 
     auto amount = easeOut(swingTime / swingLength);
-    return swingingToPlay ? 1.f - amount : amount;
+    return swingGoal == SwingGoal::Play ? 1.f - amount : amount;
+}
+
+float CowsView::editorOpacity() const
+{
+    return game.state == Game::State::Menu ? easeOut(dressAmount) : 0.f;
 }
 
 void CowsView::openMenu(bool swing)
@@ -401,10 +433,8 @@ void CowsView::openMenu(bool swing)
     game.openMenu();
     input = Input {};
 
-    swingFrom = camera.pose();
-    swingTime = 0.f;
+    swingTo(SwingGoal::Menu);
     swinging = swing;
-    swingingToPlay = false;
 
     if (!swing)
         camera.setPose(menuPose());
@@ -414,19 +444,59 @@ void CowsView::openMenu(bool swing)
 
 void CowsView::startGame()
 {
-    if (game.state != Game::State::Menu || swinging)
+    if (game.state != Game::State::Menu || swinging || dressing)
         return;
 
+    swingTo(SwingGoal::Play);
+}
+
+void CowsView::swingTo(SwingGoal goal)
+{
     swingFrom = camera.pose();
     swingTime = 0.f;
     swinging = true;
-    swingingToPlay = true;
+    swingGoal = goal;
+}
+
+void CowsView::openEditor()
+{
+    if (game.state != Game::State::Menu || swinging || dressing)
+        return;
+
+    dressing = true;
+    swingTo(SwingGoal::Dress);
+
+    if (editor != nullptr)
+        editor->selected = 0;
+
+    onStateChanged();
+}
+
+void CowsView::closeEditor()
+{
+    if (!dressing)
+        return;
+
+    dressing = false;
+    swingTo(SwingGoal::Undress);
+    onStateChanged();
+}
+
+void CowsView::wear(const CowSkin& skin)
+{
+    playerParts = makeCowParts(skin);
 }
 
 bool CowsView::escape()
 {
     if (swinging)
         return true;
+
+    if (dressing)
+    {
+        closeEditor();
+        return true;
+    }
 
     if (game.state == Game::State::Menu)
         return false;
@@ -439,6 +509,9 @@ bool CowsView::menuKey(const Graphics::KeyEvent& event)
 {
     if (game.state != Game::State::Menu || menu == nullptr)
         return false;
+
+    if (dressing)
+        return editorKey(event);
 
     using namespace Graphics::KeyCode;
 
@@ -464,6 +537,47 @@ bool CowsView::menuKey(const Graphics::KeyEvent& event)
         case D:
         case S:
             menu->selectNext();
+            break;
+        default:
+            break;
+    }
+
+    return true;
+}
+
+bool CowsView::editorKey(const Graphics::KeyEvent& event)
+{
+    if (editor == nullptr)
+        return true;
+
+    using namespace Graphics::KeyCode;
+
+    switch (event.keyCode)
+    {
+        case Return:
+        case KeypadEnter:
+        case Space:
+            if (!event.isRepeat)
+            {
+                keyFromMenu = event.keyCode;
+                editor->chooseSelected();
+            }
+            break;
+        case LeftArrow:
+        case A:
+            editor->stepSelected(-1);
+            break;
+        case RightArrow:
+        case D:
+            editor->stepSelected(1);
+            break;
+        case UpArrow:
+        case W:
+            editor->selectPrevious();
+            break;
+        case DownArrow:
+        case S:
+            editor->selectNext();
             break;
         default:
             break;
@@ -555,7 +669,11 @@ void CowsView::usePad(const PadControls& pad, float delta)
 
     if (game.state == Game::State::Menu)
     {
-        useMenuPad(pad);
+        if (dressing)
+            useEditorPad(pad, delta);
+        else
+            useMenuPad(pad);
+
         return;
     }
 
@@ -620,6 +738,52 @@ void CowsView::useMenuPad(const PadControls& pad)
         padRestarted = true;
         menu->showSelection = true;
         menu->chooseSelected();
+    }
+}
+
+void CowsView::useEditorPad(const PadControls& pad, float delta)
+{
+    input.setPad(0.f, 0.f, false);
+
+    if (pad.lookX != 0.f || pad.lookY != 0.f)
+        camera.orbit(pad.lookX * padYawRate * delta,
+                     -pad.lookY * padPitchRate * delta);
+
+    camera.zoom(pad.zoom * padZoomRate * delta);
+
+    if (editor == nullptr)
+        return;
+
+    auto sideways = std::abs(pad.turn) >= std::abs(pad.ahead);
+    auto across = pad.turn > menuStick ? -1 : pad.turn < -menuStick ? 1 : 0;
+    auto along = pad.ahead > menuStick ? -1 : pad.ahead < -menuStick ? 1 : 0;
+
+    if (!sideways)
+        across = 0;
+    else
+        along = 0;
+
+    if (across != padAcross && across != 0)
+        editor->stepSelected(across);
+
+    if (along != padAlong && along < 0)
+        editor->selectPrevious();
+
+    if (along != padAlong && along > 0)
+        editor->selectNext();
+
+    padAcross = across;
+    padAlong = along;
+
+    if (pad.jumpPressed)
+    {
+        padRestarted = true;
+        editor->showSelection = true;
+        editor->chooseSelected();
+    }
+    else if (pad.backPressed || pad.startPressed)
+    {
+        closeEditor();
     }
 }
 
@@ -862,7 +1026,8 @@ void CowsView::gatherInstances(float seconds)
 
     for (auto index = 0; index < 2; ++index)
     {
-        cows[index].addTo(cowBatch, glows, cowParts, poses[index]);
+        cows[index].addTo(
+            cowBatch, glows, index == 0 ? playerParts : cowParts, poses[index]);
         contacts[index] = cows[index].contact(poses[index]);
 
         if (poses[index].world.column(3).y > contactReach)
@@ -1030,7 +1195,7 @@ void CowsView::drawBatch(RenderPass& pass,
         if (list.empty())
             continue;
 
-        const auto& mesh = meshFor((Shape) index);
+        const auto& mesh = shapes[(Shape) index];
 
         shader.setInstances(1, list.data(), list.size());
         pass.bind(shader, mesh.vertices);
@@ -1039,26 +1204,4 @@ void CowsView::drawBatch(RenderPass& pass,
     }
 }
 
-const Mesh& CowsView::meshFor(Shape shape) const
-{
-    switch (shape)
-    {
-        case Shape::Capsule:
-            return capsule;
-        case Shape::Horn:
-            return horn;
-        case Shape::Heart:
-            return heart;
-        case Shape::Barrel:
-            return barrel;
-        case Shape::Box:
-            return box;
-        case Shape::Wedge:
-            return wedge;
-        case Shape::Sphere:
-            break;
-    }
-
-    return sphere;
-}
 } // namespace Cows

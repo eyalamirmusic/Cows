@@ -66,10 +66,16 @@ enum class Shape
     Heart,
     Barrel,
     Box,
-    Wedge
+    Wedge,
+    Cylinder,
+    Cone,
+    Belly,
+    BellyBand,
+    Seat,
+    SeatBand
 };
 
-constexpr auto shapeCount = 7;
+constexpr auto shapeCount = 13;
 
 // A frame's worth of instances, one list per mesh.
 struct SurfaceBatch final

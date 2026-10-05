@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cow/Cow.h"
+#include "Cow/CowSkin.h"
 #include "Game.h"
 #include "Stages.h"
 #include "Input.h"
@@ -9,6 +10,7 @@
 #include "Terrain/Ground.h"
 #include "Render/Lighting.h"
 #include "Render/Mesh.h"
+#include "Render/ShapeMeshes.h"
 #include "Title/MenuTitle.h"
 #include "Title/TitleShader.h"
 #include "Terrain/TerrainShaders.h"
@@ -18,6 +20,7 @@
 #include "Render/Shaders.h"
 #include "UI/ControlEvent.h"
 #include "UI/Hud.h"
+#include "UI/Editor.h"
 #include "UI/Menu.h"
 
 #include <array>
@@ -30,6 +33,16 @@ namespace Cows
 {
 struct CowsView final : GPUView
 {
+    // Where the camera is swinging to: the menu from play, play from the menu,
+    // round to the cow to dress her, and back to the menu from there.
+    enum class SwingGoal
+    {
+        Menu,
+        Play,
+        Dress,
+        Undress
+    };
+
     CowsView();
 
     void update(Threads::FrameTime time) override;
@@ -45,13 +58,21 @@ struct CowsView final : GPUView
     void control(const ControlEvent& event);
     void openMenu(bool swing = true);
     void startGame();
+    void openEditor();
+    void swingTo(SwingGoal goal);
+    void closeEditor();
+    void wear(const CowSkin& skin);
     bool escape();
     void swingCamera(float delta);
     float menuOpacity() const;
+    float editorOpacity() const;
     CameraPose menuPose() const;
+    CameraPose editorPose() const;
     CameraPose playPose() const;
     bool menuKey(const Graphics::KeyEvent& event);
+    bool editorKey(const Graphics::KeyEvent& event);
     void useMenuPad(const PadControls& pad);
+    void useEditorPad(const PadControls& pad, float delta);
     void readGameInput(float delta);
     void usePad(const PadControls& pad, float delta);
     void useHints(Hints used);
@@ -83,8 +104,6 @@ struct CowsView final : GPUView
     void drawGlows(RenderPass& pass, const Maths::Mat4& viewProjection);
     void drawBatch(RenderPass& pass, ShaderProgram& shader, SurfaceBatch& batch);
 
-    const Mesh& meshFor(Shape shape) const;
-
     Stages stages;
     Game game;
     Input input;
@@ -97,13 +116,7 @@ struct CowsView final : GPUView
     ShadowMap shadowMap;
     Maths::Mat4 lightViewProjection;
 
-    Mesh sphere;
-    Mesh capsule;
-    Mesh horn;
-    Mesh heart;
-    Mesh barrel;
-    Mesh box;
-    Mesh wedge;
+    ShapeMeshes shapes;
     Mesh ground;
     TitleMesh title;
     TitleMesh menuTitleWide;
@@ -121,6 +134,7 @@ struct CowsView final : GPUView
     GlowShader glowShader;
 
     Vector<CowPart> cowParts;
+    Vector<CowPart> playerParts;
     Vector<Cow> cows;
     GrassField grass;
     const Vector<BladeInstance>* uploadedBlades = nullptr;
@@ -138,11 +152,14 @@ struct CowsView final : GPUView
     std::function<void()> onStateChanged = [] {};
     Graphics::GameInput* gameInput = nullptr;
     Menu* menu = nullptr;
+    Editor* editor = nullptr;
     std::optional<float> startAfter;
     CameraPose swingFrom;
     float swingTime = 0.f;
     bool swinging = false;
-    bool swingingToPlay = false;
+    SwingGoal swingGoal = SwingGoal::Menu;
+    bool dressing = false;
+    float dressAmount = 0.f;
     float playPitch = OrbitCamera {}.pitch;
     float playDistance = OrbitCamera {}.distance;
 
@@ -150,6 +167,8 @@ struct CowsView final : GPUView
     float lookHold = 0.f;
     bool padRestarted = false;
     int padMenuStep = 0;
+    int padAcross = 0;
+    int padAlong = 0;
     std::optional<std::uint16_t> keyFromMenu;
     float viewAspect = 1.f;
     bool frozen = false;

@@ -1,6 +1,9 @@
 #include "Render/Mesh.h"
 
+#include <algorithm>
+#include <array>
 #include <cmath>
+#include <map>
 #include <initializer_list>
 
 using namespace Maths;
@@ -61,6 +64,199 @@ void addGrid(MeshData& mesh, int rows, int columns)
 
             mesh.indices.add({a, d, c, a, c, b});
         }
+}
+
+void dropSlivers(MeshData& mesh)
+{
+    constexpr auto leastArea = 1e-7f;
+    auto kept = Vector<std::uint32_t> {};
+
+    for (auto first = 0; first + 2 < mesh.indices.size(); first += 3)
+    {
+        const auto& a = mesh.vertices[(int) mesh.indices[first]].position;
+        const auto& b = mesh.vertices[(int) mesh.indices[first + 1]].position;
+        const auto& c = mesh.vertices[(int) mesh.indices[first + 2]].position;
+
+        if (length(cross(b - a, c - a)) > leastArea)
+            kept.add({mesh.indices[first],
+                      mesh.indices[first + 1],
+                      mesh.indices[first + 2]});
+    }
+
+    mesh.indices = kept;
+}
+
+constexpr auto barrelRoundness = 2.f / 2.6f;
+
+float signedPower(float value, float power)
+{
+    return std::copysign(std::pow(std::abs(value), power), value);
+}
+
+Vec2 barrelProfile(float angle)
+{
+    auto c = std::cos(angle);
+    auto s = std::sin(angle);
+    auto radius = 0.5f * std::pow(std::max(c, 0.f), barrelRoundness);
+    auto height = 0.5f + 0.5f * signedPower(s, barrelRoundness);
+
+    return {radius, height};
+}
+
+Vertex barrelPoint(float latitude, float longitude)
+{
+    auto profile = barrelProfile(latitude);
+    auto slope = normalize(
+        Vec2 {std::pow(std::max(std::cos(latitude), 0.f), 2.f - barrelRoundness),
+              signedPower(std::sin(latitude), 2.f - barrelRoundness)});
+    auto c = std::cos(longitude);
+    auto s = std::sin(longitude);
+
+    return {{profile.x * c, profile.y, profile.x * s},
+            {slope.x * c, slope.y, slope.x * s}};
+}
+
+Vec3 directionOr(Vec3 direction, Vec3 fallback)
+{
+    auto size = length(direction);
+    return size > 1e-6f ? direction / size : fallback;
+}
+
+// The longitudes, from 0 towards pi, at which a ring `radius` from the axis
+// lies between the planes x = across.x and x = across.y.
+Vec2 longitudesAcross(Vec2 across, float radius)
+{
+    if (radius < 1e-6f)
+        return across.x <= 0.f && across.y >= 0.f ? Vec2 {0.f, pi} : Vec2 {};
+
+    auto at = [&](float x) { return std::acos(std::clamp(x / radius, -1.f, 1.f)); };
+    return {at(across.y), at(across.x)};
+}
+
+void addBarrelHalf(MeshData& mesh, const BarrelPatch& patch, float side)
+{
+    auto base = (std::uint32_t) mesh.vertices.size();
+
+    for (auto ring = 0; ring <= patch.rings; ++ring)
+    {
+        auto latitude = std::lerp(
+            patch.latitude.x, patch.latitude.y, (float) ring / (float) patch.rings);
+        auto kept = longitudesAcross(patch.across, barrelProfile(latitude).x);
+        auto from = std::max(kept.x, patch.longitude.x);
+        auto to = std::max(std::min(kept.y, patch.longitude.y), from);
+
+        for (auto segment = 0; segment <= patch.segments; ++segment)
+            mesh.vertices.add(barrelPoint(
+                latitude,
+                side
+                    * std::lerp(
+                        from, to, (float) segment / (float) patch.segments)));
+    }
+
+    for (auto ring = 0; ring < patch.rings; ++ring)
+        for (auto segment = 0; segment < patch.segments; ++segment)
+        {
+            auto a = base + (std::uint32_t) (ring * (patch.segments + 1) + segment);
+            auto b = a + (std::uint32_t) (patch.segments + 1);
+            mesh.indices.add({a, a + 1, b + 1, a, b + 1, b});
+        }
+}
+
+void cutHole(MeshData& mesh, Vec3 center, float radius)
+{
+    auto inside = [&](std::uint32_t index)
+    { return length(mesh.vertices[(int) index].position - center) < radius; };
+    auto kept = Vector<std::uint32_t> {};
+
+    for (auto first = 0; first + 2 < mesh.indices.size(); first += 3)
+        if (!inside(mesh.indices[first]) && !inside(mesh.indices[first + 1])
+            && !inside(mesh.indices[first + 2]))
+            kept.add({mesh.indices[first],
+                      mesh.indices[first + 1],
+                      mesh.indices[first + 2]});
+
+    mesh.indices = kept;
+}
+
+using PointKey = std::array<int, 3>;
+
+PointKey keyOf(Vec3 point)
+{
+    auto snap = [](float value) { return (int) std::lround(value * 1e5f); };
+    return {snap(point.x), snap(point.y), snap(point.z)};
+}
+
+struct Edge final
+{
+    std::uint32_t from;
+    std::uint32_t to;
+    std::uint32_t opposite;
+};
+
+Vector<Edge> boundaryOf(const MeshData& mesh)
+{
+    auto uses = std::map<std::pair<PointKey, PointKey>, int> {};
+    auto edges = Vector<Edge> {};
+    auto keyed = [&](std::uint32_t a, std::uint32_t b)
+    {
+        auto ka = keyOf(mesh.vertices[(int) a].position);
+        auto kb = keyOf(mesh.vertices[(int) b].position);
+        return ka < kb ? std::pair {ka, kb} : std::pair {kb, ka};
+    };
+
+    for (auto pass = 0; pass < 2; ++pass)
+        for (auto first = 0; first + 2 < mesh.indices.size(); first += 3)
+            for (auto corner = 0; corner < 3; ++corner)
+            {
+                auto a = mesh.indices[first + corner];
+                auto b = mesh.indices[first + (corner + 1) % 3];
+                auto key = keyed(a, b);
+
+                if (key.first == key.second)
+                    continue;
+
+                if (pass == 0)
+                    ++uses[key];
+                else if (uses[key] == 1)
+                    edges.add({a, b, mesh.indices[first + (corner + 2) % 3]});
+            }
+
+    return edges;
+}
+
+void roundHole(MeshData& mesh, const Vector<Edge>& edges, Vec3 center, float radius)
+{
+    for (const auto& edge: edges)
+        for (auto index: {edge.from, edge.to})
+        {
+            auto& position = mesh.vertices[(int) index].position;
+            auto away = position - center;
+
+            if (length(away) < 1.6f * radius)
+                position = center + normalize(away) * radius;
+        }
+}
+
+void addRims(MeshData& mesh, const Vector<Edge>& edges, float rim)
+{
+    for (const auto& edge: edges)
+    {
+        auto a = mesh.vertices[(int) edge.from];
+        auto b = mesh.vertices[(int) edge.to];
+        auto inward = mesh.vertices[(int) edge.opposite].position - a.position;
+        auto along = b.position - a.position;
+        auto normal = directionOr(cross(along, a.normal + b.normal), a.normal);
+
+        if (dot(normal, inward) > 0.f)
+            normal = -normal;
+
+        auto base = (std::uint32_t) mesh.vertices.size();
+        mesh.vertices.add({a.position, normal});
+        mesh.vertices.add({b.position, normal});
+        mesh.vertices.add({a.position - a.normal * rim, normal});
+        mesh.vertices.add({b.position - b.normal * rim, normal});
+        mesh.indices.add({base, base + 1, base + 3, base, base + 3, base + 2});
+    }
 }
 
 Vec2 profileNormal(const Vector<Vec2>& profile, int index)
@@ -148,23 +344,34 @@ MeshData makeCapsule(float radius, int segments)
 
 MeshData makeBarrel(int segments)
 {
-    constexpr auto roundness = 2.f / 2.6f;
     auto profile = Vector<Vec2> {};
     auto steps = segments / 2;
 
     for (auto step = 0; step <= steps; ++step)
-    {
-        auto angle = -halfPi + pi * (float) step / (float) steps;
-        auto c = std::cos(angle);
-        auto s = std::sin(angle);
-        auto radius = 0.5f * std::pow(std::max(c, 0.f), roundness);
-        auto height =
-            0.5f + 0.5f * std::copysign(std::pow(std::abs(s), roundness), s);
-
-        profile.add({radius, height});
-    }
+        profile.add(barrelProfile(-halfPi + pi * (float) step / (float) steps));
 
     return makeLathe(profile, segments);
+}
+
+MeshData makeBarrelPatch(const BarrelPatch& patch)
+{
+    auto mesh = MeshData {};
+    addBarrelHalf(mesh, patch, 1.f);
+    addBarrelHalf(mesh, patch, -1.f);
+    dropSlivers(mesh);
+
+    if (patch.holeRadius > 0.f)
+        cutHole(mesh, patch.hole, patch.holeRadius);
+
+    auto edges = boundaryOf(mesh);
+
+    if (patch.holeRadius > 0.f)
+        roundHole(mesh, edges, patch.hole, patch.holeRadius);
+
+    addRims(mesh, edges, patch.rim);
+    dropSlivers(mesh);
+    windOutward(mesh);
+    return mesh;
 }
 
 MeshData makeHorn(int segments)
@@ -186,6 +393,34 @@ MeshData makeHorn(int segments)
     }
 
     return makeLathe(profile, segments);
+}
+
+MeshData makeCylinder(int segments)
+{
+    auto profile = Vector<Vec2> {};
+    profile.add({0.f, 0.f});
+    profile.add({0.5f, 0.f});
+    profile.add({0.5f, 0.f});
+    profile.add({0.5f, 1.f});
+    profile.add({0.5f, 1.f});
+    profile.add({0.f, 1.f});
+
+    auto mesh = makeLathe(profile, segments);
+    dropSlivers(mesh);
+    return mesh;
+}
+
+MeshData makeCone(int segments)
+{
+    auto profile = Vector<Vec2> {};
+    profile.add({0.f, 0.f});
+    profile.add({0.5f, 0.f});
+    profile.add({0.5f, 0.f});
+    profile.add({0.f, 1.f});
+
+    auto mesh = makeLathe(profile, segments);
+    dropSlivers(mesh);
+    return mesh;
 }
 
 MeshData makeBox()

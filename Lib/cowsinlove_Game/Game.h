@@ -107,4 +107,7 @@ constexpr bool isGamepad(Hints hints)
 // The footer: how to start in the menu, the controls while searching, `hint` while her answer shows, a
 // word after a fall.
 std::string footerText(const Game& game, const std::string& hint, Hints hints);
+
+// The footer while the cow is being dressed.
+std::string editorText(Hints hints);
 } // namespace Cows

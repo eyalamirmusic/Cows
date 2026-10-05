@@ -25,6 +25,20 @@ constexpr std::uint32_t hoof = 0x3a2f2c;
 constexpr std::uint32_t horn = 0xf3e2bd;
 constexpr std::uint32_t innerEar = 0xf2a0ac;
 
+// The cow's wardrobe, picked to sit beside the original's colours.
+constexpr std::uint32_t topHat = 0x26222c;
+constexpr std::uint32_t cowboyHat = 0xa8743f;
+constexpr std::uint32_t hatBand = 0x5a3a22;
+constexpr std::uint32_t partyHat = 0x5fd7ff;
+constexpr std::uint32_t pompom = 0xffff87;
+constexpr std::uint32_t beanie = 0x5f87d7;
+constexpr std::uint32_t beanieCuff = 0x4a6cb4;
+constexpr std::uint32_t gold = 0xffd75f;
+constexpr std::uint32_t frog = 0x87d700;
+constexpr std::uint32_t frogLining = 0xd7ffaf;
+constexpr std::uint32_t denim = 0x3a6ea5;
+constexpr std::uint32_t denimSeam = 0x24476e;
+
 constexpr Graphics::Color display(std::uint32_t hex)
 {
     return {(float) ((hex >> 16) & 0xffu) / 255.f,
