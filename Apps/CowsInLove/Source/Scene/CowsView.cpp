@@ -76,7 +76,7 @@ RenderPipelineDescriptor skyPipeline(int samples)
     auto descriptor = RenderPipelineDescriptor {};
     descriptor.sampleCount = samples;
     descriptor.depth = true;
-    descriptor.depthCompare = DepthCompare::Always;
+    descriptor.depthCompare = DepthCompare::LessEqual;
     descriptor.depthWrite = false;
     return descriptor;
 }
@@ -1010,8 +1010,6 @@ void CowsView::render(Frame& frame)
     setSceneUniforms(titleShader, viewProjection);
     setSceneUniforms(menuTitleShader, viewProjection);
 
-    if (!profileSettings().skips("sky"))
-        drawSky(pass, aspect);
     if (!profileSettings().skips("ground"))
         drawGround(pass);
     if (!profileSettings().skips("objects"))
@@ -1026,6 +1024,8 @@ void CowsView::render(Frame& frame)
         drawGrass(pass, viewProjection);
     drawTitle(pass);
     drawMenuTitle(pass, width, height);
+    if (!profileSettings().skips("sky"))
+        drawSky(pass, aspect);
     drawBatch(pass, *translucentShader, heartBatch, viewProjection);
     if (!profileSettings().skips("glow"))
         drawGlows(pass, viewProjection);
