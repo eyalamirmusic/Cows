@@ -1,6 +1,7 @@
 add_library(cowsinlove_Engine STATIC
         Camera/OrbitCamera.cpp
         Render/FrameProfile.cpp
+        Render/Frustum.cpp
         Render/Instances.cpp
         Render/Mesh.cpp
         Render/Shaders.cpp

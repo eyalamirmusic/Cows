@@ -95,9 +95,9 @@ struct CowsView final : GPUView
     void drawShadows(Frame& frame);
     void drawSky(RenderPass& pass, float aspect);
     void drawGround(RenderPass& pass);
-    void drawGrass(RenderPass& pass);
+    void drawGrass(RenderPass& pass, const Maths::Mat4& viewProjection);
     void drawGrassTile(RenderPass& pass,
-                       Maths::Vec2 corner,
+                       const GrassDraw& draw,
                        const Vector<BladeInstance>& blades);
     void drawTitle(RenderPass& pass);
     void drawMenuTitle(RenderPass& pass, float width, float height);
@@ -137,6 +137,7 @@ struct CowsView final : GPUView
     Vector<CowPart> playerParts;
     Vector<Cow> cows;
     GrassField grass;
+    GrassDensity grassDensity;
     const Vector<BladeInstance>* uploadedBlades = nullptr;
     SurfaceBatch chasms;
 

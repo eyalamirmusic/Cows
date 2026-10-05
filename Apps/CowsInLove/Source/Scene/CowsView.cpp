@@ -37,7 +37,6 @@ constexpr auto flareHearts = 6;
 constexpr auto quietest = 0.15f;
 constexpr auto loudReach = 120.f;
 
-constexpr auto grassTiles = 2;
 constexpr auto portraitDistance = 6.5f;
 constexpr auto portraitPitch = 0.26f;
 
@@ -970,7 +969,7 @@ void CowsView::render(Frame& frame)
         drawBatch(pass, surfaceShader, cowBatch);
     }
     if (!profileSettings().skips("grass"))
-        drawGrass(pass);
+        drawGrass(pass, viewProjection);
     drawTitle(pass);
     drawMenuTitle(pass, width, height);
     drawBatch(pass, translucentShader, heartBatch);
@@ -1145,35 +1144,35 @@ void CowsView::drawGround(RenderPass& pass)
     pass.drawIndexed(ground.indices, ground.indexCount);
 }
 
-void CowsView::drawGrass(RenderPass& pass)
+void CowsView::drawGrass(RenderPass& pass, const Mat4& viewProjection)
 {
     auto focus = groundFocus();
-    auto corner = Vec2 {std::round(focus.x / meadowTile) * meadowTile,
-                        std::round(focus.z / meadowTile) * meadowTile};
+    auto plan =
+        planGrass({focus.x, focus.z}, viewProjection, camera.eye(), grassDensity);
+    auto cut = Vector<GrassDraw> {};
 
-    auto cut = Vector<Vec2> {};
+    for (const auto& draw: plan)
+    {
+        const auto& blades = grass.tileAt(draw.corner);
 
-    for (auto x = -grassTiles; x < grassTiles; ++x)
-        for (auto z = -grassTiles; z < grassTiles; ++z)
-        {
-            auto at = corner + Vec2 {(float) x * meadowTile, (float) z * meadowTile};
-            const auto& blades = grass.tileAt(at);
+        if (&blades == &grass.tile)
+            drawGrassTile(pass, draw, blades);
+        else
+            cut.add(draw);
+    }
 
-            if (&blades == &grass.tile)
-                drawGrassTile(pass, at, blades);
-            else
-                cut.add(at);
-        }
-
-    for (auto at: cut)
-        drawGrassTile(pass, at, grass.tileAt(at));
+    for (const auto& draw: cut)
+        drawGrassTile(pass, draw, grass.tileAt(draw.corner));
 }
 
 void CowsView::drawGrassTile(RenderPass& pass,
-                             Vec2 corner,
+                             const GrassDraw& draw,
                              const Vector<BladeInstance>& blades)
 {
-    if (blades.empty())
+    auto count = std::min(bladesToDraw((int) blades.size(), draw.share),
+                          profileSettings().blades);
+
+    if (count == 0)
         return;
 
     if (uploadedBlades != &blades)
@@ -1182,9 +1181,8 @@ void CowsView::drawGrassTile(RenderPass& pass,
         uploadedBlades = &blades;
     }
 
-    grassShader.patchOffset = corner;
-    pass.drawInstanced(grassShader,
-                       std::min((int) blades.size(), profileSettings().blades));
+    grassShader.patchOffset = draw.corner;
+    pass.drawInstanced(grassShader, count);
 }
 
 void CowsView::drawTitle(RenderPass& pass)
