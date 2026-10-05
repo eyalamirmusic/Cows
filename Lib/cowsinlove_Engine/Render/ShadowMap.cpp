@@ -1,12 +1,22 @@
 #include "Render/ShadowMap.h"
 
+#include <eacp/Core/Utils/Environment.h>
+#include <string>
+
 using namespace Maths;
 
 namespace Cows
 {
 namespace
 {
-constexpr auto resolution = 2048;
+constexpr auto defaultResolution = 2048;
+
+// COWS_SHADOW overrides the size, for profiling.
+int resolution()
+{
+    auto set = getEnvValue("COWS_SHADOW");
+    return set.empty() ? defaultResolution : std::stoi(set);
+}
 constexpr auto halfExtent = 14.f;
 constexpr auto lightDistance = 30.f;
 constexpr Vec3 focusOffset {0.f, 1.2f, 0.5f};
@@ -14,8 +24,8 @@ constexpr Vec3 focusOffset {0.f, 1.2f, 0.5f};
 TextureDescriptor describeTarget()
 {
     auto descriptor = TextureDescriptor {};
-    descriptor.width = resolution;
-    descriptor.height = resolution;
+    descriptor.width = resolution();
+    descriptor.height = resolution();
     descriptor.format = TextureFormat::R32Float;
     descriptor.renderTarget = true;
     descriptor.depth = true;

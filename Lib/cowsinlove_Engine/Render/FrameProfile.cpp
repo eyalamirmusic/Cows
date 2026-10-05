@@ -77,6 +77,14 @@ void FrameProfile::frameStarted()
     {
         gpuMilliseconds += timings.milliseconds;
         ++gpuSamples;
+
+        for (auto index = 0;
+             index < (int) timings.passes.size() && index < maxPasses;
+             ++index)
+        {
+            gpuPasses[(size_t) index] += timings.passes[(size_t) index].milliseconds;
+            gpuPassLabels[(size_t) index] = timings.passes[(size_t) index].label;
+        }
     }
 
     if (millisecondsBetween(windowStart, now) >= 1000.0)
@@ -87,6 +95,18 @@ void FrameProfile::add(Part part, double milliseconds)
 {
     if (enabled)
         totals[(size_t) part] += milliseconds;
+}
+
+std::string FrameProfile::passesText() const
+{
+    auto text = std::string {};
+
+    for (auto index = 0; index < maxPasses && gpuSamples > 0; ++index)
+        if (!gpuPassLabels[(size_t) index].empty())
+            text += " " + gpuPassLabels[(size_t) index] + " "
+                    + fixed(gpuPasses[(size_t) index] / gpuSamples, 2);
+
+    return text;
 }
 
 void FrameProfile::report(Clock::time_point now)
@@ -129,11 +149,13 @@ void FrameProfile::report(Clock::time_point now)
             " hud ",
             perFrame(Part::Hud),
             " | gpu ms ",
-            gpu);
+            gpu,
+            passesText());
     }
 
     frames = 0;
     gpuMilliseconds = 0.0;
+    gpuPasses = {};
     gpuSamples = 0;
     totals = {};
     windowStart = now;

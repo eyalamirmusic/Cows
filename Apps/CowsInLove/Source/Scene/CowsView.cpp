@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <optional>
 
 using namespace Maths;
@@ -176,6 +177,41 @@ float startTime()
     return 0.f;
 }
 
+// What COWS_PROFILE runs vary, one at a time, to find what a frame costs:
+// COWS_BLADES caps the blades drawn per tile, COWS_MSAA sets the sample count,
+// and COWS_SKIP names parts of the frame left out (sky, ground, objects,
+// grass, glow, hud, shadows).
+struct ProfileSettings final
+{
+    bool skips(std::string_view part) const
+    {
+        return skip.find(part) != std::string::npos;
+    }
+
+    int blades = std::numeric_limits<int>::max();
+    int samples = msaaSamples;
+    std::string skip;
+};
+
+const ProfileSettings& profileSettings()
+{
+    static auto settings = []
+    {
+        auto read = ProfileSettings {};
+
+        if (auto blades = getEnv("COWS_BLADES"))
+            read.blades = std::stoi(*blades);
+
+        if (auto samples = getEnv("COWS_MSAA"))
+            read.samples = std::stoi(*samples);
+
+        read.skip = getEnvValue("COWS_SKIP");
+        return read;
+    }();
+
+    return settings;
+}
+
 Graphics::Color displayColor(const Vec3& linear)
 {
     auto encode = [](float channel) { return std::pow(channel, 1.f / 2.2f); };
@@ -194,7 +230,7 @@ CowsView::CowsView()
 {
     startAfter = startAfterSetting();
 
-    setSampleCount(msaaSamples);
+    setSampleCount(profileSettings().samples);
     setDepth(true);
 
     auto samples = sampleCount();
@@ -897,7 +933,11 @@ void CowsView::render(Frame& frame)
 
     auto timedScene = std::optional<FrameProfile::Scope> {};
     timedScene.emplace(profile, Part::Scene);
-    auto pass = frame.beginPass({displayColor(lighting.horizonColor)});
+    auto sceneDescriptor = RenderPassDescriptor {};
+    sceneDescriptor.clearColor = displayColor(lighting.horizonColor);
+    if (profile.enabled)
+        sceneDescriptor.label = "scene";
+    auto pass = frame.beginPass(sceneDescriptor);
 
     auto width = (float) pass.targetWidth();
     auto height = (float) pass.targetHeight();
@@ -917,21 +957,30 @@ void CowsView::render(Frame& frame)
     setSceneUniforms(titleShader, viewProjection);
     setSceneUniforms(menuTitleShader, viewProjection);
 
-    drawSky(pass, aspect);
-    drawGround(pass);
-    drawBatch(pass, surfaceShader, chasms);
-    drawBatch(pass, surfaceShader, backdropBatch);
-    drawBatch(pass, surfaceShader, game.level.batch);
-    drawBatch(pass, surfaceShader, game.level.moving);
-    drawBatch(pass, surfaceShader, cowBatch);
-    drawGrass(pass);
+    if (!profileSettings().skips("sky"))
+        drawSky(pass, aspect);
+    if (!profileSettings().skips("ground"))
+        drawGround(pass);
+    if (!profileSettings().skips("objects"))
+    {
+        drawBatch(pass, surfaceShader, chasms);
+        drawBatch(pass, surfaceShader, backdropBatch);
+        drawBatch(pass, surfaceShader, game.level.batch);
+        drawBatch(pass, surfaceShader, game.level.moving);
+        drawBatch(pass, surfaceShader, cowBatch);
+    }
+    if (!profileSettings().skips("grass"))
+        drawGrass(pass);
     drawTitle(pass);
     drawMenuTitle(pass, width, height);
     drawBatch(pass, translucentShader, heartBatch);
-    drawGlows(pass, viewProjection);
+    if (!profileSettings().skips("glow"))
+        drawGlows(pass, viewProjection);
     timedScene.reset();
 
     auto timedHud = FrameProfile::Scope {profile, Part::Hud};
+    if (profileSettings().skips("hud"))
+        return;
     hud.begin(frame, pass, sampleCount());
     drawHud(hud);
     hud.end();
@@ -1062,6 +1111,9 @@ void CowsView::drawShadows(Frame& frame)
     descriptor.clearColor = Graphics::Color {1.f, 1.f, 1.f};
     descriptor.label = "shadows";
 
+    if (profileSettings().skips("shadows"))
+        return;
+
     auto pass = frame.beginPass(shadowMap.texture, descriptor);
     shadowCaster.lightViewProjection = lightViewProjection;
     drawBatch(pass, shadowCaster, cowBatch);
@@ -1131,7 +1183,8 @@ void CowsView::drawGrassTile(RenderPass& pass,
     }
 
     grassShader.patchOffset = corner;
-    pass.drawInstanced(grassShader, blades.size());
+    pass.drawInstanced(grassShader,
+                       std::min((int) blades.size(), profileSettings().blades));
 }
 
 void CowsView::drawTitle(RenderPass& pass)
