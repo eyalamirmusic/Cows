@@ -75,12 +75,13 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     kiss (stateless); `Cow/Moo` — the recorded moo and her answer, embedded
     from `Resources/moo.f32` (see `Resources/CREDITS.md`)
   - `Cow/CowSkin` — what the player's cow wears: one enum per item class
-    (`Hat` today), saved through Miro as enumerator names in `CowSkin.json`
+    (`Hat`, `Pants`), saved through Miro as enumerator names in `CowSkin.json`
     (`cowSkinFile()`, in `FilePath::appSupportDirectory()`); anything
     unreadable or unnamed loads as the default. `itemClasses()` lists the
     classes for the editor, so a new class (Glasses, Trousers) is an enum, a
     `CowSkin` field and one line there. `Cow/Wardrobe` — each hat as parts
-    on the head bone (`addHat`), and `makeCowParts(skin)`
+    on the head bone (`addHat`), pants on the body (`addPants`), and
+    `makeCowParts(skin)`
   - `Sky/SkyDecor` — sun, clouds, hills
   - `Props/Collision` — `Collider` and `Block`; `Props/Scenery` — the batch,
     colliders and blocks props are added to; `Props/Props` — seeded draws,
