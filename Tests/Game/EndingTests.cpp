@@ -103,6 +103,7 @@ auto tFooter = test("Ending/footerText") = []
     {
         auto game = Game {};
         game.reset(3);
+        game.start();
         check(footerText(game, "hint", expected.hints) == expected.searching);
 
         game.sinceMoo = mooAnswerDelay + 1.f;

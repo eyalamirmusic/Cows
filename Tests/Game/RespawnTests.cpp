@@ -30,6 +30,7 @@ Game gameOn(const Level& level)
     auto game = Game {};
     game.makeLevel = [level](std::uint32_t) { return level; };
     game.reset(3);
+    game.start();
     game.partner = {60.f, 0.f, 60.f};
     return game;
 }
