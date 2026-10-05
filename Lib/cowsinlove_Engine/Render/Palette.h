@@ -38,6 +38,9 @@ constexpr std::uint32_t frog = 0x87d700;
 constexpr std::uint32_t frogLining = 0xd7ffaf;
 constexpr std::uint32_t denim = 0x3a6ea5;
 constexpr std::uint32_t denimSeam = 0x24476e;
+constexpr std::uint32_t trafficCone = 0xff5f00;
+constexpr std::uint32_t trafficConeBase = 0x2a2a2e;
+constexpr std::uint32_t reflector = 0xf4f4f0;
 
 constexpr Graphics::Color display(std::uint32_t hex)
 {

@@ -13,6 +13,7 @@ namespace
 constexpr Vec3 crownOfHead {1.45f, 2.f, 0.f};
 constexpr auto crownPoints = 5;
 constexpr auto frogEye = 0.11f;
+constexpr auto cowPrintSpots = 2.6f;
 constexpr auto clothOut = 1.035f;
 constexpr auto bandOut = 1.05f;
 constexpr auto sleeveOut = 1.08f;
@@ -54,11 +55,12 @@ struct HatParts final
              const Mat4& rotation)
     {
         auto local = Mat4::translation(position) * rotation * Mat4::scale(size);
-        parts.add({shape, Bone::Head, seat * local, material});
+        parts.add({shape, Bone::Head, seat * local, material, spotScale});
     }
 
     Vector<CowPart>& parts;
     Mat4 seat;
+    float spotScale = 1.f;
 };
 
 Mat4 seatAt(float tiltBack, float tiltSide, Vec3 nudge = {})
@@ -195,6 +197,53 @@ void addFrogHat(Vector<CowPart>& parts)
     }
 }
 
+void addCowBucketHat(Vector<CowPart>& parts)
+{
+    auto hat = HatParts {parts, seatAt(0.f, 0.f, {0.f, -0.05f, 0.f}), cowPrintSpots};
+    auto print = cloth(Palette::hide, 0.15f);
+    print.spots = 1.f;
+
+    hat.add(Shape::Cone, {0.f, -0.1f, 0.f}, {1.f, 0.26f, 0.96f}, print);
+    hat.add(Shape::Cylinder, {0.f, -0.02f, 0.f}, {0.62f, 0.24f, 0.6f}, print);
+
+    for (auto side: {-1.f, 1.f})
+    {
+        hat.add(Shape::Horn,
+                {0.f, 0.15f, 0.26f * side},
+                {0.11f, 0.26f, 0.11f},
+                cloth(Palette::spot, 0.5f),
+                Mat4::rotationX(-0.6f * side));
+        hat.add(Shape::Sphere,
+                {0.f, 0.04f, 0.36f * side},
+                {0.06f, 0.075f, 0.15f},
+                print,
+                Mat4::rotationX(0.25f * side));
+        hat.add(Shape::Sphere,
+                {0.025f, 0.035f, 0.37f * side},
+                {0.04f, 0.05f, 0.11f},
+                cloth(Palette::innerEar, 0.3f),
+                Mat4::rotationX(0.25f * side));
+    }
+}
+
+void addTrafficCone(Vector<CowPart>& parts)
+{
+    auto hat = HatParts {parts, seatAt(0.f, 0.f, {0.f, 0.02f, 0.f})};
+    auto reflective = cloth(Palette::reflector, 0.9f);
+    reflective.emission = 0.1f;
+
+    hat.add(Shape::Box,
+            {0.f, 0.f, 0.f},
+            {0.4f, 0.05f, 0.4f},
+            cloth(Palette::trafficConeBase, 0.2f));
+    hat.add(Shape::Cone,
+            {0.f, 0.04f, 0.f},
+            {0.4f, 0.8f, 0.4f},
+            cloth(Palette::trafficCone, 0.45f));
+    hat.add(Shape::Cylinder, {0.f, 0.3f, 0.f}, {0.262f, 0.08f, 0.262f}, reflective);
+    hat.add(Shape::Cylinder, {0.f, 0.52f, 0.f}, {0.157f, 0.06f, 0.157f}, reflective);
+}
+
 Mat4 aroundTorso(float scale)
 {
     auto middle = Vec3 {0.f, 0.5f, 0.f};
@@ -325,6 +374,12 @@ void addHat(Vector<CowPart>& parts, Hat hat)
             break;
         case Hat::FrogHat:
             addFrogHat(parts);
+            break;
+        case Hat::CowBucketHat:
+            addCowBucketHat(parts);
+            break;
+        case Hat::TrafficCone:
+            addTrafficCone(parts);
             break;
         case Hat::None:
             break;
