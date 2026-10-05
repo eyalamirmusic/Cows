@@ -25,6 +25,13 @@ constexpr std::uint32_t hoof = 0x3a2f2c;
 constexpr std::uint32_t horn = 0xf3e2bd;
 constexpr std::uint32_t innerEar = 0xf2a0ac;
 
+constexpr Graphics::Color display(std::uint32_t hex)
+{
+    return {(float) ((hex >> 16) & 0xffu) / 255.f,
+            (float) ((hex >> 8) & 0xffu) / 255.f,
+            (float) (hex & 0xffu) / 255.f};
+}
+
 inline float toLinear(float channel)
 {
     return std::pow(channel, 2.2f);

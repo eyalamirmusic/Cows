@@ -9,6 +9,7 @@
 #include "Terrain/Ground.h"
 #include "Render/Lighting.h"
 #include "Render/Mesh.h"
+#include "Title/MenuTitle.h"
 #include "Title/TitleShader.h"
 #include "Terrain/TerrainShaders.h"
 #include "Cow/Moo.h"
@@ -17,9 +18,11 @@
 #include "Render/Shaders.h"
 #include "UI/ControlEvent.h"
 #include "UI/Hud.h"
+#include "UI/Menu.h"
 
 #include <array>
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -40,6 +43,15 @@ struct CowsView final : GPUView
     void keyUp(const Graphics::KeyEvent& event) override;
 
     void control(const ControlEvent& event);
+    void openMenu(bool swing = true);
+    void startGame();
+    bool escape();
+    void swingCamera(float delta);
+    float menuOpacity() const;
+    CameraPose menuPose() const;
+    CameraPose playPose() const;
+    bool menuKey(const Graphics::KeyEvent& event);
+    void useMenuPad(const PadControls& pad);
     void readGameInput(float delta);
     void usePad(const PadControls& pad, float delta);
     void useHints(Hints used);
@@ -67,6 +79,7 @@ struct CowsView final : GPUView
                        Maths::Vec2 corner,
                        const Vector<BladeInstance>& blades);
     void drawTitle(RenderPass& pass);
+    void drawMenuTitle(RenderPass& pass, float width, float height);
     void drawGlows(RenderPass& pass, const Maths::Mat4& viewProjection);
     void drawBatch(RenderPass& pass, ShaderProgram& shader, SurfaceBatch& batch);
 
@@ -93,6 +106,9 @@ struct CowsView final : GPUView
     Mesh wedge;
     Mesh ground;
     TitleMesh title;
+    TitleMesh menuTitleWide;
+    TitleMesh menuTitleTall;
+    const TitleMesh* menuTitleShown = nullptr;
 
     SkyShader skyShader;
     SurfaceShader surfaceShader;
@@ -101,6 +117,7 @@ struct CowsView final : GPUView
     GroundShader groundShader;
     GrassShader grassShader;
     TitleShader titleShader;
+    TitleShader menuTitleShader;
     GlowShader glowShader;
 
     Vector<CowPart> cowParts;
@@ -120,10 +137,21 @@ struct CowsView final : GPUView
     std::function<void(Hud&)> drawHud = [](Hud&) {};
     std::function<void()> onStateChanged = [] {};
     Graphics::GameInput* gameInput = nullptr;
+    Menu* menu = nullptr;
+    std::optional<float> startAfter;
+    CameraPose swingFrom;
+    float swingTime = 0.f;
+    bool swinging = false;
+    bool swingingToPlay = false;
+    float playPitch = OrbitCamera {}.pitch;
+    float playDistance = OrbitCamera {}.distance;
 
     float elapsed = 0.f;
     float lookHold = 0.f;
     bool padRestarted = false;
+    int padMenuStep = 0;
+    std::optional<std::uint16_t> keyFromMenu;
+    float viewAspect = 1.f;
     bool frozen = false;
     Hints pointerHints = Hints::Keys;
     Hints hints = Hints::Keys;

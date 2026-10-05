@@ -21,6 +21,7 @@ struct PadControls final
     bool mooPressed = false;
     bool againPressed = false;
     bool recenterPressed = false;
+    bool startPressed = false;
     bool active = false;
     Graphics::GamepadFamily family = Graphics::GamepadFamily::Generic;
 };

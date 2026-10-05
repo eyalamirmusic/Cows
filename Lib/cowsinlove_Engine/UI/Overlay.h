@@ -24,8 +24,8 @@ struct Footer final
     Text::Font font {"Menlo", 13.f};
 };
 
-// Stacks its children over each other, quits on q or Escape, and passes every
-// other key on.
+// Stacks its children over each other, quits on q, and on Escape unless
+// onEscape takes it, and passes every other key on.
 struct RootView final : Graphics::View
 {
     void resized() override;
@@ -36,5 +36,6 @@ struct RootView final : Graphics::View
         [](const Graphics::KeyEvent&) {};
     std::function<void(const Graphics::KeyEvent&)> onKeyUp =
         [](const Graphics::KeyEvent&) {};
+    std::function<bool()> onEscape = [] { return false; };
 };
 } // namespace Cows

@@ -17,6 +17,33 @@ constexpr Vec3 worldUp {0.f, 1.f, 0.f};
 constexpr auto followRate = 6.f;
 } // namespace
 
+CameraPose blend(const CameraPose& from, const CameraPose& to, float amount)
+{
+    auto t = std::clamp(amount, 0.f, 1.f);
+    auto mix = [t](float a, float b) { return a + (b - a) * t; };
+
+    auto pose = CameraPose {};
+    pose.target = from.target + (to.target - from.target) * t;
+    pose.yaw = from.yaw + std::remainder(to.yaw - from.yaw, twoPi) * t;
+    pose.pitch = mix(from.pitch, to.pitch);
+    pose.distance = mix(from.distance, to.distance);
+    pose.swayYaw = mix(from.swayYaw, to.swayYaw);
+    pose.swayPitch = mix(from.swayPitch, to.swayPitch);
+    return pose;
+}
+
+float easeOut(float amount)
+{
+    auto left = 1.f - std::clamp(amount, 0.f, 1.f);
+    return 1.f - left * left * left;
+}
+
+Vec2 driftAt(float seconds)
+{
+    return {0.07f * std::sin(seconds * 0.11f),
+            0.015f * std::sin(seconds * 0.17f + 1.f)};
+}
+
 void OrbitCamera::orbit(float horizontal, float vertical)
 {
     yaw -= horizontal;
@@ -30,8 +57,9 @@ void OrbitCamera::zoom(float amount)
 
 void OrbitCamera::drift(float seconds)
 {
-    swayYaw = 0.07f * std::sin(seconds * 0.11f);
-    swayPitch = 0.015f * std::sin(seconds * 0.17f + 1.f);
+    auto sway = driftAt(seconds);
+    swayYaw = sway.x;
+    swayPitch = sway.y;
 }
 
 void OrbitCamera::follow(Vec3 goal, float delta)
@@ -42,6 +70,21 @@ void OrbitCamera::follow(Vec3 goal, float delta)
 void OrbitCamera::turnToward(float wantedYaw, float amount)
 {
     yaw += std::remainder(wantedYaw - yaw, twoPi) * std::clamp(amount, 0.f, 1.f);
+}
+
+CameraPose OrbitCamera::pose() const
+{
+    return {target, yaw, pitch, distance, swayYaw, swayPitch};
+}
+
+void OrbitCamera::setPose(const CameraPose& to)
+{
+    target = to.target;
+    yaw = to.yaw;
+    pitch = to.pitch;
+    distance = to.distance;
+    swayYaw = to.swayYaw;
+    swayPitch = to.swayPitch;
 }
 
 Vec3 OrbitCamera::eye() const

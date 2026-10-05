@@ -3,6 +3,7 @@ add_library(cowsinlove_Game STATIC
         Game.cpp
         Input.cpp
         Pad.cpp
+        Title/MenuTitle.cpp
         Title/TitleFont.cpp
         Title/TitleShader.cpp)
 

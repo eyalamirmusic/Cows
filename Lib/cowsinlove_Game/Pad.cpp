@@ -100,6 +100,7 @@ PadControls readPad(const Graphics::GameInputFrame& frame)
                                || pad.wasPressed(GamepadButton::East);
         controls.againPressed |= pad.wasPressed(GamepadButton::North);
         controls.recenterPressed |= pad.wasPressed(GamepadButton::RightStick);
+        controls.startPressed |= pad.wasPressed(GamepadButton::Start);
 
         auto used = magnitude(left) > 0.f || magnitude(right) > 0.f || zoomIn > 0.f
                     || zoomOut > 0.f || anyButton(pad);

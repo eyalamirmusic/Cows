@@ -33,12 +33,22 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `Render/Mesh` — procedural meshes: sphere, lathe shapes, box, wedge
   - `Render/Instances` — per-instance data and per-mesh batches
   - `Render/ShadowMap` — the key light's depth target
-  - `Camera/OrbitCamera` — drag to orbit, scroll to zoom, idle drift
+  - `Camera/OrbitCamera` — drag to orbit, scroll to zoom, idle drift;
+    `CameraPose`, `blend` and `easeOut` for the menu's camera swing
   - `UI/Hud` — draws the HUD at the end of the scene's own pass: discs and
     rings through eacp's `UI::ShapeBatch`, text through `Text::TextRenderer`
-    (Menlo), on every platform; `CowsView` owns one and calls `drawHud`
+    (Menlo), on every platform; `CowsView` owns one and calls `drawHud`;
+    `strokeRoundedRect` for the menu's selection ring
+  - `UI/Menu` — the start menu: `MenuItem`s in Comic Neue Bold (embedded
+    from `Resources/ComicNeue-Bold.ttf`, OFL, registered as a memory font
+    through `Text::registerMemoryFont`; see `Resources/CREDITS.md`), side by
+    side when wide, stacked when tall (by aspect, not platform), a
+    `titleArea` left at the top; hover and click, tap (targets at least
+    64 pt), and a selection ring for keys and controllers; a disabled item is
+    grey and never chosen; `opacity` fades it
   - `UI/Overlay` — `Footer` (the footer text, drawn through `Hud`), and
-    `RootView` (q / Esc to quit)
+    `RootView` (q quits; Esc goes to `onEscape` first, quitting when it
+    declines)
   - `UI/TouchControls` — on-screen stick, Moo / Jump / Again, drag to look,
     pinch to zoom; reports everything through one `onControl` callback as a
     `ControlEvent` (`UI/ControlEvent.h`), and shows Again when `showAgain`;
@@ -86,7 +96,9 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     gaps cut out); `Terrain/TerrainShaders` — the ground and grass shaders
 - `Lib/cowsinlove_Game` — the rules of this game; nothing that owns GPU passes.
   Links World.
-  - `Game` — state machine, player movement, found test, moo cooldown, the moo
+  - `Game` — state machine (`Menu` first, then `Searching` and `Found`;
+    `start()` leaves the menu, `openMenu()` pauses into it, `playing()` is the
+    state behind it; a `reset` from play skips the menu), player movement, found test, moo cooldown, the moo
     hint, the level's clock (`seconds`, driving its movers), the checkpoint and
     respawn below `killDepth` (`sinceFell`), and `footerText` (for a `Hints`); `reset(seed)` builds the level through its
     `makeLevel` hook, which the app sets (the library never names a level)
@@ -100,7 +112,9 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     moo, North again, right stick click recentre), triggers as zoom; the largest
     stick of several controllers wins. `padHints` names the footer's `Hints`
     from the controller's family
-  - `Title/TitleFont` — the tube-font title; `Title/TitleShader` — its shader
+  - `Title/TitleFont` — the tube-font title; `Title/TitleShader` — its shader;
+    `Title/MenuTitle` — "cows in love" for the menu (one line wide, two tall),
+    placed in front of the camera to fill the menu's `titleArea`
 - `Apps/CowsInLove/Source/Main.cpp` — runs `CowsApp`. On Android eacp sets the
   COWS_* settings before `main()` in a debug build, from the launch intent's
   `--es` extras and the `debug.com.cowsinlove.play.env` property
@@ -121,7 +135,12 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   forwards keys to `Input`; polls `GameInput` each `update`, sends the
   controller's buttons through `control()` as touch does, orbits on the right
   stick (a look, mouse drag included, holds off the chase for `lookHold`), and
-  tracks the last-used input as `hints`
+  tracks the last-used input as `hints`. In the menu it holds the camera in
+  front of the cow (`menuPose`, drifting), draws the menu title, and takes
+  Enter / Space / arrows / A D and the controller's South / Start / stick /
+  D-pad; Start swings the camera behind the cow over 1.1 s with an ease-out
+  while the menu fades and the title slides up, then play starts (`playPose`);
+  Esc and the controller's Start swing back
 - `tools/Art` — `CowsArt`, a macOS tool that renders the icon, key art, logo
   and store screenshots from the game's own views; `tools/store-art.sh` and
   `tools/screenshots.sh` drive it. `tools/release-*.sh`, `release-msix.ps1`
@@ -136,7 +155,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
 
 `COWS_TIME=<seconds>` starts the clock there and `COWS_FREEZE=1` stops it, for
 screenshots; `COWS_SEED=<n>` fixes the level, `COWS_STAGE=<n>` starts on
-stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).
+stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her, skipping the menu; `COWS_MENU=0` skips
+the menu and `COWS_START=<seconds>` presses Start after that long (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).
 
 ## Build Commands
 

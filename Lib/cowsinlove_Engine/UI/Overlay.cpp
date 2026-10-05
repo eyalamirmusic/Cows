@@ -78,6 +78,9 @@ void RootView::resized()
 
 void RootView::keyDown(const Graphics::KeyEvent& event)
 {
+    if (event.keyCode == Graphics::KeyCode::Escape && !event.isRepeat && onEscape())
+        return;
+
     if (event.keyCode == Graphics::KeyCode::Q
         || event.keyCode == Graphics::KeyCode::Escape)
     {
