@@ -89,8 +89,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     (`addPants`) cut from the cow's own parts (`torsoPlacement`,
     `legPlacements`, `tailRoot`): the torso's barrel scaled out as the seat
     (everything behind the hips, a hole for the tail, a waistband round the
-    body at the hips) and, for both pairs of legs, the belly below the girth
-    in front of them (`makePantsMesh`), and the legs' capsules
+    body at the hips) for the back legs, or for both pairs the belly (the
+    lower half, cut level at the girth with a band along it; `makePantsMesh`), and the legs' capsules
     widened into sleeves with a cuff above the hoof; `makeCowMesh` for
     `ShapeMeshes`, and `makeCowParts(skin)`
   - `Sky/SkyDecor` — sun, clouds, hills
