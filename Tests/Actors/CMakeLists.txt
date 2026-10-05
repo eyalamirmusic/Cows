@@ -3,11 +3,13 @@ nano_add_executable(ActorsTests
         SOURCES
             ChoreographyTests.cpp
             CollisionTests.cpp
+            CowSkinTests.cpp
             CowTests.cpp
             KissHeartsTests.cpp
             MooTests.cpp
             PropsTests.cpp
             SkyTests.cpp
+            WardrobeTests.cpp
             ../Support/TestMain.cpp
         TARGETS cowsinlove_Actors cowsinlove_TestSupport)
 

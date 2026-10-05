@@ -1,9 +1,11 @@
 add_library(cowsinlove_Actors STATIC
         Animation/Choreography.cpp
         Cow/Cow.cpp
+        Cow/CowSkin.cpp
         Cow/HeartMesh.cpp
         Cow/KissHearts.cpp
         Cow/Moo.cpp
+        Cow/Wardrobe.cpp
         Props/Bale.cpp
         Props/Barn.cpp
         Props/Bridge.cpp
@@ -19,7 +21,7 @@ add_library(cowsinlove_Actors STATIC
         Sky/SkyDecor.cpp)
 
 target_include_directories(cowsinlove_Actors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(cowsinlove_Actors PUBLIC cowsinlove_Engine cowsinlove_AudioEngine)
+target_link_libraries(cowsinlove_Actors PUBLIC cowsinlove_Engine cowsinlove_AudioEngine Miro)
 
 set_default_target_setting(cowsinlove_Actors)
 
