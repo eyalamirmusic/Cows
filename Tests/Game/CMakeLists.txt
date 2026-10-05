@@ -6,6 +6,7 @@ nano_add_executable(GameTests
             RespawnTests.cpp
             InputTests.cpp
             PadTests.cpp
+            PlayTouchTests.cpp
             TitleFontTests.cpp
             ../Support/TestMain.cpp
         TARGETS cowsinlove_Game cowsinlove_TestSupport cowsinlove_TestFixtures)

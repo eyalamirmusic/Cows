@@ -104,6 +104,19 @@ enum class EscapeAction
 
 EscapeAction escapeAction(Game::State state, bool dressing, bool swinging);
 
+// Which screen takes touches and clicks: the menu, the editor, or play. Play
+// takes them from the moment Start swings the camera down, not when the swing
+// lands, so a finger put on the stick mid-swing is the stick's and not the
+// fading menu's for as long as it stays down.
+enum class InputOwner
+{
+    Menu,
+    Editor,
+    Play
+};
+
+InputOwner inputOwner(Game::State state, bool dressing, bool startingPlay);
+
 // Whose controls the footer names: the keys, the touch controls, or a
 // controller by the labels it wears.
 enum class Hints

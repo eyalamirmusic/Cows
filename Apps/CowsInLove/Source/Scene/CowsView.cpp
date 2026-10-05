@@ -448,6 +448,13 @@ void CowsView::startGame()
         return;
 
     swingTo(SwingGoal::Play);
+    onStateChanged();
+}
+
+InputOwner CowsView::inputOwner() const
+{
+    auto startingPlay = swinging && swingGoal == SwingGoal::Play;
+    return Cows::inputOwner(game.state, dressing, startingPlay);
 }
 
 void CowsView::swingTo(SwingGoal goal)

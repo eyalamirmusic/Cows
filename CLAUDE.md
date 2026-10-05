@@ -128,7 +128,9 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     `start()` leaves the menu, `openMenu()` pauses into it, `playing()` is the
     state behind it; a `reset` from play skips the menu), player movement, found test, moo cooldown, the moo
     hint, the level's clock (`seconds`, driving its movers), the checkpoint and
-    respawn below `killDepth` (`sinceFell`), and `footerText` (for a `Hints`); `reset(seed)` builds the level through its
+    respawn below `killDepth` (`sinceFell`), `footerText` (for a `Hints`), and
+    `inputOwner` (menu, editor or play takes touches; play from the moment Start
+    swings the camera down); `reset(seed)` builds the level through its
     `makeLevel` hook, which the app sets (the library never names a level)
   - `Ending` — the ending's numbers (title rise, kiss point, camera settle) and
     `titlePlacement`, `loops` (start again after the title)
