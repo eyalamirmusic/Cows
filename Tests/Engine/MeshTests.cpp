@@ -115,3 +115,43 @@ auto tAppendOffsetsIndices = test("Mesh/appendOffsetsIndices") = []
     check(indicesInRange(mesh));
     check(mesh.indices[36] >= 24);
 };
+
+auto tCylinderShape = test("Mesh/cylinderIsClosedAndFlatTopped") = []
+{
+    auto mesh = makeCylinder(16);
+
+    check(!mesh.indices.empty());
+    check(indicesInRange(mesh));
+    check(normalsUnitLength(mesh));
+    check(facesOutward(mesh));
+
+    auto tops = 0;
+
+    for (const auto& vertex: mesh.vertices)
+    {
+        auto radius = std::hypot(vertex.position.x, vertex.position.z);
+        check(radius < 0.5f + 1e-4f);
+        check(vertex.position.y > -1e-4f && vertex.position.y < 1.f + 1e-4f);
+
+        if (vertex.position.y > 1.f - 1e-4f && vertex.normal.y > 0.999f)
+            ++tops;
+    }
+
+    check(tops >= 2 * 17);
+};
+
+auto tConeShape = test("Mesh/coneNarrowsToItsPoint") = []
+{
+    auto mesh = makeCone(16);
+
+    check(!mesh.indices.empty());
+    check(indicesInRange(mesh));
+    check(normalsUnitLength(mesh));
+    check(facesOutward(mesh));
+
+    for (const auto& vertex: mesh.vertices)
+    {
+        auto radius = std::hypot(vertex.position.x, vertex.position.z);
+        check(radius <= 0.5f * (1.f - vertex.position.y) + 1e-4f);
+    }
+};

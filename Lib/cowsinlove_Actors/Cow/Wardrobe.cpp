@@ -71,11 +71,23 @@ void addCowboyHat(Vector<CowPart>& parts)
     auto hat = HatParts {parts, seatAt(0.2f, -0.06f)};
     auto leather = cloth(Palette::cowboyHat, 0.25f);
 
-    hat.add(Shape::Sphere, {0.f, 0.02f, 0.f}, {0.4f, 0.035f, 0.36f}, leather);
-    hat.add(Shape::Barrel, {0.f, -0.02f, 0.f}, {0.36f, 0.3f, 0.32f}, leather);
+    hat.add(Shape::Sphere, {0.f, 0.02f, 0.f}, {0.36f, 0.03f, 0.26f}, leather);
+
+    for (auto side: {-1.f, 1.f})
+        hat.add(Shape::Sphere,
+                {0.f, 0.07f, 0.24f * side},
+                {0.3f, 0.025f, 0.12f},
+                leather,
+                Mat4::rotationX(-0.7f * side));
+
+    hat.add(Shape::Barrel, {0.f, -0.02f, 0.f}, {0.28f, 0.38f, 0.24f}, leather);
+    hat.add(Shape::Sphere,
+            {0.f, 0.345f, 0.f},
+            {0.1f, 0.03f, 0.045f},
+            cloth(Palette::hatBand, 0.3f));
     hat.add(Shape::Cylinder,
             {0.f, 0.02f, 0.f},
-            {0.345f, 0.06f, 0.305f},
+            {0.285f, 0.06f, 0.245f},
             cloth(Palette::hatBand, 0.3f));
 }
 
@@ -118,12 +130,12 @@ void addCrown(Vector<CowPart>& parts)
     auto hat = HatParts {parts, seatAt(0.1f, -0.1f)};
     auto gold = shiny(Palette::gold);
 
-    hat.add(Shape::Cylinder, {0.f, 0.f, 0.f}, {0.34f, 0.1f, 0.34f}, gold);
+    hat.add(Shape::Cylinder, {0.f, 0.f, 0.f}, {0.36f, 0.15f, 0.36f}, gold);
 
     for (auto point = 0; point < crownPoints; ++point)
     {
         auto angle = twoPi * (float) point / (float) crownPoints;
-        auto at = Vec3 {0.15f * std::cos(angle), 0.09f, 0.15f * std::sin(angle)};
+        auto at = Vec3 {0.16f * std::cos(angle), 0.14f, 0.16f * std::sin(angle)};
         hat.add(Shape::Cone, at, {0.075f, 0.13f, 0.075f}, gold);
         hat.add(Shape::Sphere,
                 at + Vec3 {0.f, 0.14f, 0.f},
@@ -132,7 +144,7 @@ void addCrown(Vector<CowPart>& parts)
     }
 
     hat.add(Shape::Sphere,
-            {0.17f, 0.05f, 0.f},
+            {0.18f, 0.075f, 0.f},
             {0.025f, 0.035f, 0.035f},
             shiny(Palette::heart));
 }

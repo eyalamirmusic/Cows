@@ -63,6 +63,26 @@ void addGrid(MeshData& mesh, int rows, int columns)
         }
 }
 
+void dropSlivers(MeshData& mesh)
+{
+    constexpr auto leastArea = 1e-7f;
+    auto kept = Vector<std::uint32_t> {};
+
+    for (auto first = 0; first + 2 < mesh.indices.size(); first += 3)
+    {
+        const auto& a = mesh.vertices[(int) mesh.indices[first]].position;
+        const auto& b = mesh.vertices[(int) mesh.indices[first + 1]].position;
+        const auto& c = mesh.vertices[(int) mesh.indices[first + 2]].position;
+
+        if (length(cross(b - a, c - a)) > leastArea)
+            kept.add({mesh.indices[first],
+                      mesh.indices[first + 1],
+                      mesh.indices[first + 2]});
+    }
+
+    mesh.indices = kept;
+}
+
 Vec2 profileNormal(const Vector<Vec2>& profile, int index)
 {
     auto last = profile.size() - 1;
@@ -198,7 +218,9 @@ MeshData makeCylinder(int segments)
     profile.add({0.5f, 1.f});
     profile.add({0.f, 1.f});
 
-    return makeLathe(profile, segments);
+    auto mesh = makeLathe(profile, segments);
+    dropSlivers(mesh);
+    return mesh;
 }
 
 MeshData makeCone(int segments)
@@ -209,7 +231,9 @@ MeshData makeCone(int segments)
     profile.add({0.5f, 0.f});
     profile.add({0.f, 1.f});
 
-    return makeLathe(profile, segments);
+    auto mesh = makeLathe(profile, segments);
+    dropSlivers(mesh);
+    return mesh;
 }
 
 MeshData makeBox()

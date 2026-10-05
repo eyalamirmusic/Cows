@@ -73,9 +73,9 @@ auto tHatSnapshots = test("Wardrobe/snapshots") = []
         view.camera.target = {1.3f, 1.9f, 0.f};
         view.camera.yaw = 0.9f;
         view.camera.pitch = 0.12f;
-        view.camera.distance = 3.2f;
+        view.camera.distance = 2.6f;
 
         auto name = "actors-hat-" + std::string {Miro::enumToString(hat)};
-        check(snapshot(view, 240.f, 180.f, name).isValid());
+        check(snapshot(view, 360.f, 270.f, name).isValid());
     }
 };
