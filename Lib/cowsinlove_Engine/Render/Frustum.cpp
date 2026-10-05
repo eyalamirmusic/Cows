@@ -1,5 +1,6 @@
 #include "Render/Frustum.h"
 
+#include <algorithm>
 #include <array>
 
 using namespace Maths;
@@ -33,5 +34,22 @@ bool boxInView(const Mat4& viewProjection, const Vec3& low, const Vec3& high)
              || allOutside([](const Vec4& c) { return c.x > c.w; })
              || allOutside([](const Vec4& c) { return c.y < -c.w; })
              || allOutside([](const Vec4& c) { return c.y > c.w; }));
+}
+
+bool sphereInView(const Mat4& viewProjection, const Vec3& center, float radius)
+{
+    auto reach = Vec3 {radius, radius, radius};
+    return boxInView(viewProjection, center - reach, center + reach);
+}
+
+bool instanceInView(const Mat4& viewProjection,
+                    const SurfaceInstance& instance,
+                    float meshRadius)
+{
+    auto scale = std::max({length(instance.model0.xyz()),
+                           length(instance.model1.xyz()),
+                           length(instance.model2.xyz())});
+
+    return sphereInView(viewProjection, instance.model3.xyz(), meshRadius * scale);
 }
 } // namespace Cows

@@ -102,7 +102,10 @@ struct CowsView final : GPUView
     void drawTitle(RenderPass& pass);
     void drawMenuTitle(RenderPass& pass, float width, float height);
     void drawGlows(RenderPass& pass, const Maths::Mat4& viewProjection);
-    void drawBatch(RenderPass& pass, ShaderProgram& shader, SurfaceBatch& batch);
+    void drawBatch(RenderPass& pass,
+                   ShaderProgram& shader,
+                   const SurfaceBatch& batch,
+                   const Maths::Mat4& cullWith);
 
     Stages stages;
     Game game;
@@ -139,6 +142,7 @@ struct CowsView final : GPUView
     GrassField grass;
     GrassDensity grassDensity;
     const Vector<BladeInstance>* uploadedBlades = nullptr;
+    Vector<SurfaceInstance> visible;
     SurfaceBatch chasms;
 
     SurfaceBatch cowBatch;

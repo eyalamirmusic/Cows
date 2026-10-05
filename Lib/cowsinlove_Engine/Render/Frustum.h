@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Render/Common.h"
+#include "Render/Instances.h"
 
 namespace Cows
 {
@@ -11,4 +11,15 @@ namespace Cows
 bool boxInView(const Maths::Mat4& viewProjection,
                const Maths::Vec3& low,
                const Maths::Vec3& high);
+
+bool sphereInView(const Maths::Mat4& viewProjection,
+                  const Maths::Vec3& center,
+                  float radius);
+
+// Whether an instance of a mesh `meshRadius` across from its origin can land on
+// screen: its sphere, carried by the instance's model matrix and grown by the
+// matrix's largest scale.
+bool instanceInView(const Maths::Mat4& viewProjection,
+                    const SurfaceInstance& instance,
+                    float meshRadius);
 } // namespace Cows

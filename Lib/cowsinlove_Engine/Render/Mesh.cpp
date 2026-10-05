@@ -566,6 +566,17 @@ Mesh::Mesh(const MeshData& data)
     : vertices(makeVertexBuffer(data))
     , indices(makeIndexBuffer(data))
     , indexCount(data.indices.size())
+    , radius(boundingRadius(data))
 {
+}
+
+float boundingRadius(const MeshData& data)
+{
+    auto furthest = 0.f;
+
+    for (const auto& vertex: data.vertices)
+        furthest = std::max(furthest, length(vertex.position));
+
+    return furthest;
 }
 } // namespace Cows

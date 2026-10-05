@@ -90,5 +90,11 @@ struct Mesh final
     Buffer vertices;
     Buffer indices;
     int indexCount = 0;
+
+    // The furthest any vertex lies from the mesh's origin: a sphere there of
+    // this radius holds the whole mesh.
+    float radius = 0.f;
 };
+
+float boundingRadius(const MeshData& data);
 } // namespace Cows

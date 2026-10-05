@@ -3,6 +3,7 @@
 #include "Cow/Wardrobe.h"
 #include "Ending.h"
 #include "Render/FrameProfile.h"
+#include "Render/Frustum.h"
 #include "Render/Palette.h"
 #include "Sky/SkyDecor.h"
 
@@ -962,17 +963,17 @@ void CowsView::render(Frame& frame)
         drawGround(pass);
     if (!profileSettings().skips("objects"))
     {
-        drawBatch(pass, surfaceShader, chasms);
-        drawBatch(pass, surfaceShader, backdropBatch);
-        drawBatch(pass, surfaceShader, game.level.batch);
-        drawBatch(pass, surfaceShader, game.level.moving);
-        drawBatch(pass, surfaceShader, cowBatch);
+        drawBatch(pass, surfaceShader, chasms, viewProjection);
+        drawBatch(pass, surfaceShader, backdropBatch, viewProjection);
+        drawBatch(pass, surfaceShader, game.level.batch, viewProjection);
+        drawBatch(pass, surfaceShader, game.level.moving, viewProjection);
+        drawBatch(pass, surfaceShader, cowBatch, viewProjection);
     }
     if (!profileSettings().skips("grass"))
         drawGrass(pass, viewProjection);
     drawTitle(pass);
     drawMenuTitle(pass, width, height);
-    drawBatch(pass, translucentShader, heartBatch);
+    drawBatch(pass, translucentShader, heartBatch, viewProjection);
     if (!profileSettings().skips("glow"))
         drawGlows(pass, viewProjection);
     timedScene.reset();
@@ -1115,9 +1116,9 @@ void CowsView::drawShadows(Frame& frame)
 
     auto pass = frame.beginPass(shadowMap.texture, descriptor);
     shadowCaster.lightViewProjection = lightViewProjection;
-    drawBatch(pass, shadowCaster, cowBatch);
-    drawBatch(pass, shadowCaster, game.level.batch);
-    drawBatch(pass, shadowCaster, game.level.moving);
+    drawBatch(pass, shadowCaster, cowBatch, lightViewProjection);
+    drawBatch(pass, shadowCaster, game.level.batch, lightViewProjection);
+    drawBatch(pass, shadowCaster, game.level.moving, lightViewProjection);
 }
 
 void CowsView::drawSky(RenderPass& pass, float aspect)
@@ -1239,21 +1240,26 @@ void CowsView::drawGlows(RenderPass& pass, const Mat4& viewProjection)
 
 void CowsView::drawBatch(RenderPass& pass,
                          ShaderProgram& shader,
-                         SurfaceBatch& batch)
+                         const SurfaceBatch& batch,
+                         const Mat4& cullWith)
 {
     for (auto index = 0; index < shapeCount; ++index)
     {
-        const auto& list = batch.lists[index];
-
-        if (list.empty())
-            continue;
-
         const auto& mesh = shapes[(Shape) index];
 
-        shader.setInstances(1, list.data(), list.size());
+        visible.clear();
+
+        for (const auto& instance: batch.lists[index])
+            if (instanceInView(cullWith, instance, mesh.radius))
+                visible.add(instance);
+
+        if (visible.empty())
+            continue;
+
+        shader.setInstances(1, visible.data(), visible.size());
         pass.bind(shader, mesh.vertices);
         shader.bindInstances(pass);
-        pass.drawIndexedInstanced(mesh.indices, mesh.indexCount, list.size());
+        pass.drawIndexedInstanced(mesh.indices, mesh.indexCount, visible.size());
     }
 }
 
