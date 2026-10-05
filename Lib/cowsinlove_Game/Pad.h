@@ -7,7 +7,7 @@ namespace Cows
 {
 // What the controllers ask for this frame: the left stick and D-pad as walk
 // ahead / turn (left positive), the right stick as look (y up), the triggers
-// as zoom (in positive), and the buttons' edges. Several controllers act as
+// as zoom (in positive), and the buttons' edges; East is also back. Several controllers act as
 // one: the largest stick wins, buttons are ORed.
 struct PadControls final
 {
@@ -22,6 +22,7 @@ struct PadControls final
     bool againPressed = false;
     bool recenterPressed = false;
     bool startPressed = false;
+    bool backPressed = false;
     bool active = false;
     Graphics::GamepadFamily family = Graphics::GamepadFamily::Generic;
 };
