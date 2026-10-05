@@ -13,7 +13,8 @@ namespace Cows
 // (bound as `noise`) in two filtered fetches instead of sixteen sines.
 struct GroundShader final : LitProgram
 {
-    explicit GroundShader(bool cheapNoiseToUse = false);
+    explicit GroundShader(int shadowTapsToUse = fullShadowTaps,
+                          bool cheapNoiseToUse = false);
 
     void define() override;
 
@@ -31,7 +32,7 @@ struct GroundShader final : LitProgram
 
 struct GrassShader final : LitProgram
 {
-    GrassShader();
+    explicit GrassShader(int shadowTapsToUse = fullShadowTaps);
 
     void define() override;
 

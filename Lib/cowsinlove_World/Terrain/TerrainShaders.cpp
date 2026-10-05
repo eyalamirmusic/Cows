@@ -6,9 +6,10 @@ using namespace Maths;
 
 namespace Cows
 {
-GroundShader::GroundShader(bool cheapNoiseToUse)
+GroundShader::GroundShader(int shadowTapsToUse, bool cheapNoiseToUse)
     : cheapNoise(cheapNoiseToUse)
 {
+    shadowTaps = shadowTapsToUse;
     noise.sampling = latticeSampling;
     compile();
 }
@@ -50,8 +51,9 @@ void GroundShader::define()
         float4(Shading::toDisplay(Shading::withHaze(*this, lit, world)), 1.f));
 }
 
-GrassShader::GrassShader()
+GrassShader::GrassShader(int shadowTapsToUse)
 {
+    shadowTaps = shadowTapsToUse;
     compile();
 }
 

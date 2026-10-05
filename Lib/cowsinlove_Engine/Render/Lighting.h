@@ -82,13 +82,19 @@ struct SceneUniforms : LightingUniforms
     Uniform<Texture2D> shadowMap;
 };
 
-// A shader lit by the scene: its uniforms, and the control flow the shared
-// shading functions branch with.
+// A shader lit by the scene: its uniforms, the control flow the shared
+// shading functions branch with, and how many shadow-map taps soften its
+// shadows (16, or 4 where the GPU cannot spare the reads). Set before
+// compile().
 struct LitProgram
     : ShaderProgram
     , SceneUniforms
 {
     using ShaderProgram::ifThen;
     using ShaderProgram::var;
+
+    static constexpr auto fullShadowTaps = 16;
+
+    int shadowTaps = fullShadowTaps;
 };
 } // namespace Cows

@@ -195,6 +195,10 @@ part of a frame and the GPU time of the frame and of each pass (`shadows`,
 grass tile), `COWS_MSAA=<n>`, `COWS_SHADOW=<texels>` (the shadow map's side)
 or `COWS_SKIP=<parts>` (any of sky, ground, objects, grass, glow, hud,
 shadows, left out of the frame) and compares.
+`COWS_QUALITY=low|mid|high` forces a quality tier (`Scene/Quality`); without
+it the first run starts at high, `QualityGovernor` (`Render/QualityGovernor`)
+drops tiers while the GPU's frame time is over budget, and the tier it settles
+on is saved as `Quality.txt` beside `CowSkin.json` and used from then on.
 
 ## Build Commands
 

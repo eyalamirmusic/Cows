@@ -15,6 +15,7 @@ eacp_add_app(Cows
         Source/Stages.cpp
         Source/Templates.cpp
         Source/Scene/CowsView.cpp
+        Source/Scene/Quality.cpp
         BUNDLE_ID ${COWS_BUNDLE_ID}
         DISPLAY_NAME "${COWS_DISPLAY_NAME}"
         VERSION_CODE ${COWS_BUILD_NUMBER}

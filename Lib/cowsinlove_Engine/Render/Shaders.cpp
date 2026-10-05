@@ -41,8 +41,9 @@ void SkyShader::define()
     setFragment(float4(Shading::toDisplay(sky + warm * glow), 1.f));
 }
 
-SurfaceShader::SurfaceShader()
+SurfaceShader::SurfaceShader(int shadowTapsToUse)
 {
+    shadowTaps = shadowTapsToUse;
     compile();
 }
 

@@ -4,6 +4,7 @@ add_library(cowsinlove_Engine STATIC
         Render/Frustum.cpp
         Render/Instances.cpp
         Render/Mesh.cpp
+        Render/QualityGovernor.cpp
         Render/Shaders.cpp
         Render/Shading.cpp
         Render/ShadowMap.cpp

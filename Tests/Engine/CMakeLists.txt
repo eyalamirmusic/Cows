@@ -12,6 +12,7 @@ nano_add_executable(EngineTests
             NoiseLatticeTests.cpp
             OrbitCameraTests.cpp
             PaletteTests.cpp
+            QualityGovernorTests.cpp
             RenderSnapshotTests.cpp
             TouchControlsTests.cpp
             ../Support/TestMain.cpp

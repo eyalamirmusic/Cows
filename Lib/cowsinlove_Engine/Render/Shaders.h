@@ -40,7 +40,7 @@ struct SkyShader final
 // instance brings its own transform and material.
 struct SurfaceShader final : LitProgram
 {
-    SurfaceShader();
+    explicit SurfaceShader(int shadowTapsToUse = fullShadowTaps);
 
     void define() override;
 

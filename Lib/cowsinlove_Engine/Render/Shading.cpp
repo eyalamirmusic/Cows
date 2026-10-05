@@ -34,7 +34,12 @@ constexpr auto taps = std::to_array<std::array<float, 2>>({
     {0.74f, -0.26f},
 });
 
-constexpr auto tapCount = (int) taps.size();
+constexpr auto fewTaps = std::to_array<std::array<float, 2>>({
+    {-0.55f, -0.2f},
+    {0.2f, -0.55f},
+    {0.55f, 0.2f},
+    {-0.2f, 0.55f},
+});
 
 // 43758.5, not the textbook 43758.5453: the look was tuned while eacp printed
 // shader literals to six digits, so this is the constant the GPU always saw.
@@ -98,12 +103,19 @@ Float shadowAt(LitProgram& scene, const Float3& world, const Float3& normal)
                 return step(depth, sample(scene.shadowMap, offset, 0.f).x());
             };
 
-            auto lit = litAt(taps[0]);
+            auto averageOf = [&](const auto& pattern)
+            {
+                auto lit = litAt(pattern[0]);
 
-            for (auto index = 1; index < tapCount; ++index)
-                lit = lit + litAt(taps[index]);
+                for (auto index = 1; index < (int) pattern.size(); ++index)
+                    lit = lit + litAt(pattern[(size_t) index]);
 
-            shadow = lit / (float) tapCount;
+                return lit / (float) pattern.size();
+            };
+
+            shadow = scene.shadowTaps < LitProgram::fullShadowTaps
+                         ? averageOf(fewTaps)
+                         : averageOf(taps);
         });
 
     return shadow.get();
