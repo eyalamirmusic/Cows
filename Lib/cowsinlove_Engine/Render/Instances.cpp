@@ -26,6 +26,7 @@ SurfaceInstance
         material.color.x, material.color.y, material.color.z, material.alpha};
     instance.material = {
         material.spots, material.emission, material.softness, material.gloss};
+    instance.mist = material.mist;
     return instance;
 }
 } // namespace Cows

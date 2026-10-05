@@ -75,6 +75,7 @@ void SurfaceShader::define()
     auto patternPosition = varying(transformed(pattern, position));
     auto color = varying(instanceInput(&SurfaceInstance::color, 1));
     auto material = varying(instanceInput(&SurfaceInstance::material, 1));
+    auto mist = varying(instanceInput(&SurfaceInstance::mist, 1));
 
     auto blotch = Shading::valueNoise(patternPosition * 1.8f) * 0.72f
                   + Shading::valueNoise(patternPosition * 4.6f) * 0.28f;
@@ -94,10 +95,11 @@ void SurfaceShader::define()
                                material.w() * (1.f - spots * 0.4f)});
 
     auto emission = material.y();
-    auto shaded = Shading::withHaze(*this, lit, surface);
-    auto glowing = shaded * max(1.f - emission, 0.f) + color.xyz() * emission;
+    auto glowing = lit * max(1.f - emission, 0.f) + color.xyz() * emission;
+    auto haze = Shading::hazeAt(eyePosition, surface) * mist;
+    auto shaded = mix(glowing, horizonColor, haze);
 
-    setFragment(float4(Shading::toDisplay(glowing), color.w()));
+    setFragment(float4(Shading::toDisplay(shaded), color.w()));
 }
 
 ShadowCasterShader::ShadowCasterShader()
@@ -139,10 +141,13 @@ void GlowShader::define()
 
     auto uv = varying(corner);
     auto tint = varying(color.xyz());
+    auto mist = varying(color.w());
+    auto surface = varying(world);
 
     auto distance = dot(uv, uv);
     auto falloff = exp(-distance * 4.5f) * (1.f - smoothstep(0.55f, 1.f, distance));
+    auto clear = 1.f - Shading::hazeAt(eyePosition, surface) * mist;
 
-    setFragment(float4(tint * falloff, falloff));
+    setFragment(float4(tint * (falloff * clear), falloff * clear));
 }
 } // namespace Cows
