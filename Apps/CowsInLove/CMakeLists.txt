@@ -2,7 +2,7 @@ set(COWS_BUNDLE_ID "com.cowsinlove.play" CACHE STRING
         "Bundle identifier: set to the one registered on the publishing account")
 set(COWS_COPYRIGHT "© 2026 Cows In Love" CACHE STRING
         "The copyright line shown in Finder and the About box")
-set(COWS_BUILD_NUMBER "4" CACHE STRING
+set(COWS_BUILD_NUMBER "5" CACHE STRING
         "Build number (CFBundleVersion, Play versionCode): raise it for every upload")
 set(COWS_MAC_ENTITLEMENTS "" CACHE FILEPATH
         "Entitlements for the Mac App Store build (tools/release-mas.sh)")
