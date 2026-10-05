@@ -224,7 +224,6 @@ BarrelPatch denim()
 BarrelPatch belly()
 {
     auto patch = denim();
-    patch.along = {hips(), 1.f};
     patch.across = {0.f, 1.f};
     return patch;
 }
@@ -294,7 +293,6 @@ void addPants(Vector<CowPart>& parts, Pants pants)
         case Pants::BothLegs:
             addSleeves(parts, LegPair::Back);
             addSleeves(parts, LegPair::Front);
-            addGarment(parts, Shape::Seat, Shape::SeatBand);
             addGarment(parts, Shape::Belly, Shape::BellyBand);
             break;
         case Pants::BackLegs:
