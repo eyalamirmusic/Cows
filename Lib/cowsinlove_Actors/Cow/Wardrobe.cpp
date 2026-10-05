@@ -26,6 +26,15 @@ constexpr auto hipLine = -0.35f;
 constexpr auto beltWidth = 0.05f;
 constexpr auto beltOverlap = 0.01f;
 constexpr auto tailHole = 0.06f;
+constexpr auto bucketBand = 0.3f;
+constexpr auto bucketTop = 0.25f;
+constexpr auto bucketHeight = 0.27f;
+constexpr auto bucketDome = 0.025f;
+constexpr auto bucketCorner = 0.06f;
+constexpr auto brimWidth = 0.12f;
+constexpr auto brimSlope = 0.62f;
+constexpr auto brimThickness = 0.022f;
+constexpr auto latheSegments = 48;
 
 Material cloth(std::uint32_t hex, float gloss = 0.2f)
 {
@@ -127,7 +136,7 @@ void addPartyHat(Vector<CowPart>& parts)
 
 void addBeanie(Vector<CowPart>& parts)
 {
-    auto hat = HatParts {parts, seatAt(0.f, 0.f)};
+    auto hat = HatParts {parts, seatAt(0.12f, 0.f, {-0.02f, 0.04f, 0.f})};
     auto knit = cloth(Palette::beanie, 0.1f);
 
     hat.add(Shape::Sphere, {0.f, -0.02f, 0.f}, {0.31f, 0.21f, 0.29f}, knit);
@@ -199,30 +208,31 @@ void addFrogHat(Vector<CowPart>& parts)
 
 void addCowBucketHat(Vector<CowPart>& parts)
 {
-    auto hat = HatParts {parts, seatAt(0.f, 0.f, {0.f, -0.05f, 0.f}), cowPrintSpots};
+    auto hat =
+        HatParts {parts, seatAt(0.2f, 0.f, {-0.03f, 0.08f, 0.f}), cowPrintSpots};
     auto print = cloth(Palette::hide, 0.15f);
     print.spots = 1.f;
 
-    hat.add(Shape::Cone, {0.f, -0.1f, 0.f}, {1.f, 0.26f, 0.96f}, print);
-    hat.add(Shape::Cylinder, {0.f, -0.02f, 0.f}, {0.62f, 0.24f, 0.6f}, print);
+    hat.add(Shape::BucketCrown, {}, {1.f, 1.f, 1.f}, print);
+    hat.add(Shape::BucketBrim, {}, {1.f, 1.f, 1.f}, print);
 
     for (auto side: {-1.f, 1.f})
     {
         hat.add(Shape::Horn,
-                {0.f, 0.15f, 0.26f * side},
-                {0.11f, 0.26f, 0.11f},
+                {0.f, 0.18f, 0.24f * side},
+                {0.1f, 0.24f, 0.1f},
                 cloth(Palette::spot, 0.5f),
-                Mat4::rotationX(-0.6f * side));
+                Mat4::rotationX(0.6f * side));
         hat.add(Shape::Sphere,
-                {0.f, 0.04f, 0.36f * side},
-                {0.06f, 0.075f, 0.15f},
+                {0.f, 0.09f, 0.32f * side},
+                {0.05f, 0.065f, 0.12f},
                 print,
-                Mat4::rotationX(0.25f * side));
+                Mat4::rotationX(-0.2f * side));
         hat.add(Shape::Sphere,
-                {0.025f, 0.035f, 0.37f * side},
-                {0.04f, 0.05f, 0.11f},
+                {0.02f, 0.09f, 0.345f * side},
+                {0.033f, 0.045f, 0.09f},
                 cloth(Palette::innerEar, 0.3f),
-                Mat4::rotationX(0.25f * side));
+                Mat4::rotationX(-0.2f * side));
     }
 }
 
@@ -403,9 +413,68 @@ MeshData makePantsMesh(Shape shape)
     }
 }
 
+namespace
+{
+MeshData makeBucketCrown()
+{
+    auto corner = Vec2 {bucketTop - bucketCorner, bucketHeight - bucketCorner};
+    auto lean = std::atan2(bucketBand - bucketTop, bucketHeight);
+    auto profile = Vector<Vec2> {{0.f, 0.f}, {bucketBand, 0.f}, {bucketBand, 0.f}};
+
+    for (auto step = 0; step <= 8; ++step)
+    {
+        auto angle = lean + (halfPi - lean) * (float) step / 8.f;
+        profile.add(corner + Vec2 {std::cos(angle), std::sin(angle)} * bucketCorner);
+    }
+
+    for (auto step = 1; step <= 4; ++step)
+    {
+        auto along = (float) step / 4.f;
+        profile.add(
+            {corner.x * (1.f - along),
+             bucketHeight + bucketDome * (1.f - (1.f - along) * (1.f - along))});
+    }
+
+    return makeLathe(profile, latheSegments);
+}
+
+MeshData makeBucketBrim()
+{
+    auto down = Vec2 {std::cos(brimSlope), -std::sin(brimSlope)};
+    auto under = Vec2 {-std::sin(brimSlope), -std::cos(brimSlope)};
+    auto inner = Vec2 {bucketBand, 0.f} - down * (0.04f / down.x);
+    auto edge = Vec2 {bucketBand, 0.f} + down * (brimWidth / down.x);
+    auto lip = edge + under * (0.5f * brimThickness);
+    auto profile =
+        Vector<Vec2> {inner + under * brimThickness, edge + under * brimThickness};
+
+    for (auto step = 1; step < 8; ++step)
+    {
+        auto angle = pi * (float) step / 8.f;
+        profile.add(lip
+                    + (under * std::cos(angle) + down * std::sin(angle))
+                          * (0.5f * brimThickness));
+    }
+
+    profile.add(edge);
+    profile.add(inner);
+    return makeLathe(profile, latheSegments);
+}
+} // namespace
+
 MeshData makeCowMesh(Shape shape)
 {
-    return shape == Shape::Heart ? makeHeart() : makePantsMesh(shape);
+    switch (shape)
+    {
+        case Shape::Heart:
+            return makeHeart();
+        case Shape::BucketCrown:
+            return makeBucketCrown();
+        case Shape::BucketBrim:
+            return makeBucketBrim();
+        default:
+            return makePantsMesh(shape);
+    }
 }
 
 Vector<CowPart> makeCowParts(const CowSkin& skin)

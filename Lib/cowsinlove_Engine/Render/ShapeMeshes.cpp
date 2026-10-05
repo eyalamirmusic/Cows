@@ -29,6 +29,8 @@ MeshData makeSolid(Shape shape, const std::function<MeshData(Shape)>& content)
         case Shape::BellyBand:
         case Shape::Seat:
         case Shape::SeatBand:
+        case Shape::BucketCrown:
+        case Shape::BucketBrim:
             break;
     }
 

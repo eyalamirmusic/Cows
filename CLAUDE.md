@@ -85,8 +85,9 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     unreadable or unnamed loads as the default. `itemClasses()` lists the
     classes for the editor, so a new class (Glasses, Trousers) is an enum, a
     `CowSkin` field and one line there. `Cow/Wardrobe` — each hat as parts
-    on the head bone (`addHat`), seated on the crown (the cow bucket hat in
-    her own spots, smaller through `CowPart::spotScale`); pants on the body
+    on the head bone (`addHat`), seated on the crown (the cow bucket hat a lathed
+    crown and sloping brim, `Shape::BucketCrown` and `BucketBrim` from
+    `makeCowMesh`, in her own spots, smaller through `CowPart::spotScale`); pants on the body
     (`addPants`) cut from the cow's own parts (`torsoPlacement`,
     `legPlacements`, `tailRoot`): the torso's barrel scaled out as the seat
     (everything behind the hips, a hole for the tail, a waistband round the
