@@ -52,6 +52,7 @@ Vector<ItemClass> makeItemClasses()
 {
     auto classes = Vector<ItemClass> {};
     classes.add(itemClass("hat", "Hat", &CowSkin::hat));
+    classes.add(itemClass("pants", "Pants", &CowSkin::pants));
     return classes;
 }
 

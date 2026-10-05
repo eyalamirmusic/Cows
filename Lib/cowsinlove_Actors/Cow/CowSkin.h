@@ -22,6 +22,13 @@ enum class Hat
     FrogHat
 };
 
+enum class Pants
+{
+    None,
+    BothLegs,
+    BackLegs
+};
+
 // What the player's cow wears: one choice per item class, saved as the
 // enumerators' names so CowSkin.json stays readable by hand.
 struct CowSkin final
@@ -29,8 +36,9 @@ struct CowSkin final
     bool operator==(const CowSkin& other) const = default;
 
     Hat hat = Hat::None;
+    Pants pants = Pants::None;
 
-    MIRO_REFLECT(hat)
+    MIRO_REFLECT(hat, pants)
 };
 
 // One kind of thing to wear, as the editor shows it: `key` is its field in

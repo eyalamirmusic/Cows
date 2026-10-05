@@ -74,6 +74,39 @@ auto tStableNames = test("CowSkin/hatNamesAreStable") = []
     check(names[6] == "FrogHat");
 };
 
+auto tStablePantsNames = test("CowSkin/pantsNamesAreStable") = []
+{
+    auto names = Miro::enumNames<Pants>();
+
+    check(names.size() == 3);
+    check(names[0] == "None");
+    check(names[1] == "BothLegs");
+    check(names[2] == "BackLegs");
+
+    const auto& pants = itemClasses()[1];
+    check(pants.key == "pants");
+    check(pants.name == "Pants");
+    check(pants.choices.size() == 3);
+    check(pants.choices[1] == "Both Legs");
+    check(pants.choices[2] == "Back Legs");
+};
+
+auto tPantsRoundTrip = test("CowSkin/pantsRoundTripBesideTheHat") = []
+{
+    auto skin = wearing(Hat::FrogHat);
+    skin.pants = Pants::BackLegs;
+    auto json = toJSON(skin);
+
+    check(json.find("\"pants\": \"BackLegs\"") != std::string::npos);
+    check(cowSkinFromJSON(json) == skin);
+    check(stepped(skin, 1, 1).pants == Pants::None);
+    check(stepped(skin, 1, 1).hat == Hat::FrogHat);
+
+    auto onlyPants = cowSkinFromJSON(R"({"pants": "BothLegs", "hat": "Fez"})");
+    check(onlyPants.pants == Pants::BothLegs);
+    check(onlyPants.hat == Hat::None);
+};
+
 auto tLoadsNames = test("CowSkin/loadsByName") = []
 {
     check(cowSkinFromJSON(R"({"hat": "Crown"})").hat == Hat::Crown);
@@ -94,7 +127,9 @@ auto tFallsBack = test("CowSkin/badInputIsTheDefault") = []
                      "{\"hat\": -1}",
                      "{\"hat\": true}",
                      "{\"hat\": null}",
-                     "{\"hat\": {\"name\": \"Crown\"}}"})
+                     "{\"hat\": {\"name\": \"Crown\"}}",
+                     "{\"pants\": \"Shorts\"}",
+                     "{\"pants\": 7}"})
         check(cowSkinFromJSON(text) == CowSkin {});
 };
 

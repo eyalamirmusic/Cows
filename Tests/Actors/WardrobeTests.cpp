@@ -61,6 +61,62 @@ auto tHatsOnHead = test("Wardrobe/everyHatSitsOnTheHead") = []
     }
 };
 
+CowSkin dressed(Hat hat, Pants pants)
+{
+    auto skin = wearing(hat);
+    skin.pants = pants;
+    return skin;
+}
+
+void shoot(const CowSkin& skin,
+           Maths::Vec3 target,
+           float yaw,
+           float distance,
+           const std::string& name)
+{
+    auto cow = Cow {};
+    auto view = SnapshotView {makeHeart()};
+    cow.addTo(view.batch,
+              view.glows,
+              makeCowParts(skin),
+              cow.freePose({}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f));
+    view.camera.target = target;
+    view.camera.yaw = yaw;
+    view.camera.pitch = 0.12f;
+    view.camera.distance = distance;
+
+    check(snapshot(view, 360.f, 270.f, name).isValid());
+}
+
+auto tPantsOnBody = test("Wardrobe/pantsSitOnTheBody") = []
+{
+    auto parts = Vector<CowPart> {};
+    addPants(parts, Pants::None);
+    check(parts.empty());
+
+    for (auto pants: {Pants::BothLegs, Pants::BackLegs})
+    {
+        auto worn = Vector<CowPart> {};
+        addPants(worn, pants);
+        check(!worn.empty());
+
+        for (const auto& part: worn)
+        {
+            auto at = transformPoint(part.transform, {});
+            check(part.bone == Bone::Body);
+            check(at.y > 0.2f && at.y < 1.4f);
+        }
+    }
+
+    auto both = Vector<CowPart> {};
+    auto back = Vector<CowPart> {};
+    addPants(both, Pants::BothLegs);
+    addPants(back, Pants::BackLegs);
+    check(both.size() > back.size());
+    check(makeCowParts(dressed(Hat::Crown, Pants::BothLegs)).size()
+          == makeCowParts(wearing(Hat::Crown)).size() + both.size());
+};
+
 auto tHatSnapshots = test("Wardrobe/snapshots") = []
 {
     if (!hasDevice())
@@ -76,20 +132,19 @@ auto tHatSnapshots = test("Wardrobe/snapshots") = []
         for (auto angle: {Angle {"", 0.9f},
                           Angle {"-side", 0.f},
                           Angle {"-front", Maths::halfPi}})
-        {
-            auto cow = Cow {};
-            auto view = SnapshotView {makeHeart()};
-            cow.addTo(view.batch,
-                      view.glows,
-                      makeCowParts(wearing(hat)),
-                      cow.freePose({}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f));
-            view.camera.target = {1.3f, 1.9f, 0.f};
-            view.camera.yaw = angle.yaw;
-            view.camera.pitch = 0.12f;
-            view.camera.distance = 2.6f;
+            shoot(wearing(hat),
+                  {1.3f, 1.9f, 0.f},
+                  angle.yaw,
+                  2.6f,
+                  "actors-hat-" + std::string {Miro::enumToString(hat)}
+                      + angle.name);
 
-            auto name =
-                "actors-hat-" + std::string {Miro::enumToString(hat)} + angle.name;
-            check(snapshot(view, 360.f, 270.f, name).isValid());
-        }
+    for (auto pants: {Pants::BothLegs, Pants::BackLegs})
+        for (auto angle: {Angle {"-side", 0.f}, Angle {"", 0.6f}})
+            shoot(dressed(Hat::None, pants),
+                  {0.f, 0.9f, 0.f},
+                  angle.yaw,
+                  5.f,
+                  "actors-pants-" + std::string {Miro::enumToString(pants)}
+                      + angle.name);
 };

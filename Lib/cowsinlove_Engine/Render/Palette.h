@@ -36,6 +36,8 @@ constexpr std::uint32_t beanieCuff = 0x4a6cb4;
 constexpr std::uint32_t gold = 0xffd75f;
 constexpr std::uint32_t frog = 0x87d700;
 constexpr std::uint32_t frogLining = 0xd7ffaf;
+constexpr std::uint32_t denim = 0x3a6ea5;
+constexpr std::uint32_t denimSeam = 0x24476e;
 
 constexpr Graphics::Color display(std::uint32_t hex)
 {

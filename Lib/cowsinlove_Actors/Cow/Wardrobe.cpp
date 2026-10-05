@@ -12,6 +12,12 @@ namespace
 constexpr Vec3 crownOfHead {1.38f, 1.99f, 0.f};
 constexpr auto crownPoints = 5;
 constexpr auto frogEye = 0.11f;
+constexpr auto backLegs = -0.6f;
+constexpr auto frontLegs = 0.58f;
+constexpr auto legApart = 0.27f;
+constexpr auto cuffHeight = 0.26f;
+constexpr auto sleeveTop = 0.86f;
+constexpr auto sleeveWidth = 0.4f;
 
 Material cloth(std::uint32_t hex, float gloss = 0.2f)
 {
@@ -180,7 +186,82 @@ void addFrogHat(Vector<CowPart>& parts)
                 lining);
     }
 }
+CowPart bodyPart(Shape shape,
+                 Vec3 position,
+                 Vec3 size,
+                 const Material& material,
+                 const Mat4& rotation = {})
+{
+    return {shape,
+            Bone::Body,
+            Mat4::translation(position) * rotation * Mat4::scale(size),
+            material};
+}
+
+void addSleeves(Vector<CowPart>& parts, float legsAt)
+{
+    auto denim = cloth(Palette::denim, 0.15f);
+    auto seam = cloth(Palette::denimSeam, 0.15f);
+
+    for (auto z: {-legApart, legApart})
+    {
+        parts.add(bodyPart(Shape::Cylinder,
+                           {legsAt, cuffHeight, z},
+                           {sleeveWidth, sleeveTop - cuffHeight, sleeveWidth},
+                           denim));
+        parts.add(bodyPart(Shape::Cylinder,
+                           {legsAt, cuffHeight - 0.01f, z},
+                           {sleeveWidth + 0.02f, 0.06f, sleeveWidth + 0.02f},
+                           seam));
+    }
+}
+
+void addBellyBand(Vector<CowPart>& parts)
+{
+    parts.add(bodyPart(Shape::Sphere,
+                       {-0.01f, 0.72f, 0.f},
+                       {0.98f, 0.24f, 0.5f},
+                       cloth(Palette::denim, 0.15f)));
+    parts.add(bodyPart(Shape::Sphere,
+                       {-0.01f, 0.76f, 0.f},
+                       {0.99f, 0.05f, 0.51f},
+                       cloth(Palette::denimSeam, 0.15f)));
+}
+
+void addHipBand(Vector<CowPart>& parts)
+{
+    auto lengthwise = Mat4::rotationZ(-halfPi);
+
+    parts.add(bodyPart(Shape::Barrel,
+                       {-1.16f, 1.1f, 0.f},
+                       {1.16f, 0.66f, 1.1f},
+                       cloth(Palette::denim, 0.15f),
+                       lengthwise));
+    parts.add(bodyPart(Shape::Cylinder,
+                       {-0.54f, 1.1f, 0.f},
+                       {1.17f, 0.06f, 1.11f},
+                       cloth(Palette::denimSeam, 0.15f),
+                       lengthwise));
+}
 } // namespace
+
+void addPants(Vector<CowPart>& parts, Pants pants)
+{
+    switch (pants)
+    {
+        case Pants::BothLegs:
+            addSleeves(parts, backLegs);
+            addSleeves(parts, frontLegs);
+            addBellyBand(parts);
+            break;
+        case Pants::BackLegs:
+            addSleeves(parts, backLegs);
+            addHipBand(parts);
+            break;
+        case Pants::None:
+            break;
+    }
+}
 
 void addHat(Vector<CowPart>& parts, Hat hat)
 {
@@ -213,6 +294,7 @@ Vector<CowPart> makeCowParts(const CowSkin& skin)
 {
     auto parts = makeCowParts();
     addHat(parts, skin.hat);
+    addPants(parts, skin.pants);
     return parts;
 }
 } // namespace Cows
