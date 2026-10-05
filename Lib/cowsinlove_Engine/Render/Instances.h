@@ -72,10 +72,12 @@ enum class Shape
     Belly,
     BellyBand,
     Seat,
-    SeatBand
+    SeatBand,
+    BucketCrown,
+    BucketBrim
 };
 
-constexpr auto shapeCount = 13;
+constexpr auto shapeCount = 15;
 
 // A frame's worth of instances, one list per mesh.
 struct SurfaceBatch final
