@@ -38,14 +38,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # eacp and NanoTest are fetched by branch, and CPM never refetches a
-      # cached branch, so the key carries the commits those branches are at.
+      # eacp (unless pinned to a commit) and NanoTest are fetched by branch,
+      # and CPM never refetches a cached branch, so the key carries the commits
+      # those branches are at.
       - name: CPM cache key
         id: cpm
         shell: bash
         run: |
           tag=$(sed -n 's/^set(COWS_EACP_TAG "\(.*\)" CACHE.*/\1/p' CMake/Findeacp.cmake)
-          eacp=$(git ls-remote https://github.com/eyalamirmusic/eacp "$tag" | cut -c1-12)
+          if [[ "$tag" =~ ^[0-9a-f]{40}$ ]]; then eacp=${tag:0:12}
+          else eacp=$(git ls-remote https://github.com/eyalamirmusic/eacp "$tag" | cut -c1-12); fi
           nanotest=$(git ls-remote https://github.com/eyalamirmusic/NanoTest main | cut -c1-12)
           echo "key=$eacp-$nanotest" >> "$GITHUB_OUTPUT"
 
@@ -93,7 +95,8 @@ jobs:
         id: cpm
         run: |
           tag=$(sed -n 's/^set(COWS_EACP_TAG "\(.*\)" CACHE.*/\1/p' CMake/Findeacp.cmake)
-          eacp=$(git ls-remote https://github.com/eyalamirmusic/eacp "$tag" | cut -c1-12)
+          if [[ "$tag" =~ ^[0-9a-f]{40}$ ]]; then eacp=${tag:0:12}
+          else eacp=$(git ls-remote https://github.com/eyalamirmusic/eacp "$tag" | cut -c1-12); fi
           nanotest=$(git ls-remote https://github.com/eyalamirmusic/NanoTest main | cut -c1-12)
           echo "key=$eacp-$nanotest" >> "$GITHUB_OUTPUT"
 
@@ -130,7 +133,8 @@ jobs:
         id: cpm
         run: |
           tag=$(sed -n 's/^set(COWS_EACP_TAG "\(.*\)" CACHE.*/\1/p' CMake/Findeacp.cmake)
-          eacp=$(git ls-remote https://github.com/eyalamirmusic/eacp "$tag" | cut -c1-12)
+          if [[ "$tag" =~ ^[0-9a-f]{40}$ ]]; then eacp=${tag:0:12}
+          else eacp=$(git ls-remote https://github.com/eyalamirmusic/eacp "$tag" | cut -c1-12); fi
           nanotest=$(git ls-remote https://github.com/eyalamirmusic/NanoTest main | cut -c1-12)
           echo "key=$eacp-$nanotest" >> "$GITHUB_OUTPUT"
 
