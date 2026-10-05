@@ -21,7 +21,8 @@ Proton (Direct3D 12 via vkd3d-proton). In Steamworks:
    configuration is required for Deck and controllers:
    `controller_config.vdf` maps the left stick and D-pad to W/A/S/D, A (and B)
    to space (jump), X to M (moo), Y to R (new meadow), the right trackpad to a
-   mouse with click for drag-to-look, and Start to Escape (quit). Load it on a
+   mouse with click for drag-to-look; Start does nothing, so a thumb cannot quit
+   the game by accident. Load it on a
    Deck or with Steam's controller configurator (Big Picture > Controller
    settings for the game > Browse configs > Import), check it, then publish
    it from there and select it as the official default in Steamworks >

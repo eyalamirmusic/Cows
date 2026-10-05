@@ -130,7 +130,7 @@ Vector<Shot> shots()
                   game.player = game.partner + Vec3 {3.f, 0.f, 0.f};
                   settle(view, 4.6f);
 
-                  if (view.touchHints)
+                  if (view.pointerHints == Hints::Touch)
                   {
                       view.framedPortrait = true;
                       view.camera.distance = 21.f;
@@ -157,8 +157,9 @@ void render(const Shot& shot, const std::string& directory, const Screen& screen
     auto touch = TouchControls {};
 
     scene.frozen = true;
-    scene.touchHints = phone;
-    footer.text = [&] { return footerText(scene.game, scene.hint, phone); };
+    scene.pointerHints = phone ? Hints::Touch : Hints::Keys;
+    scene.hints = scene.pointerHints;
+    footer.text = [&] { return footerText(scene.game, scene.hint, scene.hints); };
     root.addSubview(scene);
 
     if (phone)

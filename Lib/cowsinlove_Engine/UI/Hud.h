@@ -26,6 +26,10 @@ struct Hud final
                     float radius,
                     float width,
                     const Graphics::Color& color);
+    void strokeRoundedRect(const Graphics::Rect& rect,
+                           float width,
+                           float cornerRadius,
+                           const Graphics::Color& color);
 
     float drawText(std::string_view text,
                    Graphics::Point baselineLeft,

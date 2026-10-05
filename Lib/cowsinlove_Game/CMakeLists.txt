@@ -2,6 +2,8 @@ add_library(cowsinlove_Game STATIC
         Ending.cpp
         Game.cpp
         Input.cpp
+        Pad.cpp
+        Title/MenuTitle.cpp
         Title/TitleFont.cpp
         Title/TitleShader.cpp)
 

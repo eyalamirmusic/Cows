@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: [COWS_TIME=s] [COWS_FREEZE=1] [COWS_SEED=n] [COWS_STAGE=n] [COWS_FOUND=1] [SHOT_NOBUILD=1] tools/shot.sh [out.png]
+# Usage: [COWS_TIME=s] [COWS_FREEZE=1] [COWS_SEED=n] [COWS_STAGE=n] [COWS_FOUND=1] [COWS_MENU=0] [COWS_START=s] [SHOT_NOBUILD=1] tools/shot.sh [out.png]
 # Builds, launches Cows, screenshots its window, quits. Prints the output path.
 set -euo pipefail
 
@@ -17,7 +17,7 @@ bin="build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/Cows In Love"
 [[ -x "$bin" ]] || { echo "no binary at $bin" >&2; exit 1; }
 
 env_args=()
-for v in COWS_TIME COWS_FREEZE COWS_SEED COWS_STAGE COWS_FOUND; do
+for v in COWS_TIME COWS_FREEZE COWS_SEED COWS_STAGE COWS_FOUND COWS_MENU COWS_START; do
     [[ -n "${!v+x}" ]] && env_args+=("$v=${!v}")
 done
 

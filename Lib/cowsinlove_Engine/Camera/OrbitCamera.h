@@ -4,6 +4,26 @@
 
 namespace Cows
 {
+// Where an OrbitCamera stands: everything that places its eye.
+struct CameraPose final
+{
+    Maths::Vec3 target;
+    float yaw = 0.f;
+    float pitch = 0.f;
+    float distance = 0.f;
+    float swayYaw = 0.f;
+    float swayPitch = 0.f;
+};
+
+// `amount` of the way from `from` to `to`, yaw the short way round.
+CameraPose blend(const CameraPose& from, const CameraPose& to, float amount);
+
+// Fast out of the start, settling gently: 0 at 0, 1 at 1.
+float easeOut(float amount);
+
+// The idle sway drift() gives at `seconds`, as yaw and pitch.
+Maths::Vec2 driftAt(float seconds);
+
 struct OrbitCamera final
 {
     void orbit(float horizontal, float vertical);
@@ -16,6 +36,9 @@ struct OrbitCamera final
 
     // Turns `amount` of the way round to `wantedYaw`, the short way.
     void turnToward(float wantedYaw, float amount);
+
+    CameraPose pose() const;
+    void setPose(const CameraPose& pose);
 
     Maths::Vec3 eye() const;
     Maths::Vec3 forward() const;

@@ -31,13 +31,70 @@ constexpr auto mooCooldown = 3.2f;
 constexpr auto hintTime = 4.f;
 constexpr auto fellTime = 2.f;
 
-constexpr auto searchingText =
+constexpr auto searchingKeysText =
     "wasd / hjkl / arrows to walk  -  space to jump  -  m to "
     "moo  -  drag to look  -  q to quit";
-constexpr auto foundText = "you found her  -  q to quit";
+constexpr auto foundKeysText = "you found her  -  q to quit";
 constexpr auto searchingTouchText = "find her  -  drag to look  -  moo for a hint";
 constexpr auto foundTouchText = "you found her";
 constexpr auto fellText = "back on your feet  -  mind the edge";
+constexpr auto menuKeysText = "enter to start  -  q to quit";
+
+struct PadLabels final
+{
+    std::string jump;
+    std::string moo;
+};
+
+PadLabels padLabels(Hints hints)
+{
+    switch (hints)
+    {
+        case Hints::PlayStation:
+            return {"cross", "square"};
+        case Hints::Nintendo:
+            return {"B", "Y"};
+        default:
+            break;
+    }
+
+    return {"A", "X"};
+}
+
+std::string searchingPadText(const PadLabels& labels)
+{
+    return "left stick to walk  -  " + labels.jump + " to jump  -  " + labels.moo
+           + " to moo  -  right stick to look";
+}
+
+std::string menuText(Hints hints)
+{
+    if (isGamepad(hints))
+        return padLabels(hints).jump + " to start";
+
+    return hints == Hints::Touch ? "" : menuKeysText;
+}
+
+std::string foundPadText(const PadLabels& labels)
+{
+    return "you found her  -  " + labels.jump + " for another meadow";
+}
+
+std::string searchingText(Hints hints)
+{
+    if (isGamepad(hints))
+        return searchingPadText(padLabels(hints));
+
+    return hints == Hints::Touch ? searchingTouchText : searchingKeysText;
+}
+
+std::string foundText(Hints hints)
+{
+    if (isGamepad(hints))
+        return foundPadText(padLabels(hints));
+
+    return hints == Hints::Touch ? foundTouchText : foundKeysText;
+}
 
 float headingToward(Vec2 direction)
 {
@@ -58,7 +115,10 @@ void Game::reset(std::uint32_t newSeed)
 
     auto random = std::mt19937 {seed};
 
-    state = State::Searching;
+    if (state != State::Menu)
+        state = State::Searching;
+
+    behindMenu = State::Searching;
     player = level.start;
     playerHeading = level.startHeading;
     checkpoint = player;
@@ -76,8 +136,31 @@ void Game::reset(std::uint32_t newSeed)
         twoPi * std::uniform_real_distribution<float> {0.f, 1.f}(random);
 }
 
+void Game::start()
+{
+    if (state == State::Menu)
+        state = behindMenu;
+}
+
+void Game::openMenu()
+{
+    if (state == State::Menu)
+        return;
+
+    behindMenu = state;
+    state = State::Menu;
+}
+
+Game::State Game::playing() const
+{
+    return state == State::Menu ? behindMenu : state;
+}
+
 void Game::update(float delta, float ahead, float turn, bool jump)
 {
+    if (state == State::Menu)
+        return;
+
     sinceMoo += delta;
     sinceFell += delta;
     seconds += delta;
@@ -190,10 +273,13 @@ bool Game::justFell() const
     return state == State::Searching && sinceFell < fellTime;
 }
 
-std::string footerText(const Game& game, const std::string& hint, bool touchHints)
+std::string footerText(const Game& game, const std::string& hint, Hints hints)
 {
+    if (game.state == Game::State::Menu)
+        return menuText(hints);
+
     if (game.state == Game::State::Found)
-        return touchHints ? foundTouchText : foundText;
+        return foundText(hints);
 
     if (game.hintShowing())
         return hint;
@@ -201,6 +287,6 @@ std::string footerText(const Game& game, const std::string& hint, bool touchHint
     if (game.justFell())
         return fellText;
 
-    return touchHints ? searchingTouchText : searchingText;
+    return searchingText(hints);
 }
 } // namespace Cows

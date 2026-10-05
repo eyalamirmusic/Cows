@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Scene/CowsView.h"
+#include "UI/Menu.h"
 #include "UI/Overlay.h"
 #include "UI/TouchControls.h"
 
@@ -14,6 +15,8 @@ struct CowsApp final
     CowsView scene;
     Footer footer;
     TouchControls touchControls;
+    Menu menu;
     Graphics::Window window;
+    Graphics::GameInput gameInput {window};
 };
 } // namespace Cows

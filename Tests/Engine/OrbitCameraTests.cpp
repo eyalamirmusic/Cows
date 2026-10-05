@@ -83,3 +83,47 @@ auto tFieldOfViewWidensWhenNarrow =
     check(camera.verticalFieldOfView(0.25f) > camera.fieldOfView);
     check(near(camera.verticalFieldOfView(2.f), camera.fieldOfView));
 };
+
+auto tBlendEnds = test("OrbitCamera/blendRunsFromOnePoseToTheOther") = []
+{
+    auto from = CameraPose {{0.f, 2.f, 0.f}, 0.3f, 0.1f, 9.f, 0.05f, 0.01f};
+    auto to = CameraPose {{4.f, 2.f, -2.f}, 2.f, 0.22f, 11.f, 0.f, 0.f};
+
+    auto start = blend(from, to, 0.f);
+    check(near(start.yaw, from.yaw) && near(start.distance, from.distance));
+    check(near(start.swayYaw, from.swayYaw));
+
+    auto end = blend(from, to, 1.f);
+    check(near(end.yaw, to.yaw) && near(end.pitch, to.pitch));
+    check(near(end.distance, to.distance) && near(end.target.x, to.target.x));
+    check(near(end.swayYaw, 0.f) && near(end.swayPitch, 0.f));
+};
+
+auto tBlendShortWay = test("OrbitCamera/blendTurnsTheShortWayRound") = []
+{
+    auto from = CameraPose {};
+    from.yaw = 0.2f;
+    auto to = from;
+    to.yaw = twoPi - 0.2f;
+
+    check(near(blend(from, to, 0.5f).yaw, 0.f));
+};
+
+auto tEaseOut = test("OrbitCamera/easeOutLeavesFastAndSettles") = []
+{
+    check(near(easeOut(0.f), 0.f) && near(easeOut(1.f), 1.f));
+    check(easeOut(0.25f) > 0.5f);
+    check(easeOut(-1.f) == 0.f && easeOut(2.f) == 1.f);
+
+    auto last = 0.f;
+    auto lastStep = 1.f;
+
+    for (auto step = 1; step <= 10; ++step)
+    {
+        auto now = easeOut((float) step / 10.f);
+        check(now > last);
+        check(now - last < lastStep + 1e-5f);
+        lastStep = now - last;
+        last = now;
+    }
+};

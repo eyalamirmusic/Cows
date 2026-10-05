@@ -1,5 +1,6 @@
 #include "Title/TitleFont.h"
 
+#include <algorithm>
 #include <cmath>
 
 using namespace Maths;
@@ -260,8 +261,32 @@ TitleMesh makeTitle(std::string_view text)
     title.width = pen - letterGap;
 
     for (auto& vertex: title.vertices)
+    {
         vertex.position.x -= title.width * 0.5f;
+        title.bottom = std::min(title.bottom, vertex.position.y);
+        title.top = std::max(title.top, vertex.position.y);
+    }
 
+    return title;
+}
+
+TitleMesh stackTitles(const TitleMesh& upper, const TitleMesh& lower, float drop)
+{
+    auto title = upper;
+    auto base = (std::uint32_t) title.vertices.size();
+    auto letters = (float) upper.letterCount;
+
+    for (const auto& vertex: lower.vertices)
+        title.vertices.add({vertex.position - Vec3 {0.f, drop, 0.f},
+                            vertex.normal,
+                            vertex.letter + letters});
+
+    for (auto index: lower.indices)
+        title.indices.add(base + index);
+
+    title.letterCount += lower.letterCount;
+    title.width = std::max(upper.width, lower.width);
+    title.bottom = std::min(upper.bottom, lower.bottom - drop);
     return title;
 }
 } // namespace Cows

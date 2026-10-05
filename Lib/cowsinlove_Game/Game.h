@@ -13,12 +13,23 @@ struct Game final
 {
     enum class State
     {
+        Menu,
         Searching,
         Found
     };
 
-    // Starts a new search on `makeLevel(newSeed)`.
+    // Starts a new search on `makeLevel(newSeed)`, behind the menu when it is
+    // showing.
     void reset(std::uint32_t newSeed);
+
+    // Leaves the menu for the game behind it.
+    void start();
+
+    // Shows the menu over the game, which waits where it is until start().
+    void openMenu();
+
+    // The state the game is in, or waits in behind the menu.
+    State playing() const;
 
     // `ahead` walks forward (1) or back (-1) along the cow's heading; `turn`
     // turns it left (1) or right (-1); `jump` leaps if it is on its feet.
@@ -49,7 +60,8 @@ struct Game final
 
     LevelMaker makeLevel = [](std::uint32_t) { return Level {}; };
 
-    State state = State::Searching;
+    State state = State::Menu;
+    State behindMenu = State::Searching;
     std::uint32_t seed = 0;
     Level level;
 
@@ -75,7 +87,24 @@ struct Game final
     float seconds = 0.f;
 };
 
-// The footer: the controls while searching, `hint` while her answer shows, a
+// Whose controls the footer names: the keys, the touch controls, or a
+// controller by the labels it wears.
+enum class Hints
+{
+    Keys,
+    Touch,
+    Xbox,
+    PlayStation,
+    Nintendo,
+    Gamepad
+};
+
+constexpr bool isGamepad(Hints hints)
+{
+    return hints != Hints::Keys && hints != Hints::Touch;
+}
+
+// The footer: how to start in the menu, the controls while searching, `hint` while her answer shows, a
 // word after a fall.
-std::string footerText(const Game& game, const std::string& hint, bool touchHints);
+std::string footerText(const Game& game, const std::string& hint, Hints hints);
 } // namespace Cows

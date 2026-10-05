@@ -66,23 +66,60 @@ auto tLoops = test("Ending/loopsAfterLoopTime") = []
 
 auto tFooter = test("Ending/footerText") = []
 {
-    auto game = Game {};
-    game.reset(3);
+    struct Expected
+    {
+        Hints hints;
+        std::string searching;
+        std::string found;
+    };
 
-    auto searching =
-        std::string("wasd / hjkl / arrows to walk  -  space to jump  -  m to "
-                    "moo  -  drag to look  -  q to quit");
-    check(footerText(game, "hint", false) == searching);
-    check(footerText(game, "hint", true)
-          == "find her  -  drag to look  -  moo for a hint");
+    auto cases = {
+        Expected {Hints::Keys,
+                  "wasd / hjkl / arrows to walk  -  space to jump  -  m to "
+                  "moo  -  drag to look  -  q to quit",
+                  "you found her  -  q to quit"},
+        Expected {Hints::Touch,
+                  "find her  -  drag to look  -  moo for a hint",
+                  "you found her"},
+        Expected {Hints::Xbox,
+                  "left stick to walk  -  A to jump  -  X to moo  -  right "
+                  "stick to look",
+                  "you found her  -  A for another meadow"},
+        Expected {Hints::PlayStation,
+                  "left stick to walk  -  cross to jump  -  square to moo  -  "
+                  "right stick to look",
+                  "you found her  -  cross for another meadow"},
+        Expected {Hints::Nintendo,
+                  "left stick to walk  -  B to jump  -  Y to moo  -  right "
+                  "stick to look",
+                  "you found her  -  B for another meadow"},
+        Expected {Hints::Gamepad,
+                  "left stick to walk  -  A to jump  -  X to moo  -  right "
+                  "stick to look",
+                  "you found her  -  A for another meadow"},
+    };
 
-    game.sinceMoo = mooAnswerDelay + 1.f;
-    check(game.hintShowing());
-    check(footerText(game, "hint", false) == "hint");
-    check(footerText(game, "hint", true) == "hint");
+    for (const auto& expected: cases)
+    {
+        auto game = Game {};
+        game.reset(3);
+        game.start();
+        check(footerText(game, "hint", expected.hints) == expected.searching);
 
-    game.state = Game::State::Found;
-    check(!game.hintShowing());
-    check(footerText(game, "hint", false) == "you found her  -  q to quit");
-    check(footerText(game, "hint", true) == "you found her");
+        game.sinceMoo = mooAnswerDelay + 1.f;
+        check(game.hintShowing());
+        check(footerText(game, "hint", expected.hints) == "hint");
+
+        game.state = Game::State::Found;
+        check(!game.hintShowing());
+        check(footerText(game, "hint", expected.hints) == expected.found);
+    }
+};
+
+auto tGamepadHints = test("Ending/isGamepad") = []
+{
+    check(!isGamepad(Hints::Keys));
+    check(!isGamepad(Hints::Touch));
+    check(isGamepad(Hints::Xbox) && isGamepad(Hints::PlayStation)
+          && isGamepad(Hints::Nintendo) && isGamepad(Hints::Gamepad));
 };

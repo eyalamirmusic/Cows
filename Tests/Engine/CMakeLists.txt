@@ -3,6 +3,7 @@ nano_add_executable(EngineTests
         SOURCES
             HudSnapshotTests.cpp
             InstancesTests.cpp
+            MenuSnapshotTests.cpp
             MeshTests.cpp
             OrbitCameraTests.cpp
             PaletteTests.cpp

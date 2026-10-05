@@ -23,6 +23,7 @@ Game openField()
 {
     auto game = Game {};
     game.reset(3);
+    game.start();
     game.level = Level {};
     game.partner = {60.f, 0.f, 60.f};
     return game;
@@ -164,4 +165,65 @@ auto tEndingClock = test("Game/endingSecondsFollowSinceFound") = []
 
     check(near(game.sinceFound, 1.25f));
     check(near(game.endingSeconds() - start, 1.25f));
+};
+
+auto tMenuFirst = test("Game/startsInTheMenuAndStartMovesOn") = []
+{
+    auto game = Game {};
+    game.reset(3);
+    check(game.state == Game::State::Menu);
+    check(game.playing() == Game::State::Searching);
+
+    auto standing = game.player;
+    game.update(1.f, 1.f, 0.f, true);
+    check(game.player.x == standing.x && game.player.z == standing.z);
+    check(game.seconds == 0.f);
+
+    game.start();
+    check(game.state == Game::State::Searching);
+    check(footerText(game, "", Hints::Keys) != "enter to start  -  q to quit");
+};
+
+auto tMenuPauses = test("Game/theMenuPausesAndReturnsToTheSameState") = []
+{
+    auto game = openField();
+    game.update(frame, 1.f, 0.f, false);
+    auto walked = game.player;
+
+    game.openMenu();
+    check(game.state == Game::State::Menu);
+    check(footerText(game, "", Hints::Keys) == "enter to start  -  q to quit");
+    check(footerText(game, "", Hints::Xbox) == "A to start");
+    check(footerText(game, "", Hints::Touch).empty());
+
+    game.update(1.f, 1.f, 0.f, false);
+    check(near(game.player.x, walked.x));
+
+    game.start();
+    check(game.state == Game::State::Searching);
+
+    game.partner = {game.player.x + 3.f, 0.f, 0.f};
+    game.update(frame, 0.f, 0.f, false);
+    check(game.state == Game::State::Found);
+
+    game.openMenu();
+    check(game.playing() == Game::State::Found);
+    game.start();
+    check(game.state == Game::State::Found);
+};
+
+auto tAgainSkipsMenu = test("Game/anotherMeadowAfterTheEndingSkipsTheMenu") = []
+{
+    auto game = openField();
+    game.partner = {3.f, 0.f, 0.f};
+    game.update(frame, 0.f, 0.f, false);
+    check(game.state == Game::State::Found);
+
+    game.reset(4);
+    check(game.state == Game::State::Searching);
+
+    game.openMenu();
+    game.reset(5);
+    check(game.state == Game::State::Menu);
+    check(game.playing() == Game::State::Searching);
 };
