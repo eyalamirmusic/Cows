@@ -127,3 +127,26 @@ auto tEaseOut = test("OrbitCamera/easeOutLeavesFastAndSettles") = []
         last = now;
     }
 };
+
+// At 2 fps eacp hands every frame a delta clamped to 0.1 s; the swing still
+// takes the half second that passed, and Start's 1.1 s swing lands in 1.1 s.
+auto tSwingClockKeepsWallTime = test("OrbitCamera/swingClockKeepsWallTime") = []
+{
+    auto clock = SwingClock {};
+    auto swung = 0.f;
+
+    for (auto frame = 0; frame <= 3; ++frame)
+        swung += clock.step({.time = frame * 0.5, .delta = frame == 0 ? 0.0 : 0.1});
+
+    check(std::abs(swung - 1.5f) < 1e-5f);
+};
+
+// A display link that starts again counts its time from zero; the first frame
+// after it steps by its own delta rather than backwards.
+auto tSwingClockSurvivesRestart = test("OrbitCamera/swingClockSurvivesRestart") = []
+{
+    auto clock = SwingClock {};
+    clock.step({.time = 10.0, .delta = 0.016});
+
+    check(std::abs(clock.step({.time = 0.0, .delta = 0.016}) - 0.016f) < 1e-6f);
+};

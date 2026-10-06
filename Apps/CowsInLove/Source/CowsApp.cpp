@@ -87,12 +87,12 @@ CowsApp::CowsApp()
     };
     scene.onStateChanged = [this]
     {
-        auto inMenu = scene.game.state == Game::State::Menu;
+        auto owner = scene.inputOwner();
         touchControls.showAgain = scene.game.state == Game::State::Found;
-        menu.setShowing(inMenu && !scene.dressing);
+        menu.setShowing(owner == InputOwner::Menu);
         menu.hovered = -1;
         menu.pressed = -1;
-        editor.setShowing(inMenu && scene.dressing);
+        editor.setShowing(owner == InputOwner::Editor);
         editor.hovered = {};
         editor.pressed = {};
 
@@ -120,8 +120,10 @@ CowsApp::CowsApp()
             menu.draw(hud);
             editor.opacity = scene.editorOpacity();
             editor.draw(hud);
-            return;
         }
+
+        if (scene.inputOwner() != InputOwner::Play)
+            return;
 
         if (touchScreen && !isGamepad(scene.hints))
             touchControls.draw(hud);

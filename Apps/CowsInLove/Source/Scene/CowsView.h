@@ -62,6 +62,7 @@ struct CowsView final : GPUView
     void control(const ControlEvent& event);
     void openMenu(bool swing = true);
     void startGame();
+    InputOwner inputOwner() const;
     void openEditor();
     void swingTo(SwingGoal goal);
     void closeEditor();
@@ -88,7 +89,7 @@ struct CowsView final : GPUView
     void callOut();
     MooAnswer answerFrom() const;
     void addAnswerFlare();
-    void steerCamera(float delta);
+    void steerCamera(float delta, float wallDelta);
     void framePortrait(float aspect);
 
     void useQuality(Quality chosen);
@@ -176,6 +177,7 @@ struct CowsView final : GPUView
     std::optional<float> startAfter;
     CameraPose swingFrom;
     float swingTime = 0.f;
+    SwingClock swingClock;
     bool swinging = false;
     SwingGoal swingGoal = SwingGoal::Menu;
     bool dressing = false;

@@ -41,6 +41,8 @@ constexpr std::uint32_t denimSeam = 0x24476e;
 constexpr std::uint32_t trafficCone = 0xff5f00;
 constexpr std::uint32_t trafficConeBase = 0x2a2a2e;
 constexpr std::uint32_t reflector = 0xf4f4f0;
+constexpr std::uint32_t wizardHat = 0x3b2a8f;
+constexpr std::uint32_t wizardStar = 0xfff3a8;
 
 constexpr Graphics::Color display(std::uint32_t hex)
 {

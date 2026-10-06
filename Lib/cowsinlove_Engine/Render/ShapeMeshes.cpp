@@ -35,6 +35,9 @@ MeshData makeSolid(Shape shape,
         case Shape::SeatBand:
         case Shape::BucketCrown:
         case Shape::BucketBrim:
+        case Shape::WizardCone:
+        case Shape::WizardBrim:
+        case Shape::Star:
             break;
     }
 

@@ -50,7 +50,8 @@ auto tRoundTrip = test("CowSkin/jsonRoundTrip") = []
                     Hat::Crown,
                     Hat::FrogHat,
                     Hat::CowBucketHat,
-                    Hat::TrafficCone})
+                    Hat::TrafficCone,
+                    Hat::WizardHat})
         check(cowSkinFromJSON(toJSON(wearing(hat))) == wearing(hat));
 };
 
@@ -66,7 +67,7 @@ auto tStableNames = test("CowSkin/hatNamesAreStable") = []
 {
     auto names = Miro::enumNames<Hat>();
 
-    check(names.size() == 9);
+    check(names.size() == 10);
     check(names[0] == "None");
     check(names[1] == "TopHat");
     check(names[2] == "CowboyHat");
@@ -76,6 +77,7 @@ auto tStableNames = test("CowSkin/hatNamesAreStable") = []
     check(names[6] == "FrogHat");
     check(names[7] == "CowBucketHat");
     check(names[8] == "TrafficCone");
+    check(names[9] == "WizardHat");
 };
 
 auto tStablePantsNames = test("CowSkin/pantsNamesAreStable") = []
@@ -159,10 +161,11 @@ auto tHatChoices = test("CowSkin/hatChoicesAreSpelledOut") = []
 
     check(hat.key == "hat");
     check(hat.name == "Hat");
-    check(hat.choices.size() == 9);
+    check(hat.choices.size() == 10);
     check(hat.choices[6] == "Frog Hat");
     check(hat.choices[7] == "Cow Bucket Hat");
     check(hat.choices[8] == "Traffic Cone");
+    check(hat.choices[9] == "Wizard Hat");
     check(hat.choices[1] == "Top Hat");
     check(hat.choices[2] == "Cowboy Hat");
     check(hat.choice(wearing(Hat::PartyHat)) == 3);
@@ -171,9 +174,10 @@ auto tHatChoices = test("CowSkin/hatChoicesAreSpelledOut") = []
 auto tStepWraps = test("CowSkin/stepWrapsBothWays") = []
 {
     check(stepped(CowSkin {}, 0, 1).hat == Hat::TopHat);
-    check(stepped(CowSkin {}, 0, -1).hat == Hat::TrafficCone);
-    check(stepped(wearing(Hat::TrafficCone), 0, 1).hat == Hat::None);
-    check(stepped(CowSkin {}, 0, 10).hat == Hat::TopHat);
+    check(stepped(CowSkin {}, 0, -1).hat == Hat::WizardHat);
+    check(stepped(wearing(Hat::TrafficCone), 0, 1).hat == Hat::WizardHat);
+    check(stepped(wearing(Hat::WizardHat), 0, 1).hat == Hat::None);
+    check(stepped(CowSkin {}, 0, 11).hat == Hat::TopHat);
     check(stepped(wearing(Hat::Beanie), 5, 1) == wearing(Hat::Beanie));
     check(stepped(wearing(Hat::Beanie), -1, 1) == wearing(Hat::Beanie));
 };
@@ -198,6 +202,10 @@ auto tFileRoundTrip = test("CowSkin/saveThenLoadThroughTheFile") = []
 
     check(saveCowSkin(wearing(Hat::Crown), file));
     check(loadCowSkin(file) == wearing(Hat::Crown));
+
+    check(saveCowSkin(wearing(Hat::WizardHat), file));
+    check(Files::readFile(file).find("\"hat\": \"WizardHat\"") != std::string::npos);
+    check(loadCowSkin(file) == wearing(Hat::WizardHat));
 
     Files::removeAll(directory.parentDirectory());
 };

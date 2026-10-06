@@ -19,7 +19,8 @@ constexpr auto hats = std::to_array({Hat::TopHat,
                                      Hat::Crown,
                                      Hat::FrogHat,
                                      Hat::CowBucketHat,
-                                     Hat::TrafficCone});
+                                     Hat::TrafficCone,
+                                     Hat::WizardHat});
 
 CowSkin wearing(Hat hat)
 {
@@ -164,7 +165,9 @@ auto tCoarserMeshes = test("Wardrobe/coarserMeshesHaveFewerTriangles") = []
                       Shape::Seat,
                       Shape::SeatBand,
                       Shape::BucketCrown,
-                      Shape::BucketBrim})
+                      Shape::BucketBrim,
+                      Shape::WizardCone,
+                      Shape::WizardBrim})
     {
         auto fine = makeCowMesh(shape).indices.size();
         auto cut = coarse(shape).indices.size();
