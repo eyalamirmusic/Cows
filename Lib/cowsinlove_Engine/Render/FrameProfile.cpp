@@ -133,6 +133,7 @@ void FrameProfile::report(Clock::time_point now)
             sum += *at;
 
         auto p95 = sorted[(size_t) std::min(count - 1, (count * 95) / 100)];
+        auto p99 = sorted[(size_t) std::min(count - 1, (count * 99) / 100)];
         auto seconds = millisecondsBetween(windowStart, now) / 1000.0;
         auto perFrame = [&](Part part)
         { return fixed(totals[(size_t) part] / frames, 2); };
@@ -150,6 +151,8 @@ void FrameProfile::report(Clock::time_point now)
             fixed(sum / count, 2),
             " p95 ",
             fixed(p95, 2),
+            " p99 ",
+            fixed(p99, 2),
             " max ",
             fixed(sorted[(size_t) count - 1], 2),
             " | cpu ms update ",

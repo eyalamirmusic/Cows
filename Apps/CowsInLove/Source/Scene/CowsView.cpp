@@ -285,8 +285,10 @@ void CowsView::useQuality(Quality chosen)
 
     surfaceShader.reset();
     surfaceShader.emplace(settings.shadowTaps);
+    plainShader.reset();
+    plainShader.emplace(settings.shadowTaps, false);
     translucentShader.reset();
-    translucentShader.emplace(settings.shadowTaps);
+    translucentShader.emplace(settings.shadowTaps, false);
     groundShader.reset();
     groundShader.emplace(settings.shadowTaps, settings.cheapNoise);
     grassShader.reset();
@@ -309,6 +311,7 @@ void CowsView::preparePipelines()
 
     skyShader.prepare(skyPipeline(samples));
     surfaceShader->prepare(solidPipeline(samples));
+    plainShader->prepare(solidPipeline(samples));
     translucentShader->prepare(translucentPipeline(samples));
     shadowCaster.prepare(shadowMap->pipeline());
     groundShader->prepare(solidPipeline(samples));
@@ -1023,6 +1026,7 @@ void CowsView::render(Frame& frame)
     auto viewProjection = camera.projection(aspect) * camera.view();
 
     setSceneUniforms(*surfaceShader, viewProjection);
+    setSceneUniforms(*plainShader, viewProjection);
     setSceneUniforms(*translucentShader, viewProjection);
     setSceneUniforms(*groundShader, viewProjection);
     setSceneUniforms(*grassShader, viewProjection);
@@ -1033,10 +1037,10 @@ void CowsView::render(Frame& frame)
         drawGround(pass);
     if (!profileSettings().skips("objects"))
     {
-        drawBatch(pass, *surfaceShader, chasms, viewProjection);
-        drawBatch(pass, *surfaceShader, backdropBatch, viewProjection);
-        drawBatch(pass, *surfaceShader, game.level.batch, viewProjection);
-        drawBatch(pass, *surfaceShader, game.level.moving, viewProjection);
+        drawBatch(pass, *plainShader, chasms, viewProjection);
+        drawBatch(pass, *plainShader, backdropBatch, viewProjection);
+        drawBatch(pass, *plainShader, game.level.batch, viewProjection);
+        drawBatch(pass, *plainShader, game.level.moving, viewProjection);
         drawBatch(pass, *surfaceShader, cowBatch, viewProjection);
     }
     if (!profileSettings().skips("grass"))

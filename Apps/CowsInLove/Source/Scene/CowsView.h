@@ -138,6 +138,7 @@ struct CowsView final : GPUView
 
     SkyShader skyShader;
     std::optional<SurfaceShader> surfaceShader;
+    std::optional<SurfaceShader> plainShader;
     std::optional<SurfaceShader> translucentShader;
     ShadowCasterShader shadowCaster;
     std::optional<GroundShader> groundShader;
