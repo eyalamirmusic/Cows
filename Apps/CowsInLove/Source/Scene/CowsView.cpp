@@ -231,8 +231,9 @@ Graphics::Color displayColor(const Vec3& linear)
 }
 } // namespace
 
-CowsView::CowsView()
-    : shapes(makeCowMesh)
+CowsView::CowsView(const QualityPreference& preference)
+    : qualityPreference(preference)
+    , shapes(makeCowMesh)
     , ground(makePlane(groundSize))
     , cowParts(makeCowParts())
     , playerParts(cowParts)
@@ -249,10 +250,8 @@ CowsView::CowsView()
     menuTitleWide = MenuTitle::makeWide();
     menuTitleTall = MenuTitle::makeTall();
 
-    auto forced = qualityOverride();
-    auto saved = loadQuality(qualityFile());
-    measuring = !forced.has_value() && !saved.has_value();
-    useQuality(forced.value_or(saved.value_or(Quality::High)));
+    forcedQuality = qualityOverride();
+    applyQualityChoice();
 
     game.makeLevel = stages.level();
     game.reset(stages.firstSeed());
@@ -269,9 +268,32 @@ CowsView::CowsView()
     setContinuous(true);
 }
 
+void CowsView::chooseQuality(QualityChoice choice)
+{
+    qualityPreference.chosen = choice;
+    forcedQuality.reset();
+    applyQualityChoice();
+    onQualityChanged();
+}
+
+void CowsView::applyQualityChoice()
+{
+    auto use = qualityToUse(
+        forcedQuality, qualityPreference.chosen, qualityPreference.measured);
+    measuring = !use.has_value();
+    governor = QualityGovernor {};
+    lastTimedFrame = Device::shared().lastFrameTimings().frameIndex;
+
+    auto tier = use.value_or((Quality) governor.level);
+
+    if (!qualityReady || tier != quality)
+        useQuality(tier);
+}
+
 void CowsView::useQuality(Quality chosen)
 {
     quality = chosen;
+    qualityReady = true;
     auto settings = settingsFor(chosen);
 
     setSampleCount(profileSettings().samples.value_or(settings.samples));
@@ -290,11 +312,11 @@ void CowsView::useQuality(Quality chosen)
     translucentShader.reset();
     translucentShader.emplace(settings.shadowTaps, false);
     groundShader.reset();
-    groundShader.emplace(settings.shadowTaps, settings.cheapNoise);
+    groundShader.emplace(settings.shadowTaps, settings.cheapGroundNoise);
     grassShader.reset();
-    grassShader.emplace(settings.shadowTaps);
+    grassShader.emplace(settings.shadowTaps, settings.quickGrassNoise);
 
-    auto blade = makeBlade();
+    auto blade = makeBlade(settings.bladeSegments);
     grassShader->setVertices(blade.vertices.data(), blade.vertices.size());
     grassShader->setIndices(blade.indices.data(), blade.indices.size());
     bladeTriangles = (int) blade.indices.size() / 3;
@@ -339,7 +361,8 @@ void CowsView::measureQuality()
     if (governor.decided())
     {
         measuring = false;
-        saveQuality(quality, qualityFile());
+        qualityPreference.measured = quality;
+        onQualityChanged();
     }
 }
 
@@ -569,11 +592,12 @@ void CowsView::swingTo(SwingGoal goal)
     swingGoal = goal;
 }
 
-void CowsView::openEditor()
+void CowsView::openEditor(Editor& which)
 {
     if (game.state != Game::State::Menu || swinging || dressing)
         return;
 
+    editor = &which;
     dressing = true;
     swingTo(SwingGoal::Dress);
 

@@ -30,9 +30,12 @@ struct GroundShader final : LitProgram
     bool cheapNoise = false;
 };
 
+// With `quickNoise` its noise is Shading::quickValueNoise: the same kind of
+// meadow, hashed without sines.
 struct GrassShader final : LitProgram
 {
-    explicit GrassShader(int shadowTapsToUse = fullShadowTaps);
+    explicit GrassShader(int shadowTapsToUse = fullShadowTaps,
+                         bool quickNoiseToUse = false);
 
     void define() override;
 
@@ -43,5 +46,6 @@ struct GrassShader final : LitProgram
     }
 
     Uniform<Float2> patchOffset;
+    bool quickNoise = false;
 };
 } // namespace Cows

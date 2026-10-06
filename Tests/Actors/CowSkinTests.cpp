@@ -1,9 +1,7 @@
 #include "Cow/CowSkin.h"
 
 #include <NanoTest/NanoTest.h>
-#include <eacp/Core/Utils/Files.h>
 
-#include <chrono>
 #include <set>
 #include <string>
 
@@ -17,12 +15,6 @@ CowSkin wearing(Hat hat)
     auto skin = CowSkin {};
     skin.hat = hat;
     return skin;
-}
-
-FilePath scratchDirectory()
-{
-    auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
-    return FilePath::tempDirectory() / ("CowSkinTests-" + std::to_string(stamp));
 }
 
 std::set<std::string> savedKeys()
@@ -188,42 +180,3 @@ auto tSpelledOut = test("CowSkin/spelledOut") = []
     check(spelledOut("None") == "None");
     check(spelledOut("") == "");
 };
-
-auto tFileRoundTrip = test("CowSkin/saveThenLoadThroughTheFile") = []
-{
-    auto directory = scratchDirectory() / "Cows In Love";
-    auto file = cowSkinFile(directory);
-
-    check(file == directory / "CowSkin.json");
-    check(loadCowSkin(file) == CowSkin {});
-    check(saveCowSkin(wearing(Hat::PartyHat), file));
-    check(loadCowSkin(file) == wearing(Hat::PartyHat));
-    check(Files::readFile(file) == toJSON(wearing(Hat::PartyHat)) + "\n");
-
-    check(saveCowSkin(wearing(Hat::Crown), file));
-    check(loadCowSkin(file) == wearing(Hat::Crown));
-
-    check(saveCowSkin(wearing(Hat::WizardHat), file));
-    check(Files::readFile(file).find("\"hat\": \"WizardHat\"") != std::string::npos);
-    check(loadCowSkin(file) == wearing(Hat::WizardHat));
-
-    Files::removeAll(directory.parentDirectory());
-};
-
-auto tGarbageFile = test("CowSkin/garbageFileIsTheDefault") = []
-{
-    auto directory = scratchDirectory();
-    auto file = cowSkinFile(directory);
-    auto garbage = std::string {"\x01\xff{{{ moo"};
-
-    Files::createDirectories(directory);
-    Files::writeFile(
-        file,
-        {reinterpret_cast<const std::uint8_t*>(garbage.data()), garbage.size()});
-    check(loadCowSkin(file) == CowSkin {});
-
-    Files::removeAll(directory);
-};
-
-auto tAppFile = test("CowSkin/appFileIsInTheSupportDirectory") = []
-{ check(cowSkinFile() == FilePath::appSupportDirectory() / "CowSkin.json"); };

@@ -12,6 +12,7 @@ set(COWS_DISPLAY_NAME "Cows In Love")
 eacp_add_app(Cows
         Source/Main.cpp
         Source/CowsApp.cpp
+        Source/Settings.cpp
         Source/Stages.cpp
         Source/Templates.cpp
         Source/Scene/CowsView.cpp

@@ -30,7 +30,8 @@ struct Blade final
     Vector<std::uint16_t> indices;
 };
 
-Blade makeBlade();
+// A blade of `segments` rows up to its tip.
+Blade makeBlade(int segments = 5);
 
 constexpr auto meadowTile = 24.f;
 constexpr auto bladeCount = 14000;

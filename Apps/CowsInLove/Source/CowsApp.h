@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cow/CowSkin.h"
+#include "Settings.h"
 #include "Scene/CowsView.h"
 #include "UI/Editor.h"
 #include "UI/Menu.h"
@@ -15,15 +16,18 @@ struct CowsApp final
 
     void dress(const CowSkin& next);
     void showSkin();
+    void showQuality();
+    void save();
 
+    FilePath savedFile = settingsFile();
+    Settings saved = loadSettings(savedFile);
     RootView root;
     CowsView scene;
     Footer footer;
     TouchControls touchControls;
     Menu menu;
     Editor editor;
-    FilePath skinFile = cowSkinFile();
-    CowSkin skin = loadCowSkin(skinFile);
+    Editor settingsPanel;
     Graphics::Window window;
     Graphics::GameInput gameInput {window};
 };

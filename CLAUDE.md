@@ -81,9 +81,9 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     kiss (stateless); `Cow/Moo` — the recorded moo and her answer, embedded
     from `Resources/moo.f32` (see `Resources/CREDITS.md`)
   - `Cow/CowSkin` — what the player's cow wears: one enum per item class
-    (`Hat`, `Pants`), saved through Miro as enumerator names in `CowSkin.json`
-    (`cowSkinFile()`, in `FilePath::appSupportDirectory()`); anything
-    unreadable or unnamed loads as the default. `itemClasses()` lists the
+    (`Hat`, `Pants`), saved through Miro as enumerator names in the app's
+    `Settings` (`withNamedChoices` puts anything unnamed back to the
+    default). `itemClasses()` lists the
     classes for the editor, so a new class (Glasses, Trousers) is an enum, a
     `CowSkin` field and one line there. `Cow/Wardrobe` — each hat as parts
     on the head bone (`addHat`), seated on the crown (the cow bucket hat a lathed
@@ -158,6 +158,15 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   ending (wrapping; nothing is saved), `level()` as a `LevelMaker`, where the
   seed comes from (`COWS_SEED`, else the clock) and the first stage
   (`COWS_STAGE`, else 0). `r` retries the stage with a fresh seed
+- `Apps/CowsInLove/Source/Settings` — everything kept between runs, one Miro
+  document, `settings.json` in `FilePath::appSupportDirectory()`: the
+  `CowSkin` and the `QualityPreference`; anything unreadable or unnamed loads
+  as the default, and a new setting is one field. No other file is written
+- `Apps/CowsInLove/Source/Scene/Quality` — `Quality` (Low, Medium, High) and
+  `settingsFor`, the one place every tier's knobs are set (MSAA, render scale,
+  mesh detail, grass tiles, density and blade segments, grass and ground noise,
+  shadow map side and taps); `QualityChoice` (Auto or a tier) and
+  `qualityToUse` (COWS_QUALITY, else the choice, else the measured tier)
 - `Apps/CowsInLove/Source/CowsApp` — the window: scene, footer, touch controls,
   root view, and the `GameInput` the scene polls for controllers; wires them the
   same on every platform and ends by attaching the platform (the app has no
@@ -173,11 +182,11 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   Enter / Space / arrows / A D and the controller's South / Start / stick /
   D-pad; Start swings the camera behind the cow over 1.1 s with an ease-out
   while the menu fades and the title slides up, then play starts (`playPose`);
-  Esc and the controller's Start swing back. Dress Your Cow swings round to
-  the cow (`editorPose`) and hands keys and the controller to the `Editor`;
-  the camera orbits freely there (drag, right stick, touch drag), and Done,
-  Esc and the controller's East / Start swing back to the menu. `CowsApp`
-  saves the skin on every change
+  Esc and the controller's Start swing back. Dress Your Cow and Settings swing
+  round to the cow (`editorPose`) and hand keys and the controller to that
+  `Editor` (`openEditor(which)`); the camera orbits freely there (drag, right
+  stick, touch drag), and Done, Esc and the controller's East / Start swing
+  back to the menu. `CowsApp` saves `Settings` on every change
 - `tools/Art` — `CowsArt`, a macOS tool that renders the icon, key art, logo
   and store screenshots from the game's own views; `tools/store-art.sh` and
   `tools/screenshots.sh` drive it. `tools/release-*.sh`, `release-msix.ps1`
@@ -193,7 +202,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
 `COWS_TIME=<seconds>` starts the clock there and `COWS_FREEZE=1` stops it, for
 screenshots; `COWS_SEED=<n>` fixes the level, `COWS_STAGE=<n>` starts on
 stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her, skipping the menu; `COWS_MENU=0` skips
-the menu, `COWS_DRESS=1` opens the cow editor and `COWS_START=<seconds>` presses Start after that long (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).
+the menu, `COWS_DRESS=1` opens the cow editor, `COWS_SETTINGS=1` opens
+Settings and `COWS_START=<seconds>` presses Start after that long (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).
 `COWS_PROFILE=1` logs, once a second, the frame interval, the CPU time of each
 part of a frame, the GPU time of the frame and of each pass (`shadows`,
 `scene`) and the instances and triangles each pass drew; a profiling run
@@ -202,10 +212,13 @@ varies one of `COWS_BLADES=<n>` (blades drawn per grass tile), `COWS_MSAA=<n>`,
 `COWS_DETAIL=<share>` (mesh detail, see `detailed` in `Render/Mesh`) or
 `COWS_SKIP=<parts>` (any of sky, ground, objects, grass, glow, hud,
 shadows, left out of the frame) and compares.
-`COWS_QUALITY=low|mid|high` forces a quality tier (`Scene/Quality`); without
-it the first run starts at high, `QualityGovernor` (`Render/QualityGovernor`)
-drops tiers while the GPU's frame time is over budget, and the tier it settles
-on is saved as `Quality.txt` beside `CowSkin.json` and used from then on.
+`COWS_QUALITY=low|medium|high` forces a quality tier at launch (`Scene/Quality`)
+until the player picks one in Settings (the start menu's third item, an
+`Editor` with one row: Auto, Low, Medium, High; it applies at once). On Auto
+with nothing measured the run starts at high, `QualityGovernor`
+(`Render/QualityGovernor`) drops tiers while the GPU's frame time is over
+budget, and the tier it settles on is saved in `settings.json` and used from
+then on.
 
 ## Build Commands
 

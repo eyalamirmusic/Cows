@@ -1,13 +1,27 @@
 #include "Quality.h"
 
 #include <eacp/Core/Utils/Environment.h>
-#include <eacp/Core/Utils/Files.h>
 
 #include <algorithm>
 #include <cctype>
 
 namespace Cows
 {
+namespace
+{
+std::string squeezed(std::string_view name)
+{
+    auto lower = std::string {};
+
+    for (auto character: name)
+        if (!std::isspace((unsigned char) character))
+            lower += (char) std::tolower((unsigned char) character);
+
+    return lower;
+}
+
+} // namespace
+
 QualitySettings settingsFor(Quality quality)
 {
     auto settings = QualitySettings {};
@@ -15,15 +29,15 @@ QualitySettings settingsFor(Quality quality)
     if (quality == Quality::High)
         return settings;
 
-    settings.cheapNoise = true;
     settings.renderScale = 0.75f;
     settings.meshDetail = 0.75f;
+    settings.cheapGroundNoise = true;
     settings.grass.nearShare = 0.5f;
     settings.grass.farShare = 0.1f;
     settings.grass.thinFrom = 10.f;
     settings.grass.thinTo = 40.f;
 
-    if (quality == Quality::Mid)
+    if (quality == Quality::Medium)
         return settings;
 
     settings.samples = 1;
@@ -45,8 +59,8 @@ std::string qualityName(Quality quality)
     {
         case Quality::Low:
             return "low";
-        case Quality::Mid:
-            return "mid";
+        case Quality::Medium:
+            return "medium";
         case Quality::High:
             return "high";
     }
@@ -56,17 +70,54 @@ std::string qualityName(Quality quality)
 
 std::optional<Quality> qualityNamed(std::string_view name)
 {
-    auto lower = std::string {};
+    auto lower = squeezed(name);
 
-    for (auto character: name)
-        if (!std::isspace((unsigned char) character))
-            lower += (char) std::tolower((unsigned char) character);
+    if (lower == "mid")
+        return Quality::Medium;
 
-    for (auto quality: {Quality::Low, Quality::Mid, Quality::High})
+    for (auto quality: {Quality::Low, Quality::Medium, Quality::High})
         if (lower == qualityName(quality))
             return quality;
 
     return std::nullopt;
+}
+
+std::string choiceLabel(QualityChoice choice)
+{
+    switch (choice)
+    {
+        case QualityChoice::Auto:
+            return "Auto";
+        case QualityChoice::Low:
+            return "Low";
+        case QualityChoice::Medium:
+            return "Medium";
+        case QualityChoice::High:
+            return "High";
+    }
+
+    return "Auto";
+}
+
+std::optional<Quality> chosenQuality(QualityChoice choice)
+{
+    if (choice == QualityChoice::Auto)
+        return std::nullopt;
+
+    return (Quality) ((int) choice - 1);
+}
+
+std::optional<Quality> qualityToUse(std::optional<Quality> forced,
+                                    QualityChoice chosen,
+                                    std::optional<Quality> measured)
+{
+    if (forced.has_value())
+        return forced;
+
+    if (auto quality = chosenQuality(chosen))
+        return quality;
+
+    return measured;
 }
 
 std::optional<Quality> qualityOverride()
@@ -74,43 +125,21 @@ std::optional<Quality> qualityOverride()
     return qualityNamed(getEnvValue("COWS_QUALITY"));
 }
 
-FilePath qualityFile()
+QualityPreference withKnownValues(QualityPreference preference)
 {
-    return qualityFile(FilePath::appSupportDirectory());
-}
+    auto choice = (int) preference.chosen;
 
-FilePath qualityFile(const FilePath& directory)
-{
-    return directory / "Quality.txt";
-}
+    if (choice < 0 || choice >= qualityChoices)
+        preference.chosen = QualityChoice::Auto;
 
-std::optional<Quality> loadQuality(const FilePath& file)
-{
-    try
+    if (preference.measured.has_value())
     {
-        return qualityNamed(Files::readFile(file));
-    }
-    catch (const std::exception&)
-    {
-        return std::nullopt;
-    }
-}
+        auto tier = (int) *preference.measured;
 
-bool saveQuality(Quality quality, const FilePath& file)
-{
-    auto text = qualityName(quality) + "\n";
-    auto bytes = Span<const std::uint8_t> {
-        reinterpret_cast<const std::uint8_t*>(text.data()), text.size()};
+        if (tier < 0 || tier >= qualityLevels)
+            preference.measured.reset();
+    }
 
-    try
-    {
-        Files::createDirectories(file.parentDirectory());
-        Files::writeFileAtomically(file, bytes);
-        return true;
-    }
-    catch (const std::exception&)
-    {
-        return false;
-    }
+    return preference;
 }
 } // namespace Cows

@@ -47,6 +47,38 @@ Float hashOf(const Float& x, const Float& y, const Float& z)
 {
     return fract(sin(x * 127.1f + y * 311.7f + z * 74.7f) * 43758.5f);
 }
+// A hash with no sine (Dave Hoskins' hash13), cheaper where sines are dear.
+Float quickHashOf(const Float& x, const Float& y, const Float& z)
+{
+    auto p = fract(float3(x, y, z) * 0.1031f);
+    p = p + dot(p, float3(p.y(), p.z(), p.x()) + 33.33f);
+    return fract((p.x() + p.y()) * p.z());
+}
+
+template <typename Hash>
+Float valueNoiseHashed(const Float3& position, Hash hashOfCorner)
+{
+    auto cell = floor(position);
+    auto local = fract(position);
+    auto eased = local * local * (3.f - local * 2.f);
+
+    auto x = cell.x();
+    auto y = cell.y();
+    auto z = cell.z();
+
+    auto corner = [&](float dx, float dy, float dz)
+    { return hashOfCorner(x + dx, y + dy, z + dz); };
+
+    auto bottomFront = mix(corner(0.f, 0.f, 0.f), corner(1.f, 0.f, 0.f), eased.x());
+    auto bottomBack = mix(corner(0.f, 0.f, 1.f), corner(1.f, 0.f, 1.f), eased.x());
+    auto topFront = mix(corner(0.f, 1.f, 0.f), corner(1.f, 1.f, 0.f), eased.x());
+    auto topBack = mix(corner(0.f, 1.f, 1.f), corner(1.f, 1.f, 1.f), eased.x());
+
+    auto bottom = mix(bottomFront, bottomBack, eased.z());
+    auto top = mix(topFront, topBack, eased.z());
+
+    return mix(bottom, top, eased.y());
+}
 } // namespace
 
 Float3 ambient(const LightingUniforms& light, const Float3& normal)
@@ -147,26 +179,12 @@ Float hash(const Float3& cell)
 
 Float valueNoise(const Float3& position)
 {
-    auto cell = floor(position);
-    auto local = fract(position);
-    auto eased = local * local * (3.f - local * 2.f);
+    return valueNoiseHashed(position, hashOf);
+}
 
-    auto x = cell.x();
-    auto y = cell.y();
-    auto z = cell.z();
-
-    auto corner = [&](float dx, float dy, float dz)
-    { return hashOf(x + dx, y + dy, z + dz); };
-
-    auto bottomFront = mix(corner(0.f, 0.f, 0.f), corner(1.f, 0.f, 0.f), eased.x());
-    auto bottomBack = mix(corner(0.f, 0.f, 1.f), corner(1.f, 0.f, 1.f), eased.x());
-    auto topFront = mix(corner(0.f, 1.f, 0.f), corner(1.f, 1.f, 0.f), eased.x());
-    auto topBack = mix(corner(0.f, 1.f, 1.f), corner(1.f, 1.f, 1.f), eased.x());
-
-    auto bottom = mix(bottomFront, bottomBack, eased.z());
-    auto top = mix(topFront, topBack, eased.z());
-
-    return mix(bottom, top, eased.y());
+Float quickValueNoise(const Float3& position)
+{
+    return valueNoiseHashed(position, quickHashOf);
 }
 
 Float latticeNoise(const Uniform<Texture2D>& lattice,
