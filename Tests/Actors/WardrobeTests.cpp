@@ -154,3 +154,24 @@ auto tHatSnapshots = test("Wardrobe/snapshots") = []
                   shot,
                   "actors-pants-" + std::string {Miro::enumToString(pants)});
 };
+
+auto tCoarserMeshes = test("Wardrobe/coarserMeshesHaveFewerTriangles") = []
+{
+    auto coarse = cowMeshes(0.5f);
+
+    for (auto shape: {Shape::Heart,
+                      Shape::Belly,
+                      Shape::BellyBand,
+                      Shape::Seat,
+                      Shape::SeatBand,
+                      Shape::BucketCrown,
+                      Shape::BucketBrim,
+                      Shape::WizardCone,
+                      Shape::WizardBrim})
+    {
+        auto fine = makeCowMesh(shape).indices.size();
+        auto cut = coarse(shape).indices.size();
+        check(cut > 0);
+        check(cut < fine);
+    }
+};

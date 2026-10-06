@@ -68,6 +68,10 @@ MeshData makeCone(int segments);
 
 MeshData makePlane(float size);
 
+// `count` steps round or along a procedural mesh at `detail` (1 as designed,
+// less for a coarser mesh), a multiple of four and never under `least`.
+int detailed(int count, float detail, int least = 8);
+
 // A unit box, x and z from -0.5 to 0.5, y from 0 to 1.
 MeshData makeBox();
 
@@ -90,5 +94,11 @@ struct Mesh final
     Buffer vertices;
     Buffer indices;
     int indexCount = 0;
+
+    // The furthest any vertex lies from the mesh's origin: a sphere there of
+    // this radius holds the whole mesh.
+    float radius = 0.f;
 };
+
+float boundingRadius(const MeshData& data);
 } // namespace Cows

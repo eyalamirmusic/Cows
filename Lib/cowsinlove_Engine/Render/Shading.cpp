@@ -1,6 +1,7 @@
 #include "Render/Shading.h"
 
 #include <array>
+#include <cmath>
 
 namespace Cows::Shading
 {
@@ -33,7 +34,12 @@ constexpr auto taps = std::to_array<std::array<float, 2>>({
     {0.74f, -0.26f},
 });
 
-constexpr auto tapCount = (int) taps.size();
+constexpr auto fewTaps = std::to_array<std::array<float, 2>>({
+    {-0.55f, -0.2f},
+    {0.2f, -0.55f},
+    {0.55f, 0.2f},
+    {-0.2f, 0.55f},
+});
 
 // 43758.5, not the textbook 43758.5453: the look was tuned while eacp printed
 // shader literals to six digits, so this is the constant the GPU always saw.
@@ -74,31 +80,45 @@ Float3 shade(const SceneUniforms& scene, const Surface& surface)
            + scene.rimColor * rim * 0.55f;
 }
 
-Float shadowAt(const SceneUniforms& scene, const Float3& world, const Float3& normal)
+Float shadowAt(LitProgram& scene, const Float3& world, const Float3& normal)
 {
     auto lifted = world + normal * 0.03f;
     auto clip = scene.lightViewProjection * float4(lifted, 1.f);
     auto uv = float2(clip.x() * 0.5f + 0.5f, 0.5f - clip.y() * 0.5f);
     auto depth = clip.z() - shadowBias;
 
-    auto litAt = [&](const std::array<float, 2>& tap)
-    {
-        auto offset = float2(uv.x() + tap[0] * shadowTexel * shadowSpread,
-                             uv.y() + tap[1] * shadowTexel * shadowSpread);
-        return step(depth, sample(scene.shadowMap, offset).x());
-    };
-
-    auto lit = litAt(taps[0]);
-
-    for (auto index = 1; index < tapCount; ++index)
-        lit = lit + litAt(taps[index]);
-
-    lit = lit / (float) tapCount;
-
     auto inside = step(0.002f, uv.x()) * step(uv.x(), 0.998f) * step(0.002f, uv.y())
                   * step(uv.y(), 0.998f) * step(clip.z(), 0.995f);
 
-    return 1.f - inside * (1.f - lit);
+    auto shadow = scene.var(1.f);
+
+    scene.ifThen(
+        inside > 0.5f,
+        [&]
+        {
+            auto litAt = [&](const std::array<float, 2>& tap)
+            {
+                auto offset = float2(uv.x() + tap[0] * shadowTexel * shadowSpread,
+                                     uv.y() + tap[1] * shadowTexel * shadowSpread);
+                return step(depth, sample(scene.shadowMap, offset, 0.f).x());
+            };
+
+            auto averageOf = [&](const auto& pattern)
+            {
+                auto lit = litAt(pattern[0]);
+
+                for (auto index = 1; index < (int) pattern.size(); ++index)
+                    lit = lit + litAt(pattern[(size_t) index]);
+
+                return lit / (float) pattern.size();
+            };
+
+            shadow = scene.shadowTaps < LitProgram::fullShadowTaps
+                         ? averageOf(fewTaps)
+                         : averageOf(taps);
+        });
+
+    return shadow.get();
 }
 
 Float hazeAt(const Float3& eye, const Float3& world)
@@ -148,4 +168,79 @@ Float valueNoise(const Float3& position)
 
     return mix(bottom, top, eased.y());
 }
+
+Float latticeNoise(const Uniform<Texture2D>& lattice,
+                   const Float2& position,
+                   int plane)
+{
+    auto cell = floor(position);
+    auto local = fract(position);
+    auto eased = local * local * (3.f - local * 2.f);
+    auto at = (cell + eased + 0.5f) * (1.f / (float) NoiseLattice::size);
+    auto texel = sample(lattice, at, 0.f);
+
+    return plane == 0   ? texel.x()
+           : plane == 1 ? texel.y()
+           : plane == 2 ? texel.z()
+                        : texel.w();
+}
 } // namespace Cows::Shading
+
+namespace Cows
+{
+namespace
+{
+float hashOnCpu(float x, float y, float z)
+{
+    auto value = std::sin(x * 127.1f + y * 311.7f + z * 74.7f) * 43758.5f;
+    return value - std::floor(value);
+}
+
+float latticeValue(int x, int y, float z)
+{
+    auto cell = std::floor(z);
+    auto local = z - cell;
+    auto eased = local * local * (3.f - local * 2.f);
+    auto below = hashOnCpu((float) x, (float) y, cell);
+    auto above = hashOnCpu((float) x, (float) y, cell + 1.f);
+    return below + (above - below) * eased;
+}
+} // namespace
+
+Vector<std::uint8_t> makeNoiseLattice()
+{
+    constexpr auto size = NoiseLattice::size;
+    auto texels = Vector<std::uint8_t> {};
+    texels.resize(size * size * 4);
+
+    for (auto y = 0; y < size; ++y)
+        for (auto x = 0; x < size; ++x)
+            for (auto plane = 0; plane < 4; ++plane)
+            {
+                auto value = latticeValue(x, y, latticePlanes[(size_t) plane]);
+                texels[(size_t) ((y * size + x) * 4 + plane)] =
+                    (std::uint8_t) std::lround(value * 255.f);
+            }
+
+    return texels;
+}
+
+namespace
+{
+Texture makeLatticeTexture()
+{
+    auto descriptor = TextureDescriptor {};
+    descriptor.width = NoiseLattice::size;
+    descriptor.height = NoiseLattice::size;
+    descriptor.format = TextureFormat::RGBA8Unorm;
+
+    auto texels = makeNoiseLattice();
+    return Device::shared().makeTexture(descriptor, texels.data());
+}
+} // namespace
+
+NoiseLattice::NoiseLattice()
+    : texture(makeLatticeTexture())
+{
+}
+} // namespace Cows

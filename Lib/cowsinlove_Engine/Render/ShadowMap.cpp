@@ -6,12 +6,11 @@ namespace Cows
 {
 namespace
 {
-constexpr auto resolution = 2048;
 constexpr auto halfExtent = 14.f;
 constexpr auto lightDistance = 30.f;
 constexpr Vec3 focusOffset {0.f, 1.2f, 0.5f};
 
-TextureDescriptor describeTarget()
+TextureDescriptor describeTarget(int resolution)
 {
     auto descriptor = TextureDescriptor {};
     descriptor.width = resolution;
@@ -23,8 +22,8 @@ TextureDescriptor describeTarget()
 }
 } // namespace
 
-ShadowMap::ShadowMap()
-    : texture(Device::shared().makeTexture(describeTarget()))
+ShadowMap::ShadowMap(int resolution)
+    : texture(Device::shared().makeTexture(describeTarget(resolution)))
 {
 }
 

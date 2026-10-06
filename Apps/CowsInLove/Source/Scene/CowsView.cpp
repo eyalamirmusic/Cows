@@ -3,6 +3,7 @@
 #include "Cow/Wardrobe.h"
 #include "Ending.h"
 #include "Render/FrameProfile.h"
+#include "Render/Frustum.h"
 #include "Render/Palette.h"
 #include "Sky/SkyDecor.h"
 
@@ -11,6 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <optional>
 
 using namespace Maths;
@@ -19,7 +21,6 @@ namespace Cows
 {
 namespace
 {
-constexpr auto msaaSamples = 4;
 constexpr auto orbitSpeed = 0.006f;
 constexpr auto padYawRate = 2.6f;
 constexpr auto padPitchRate = 1.5f;
@@ -36,7 +37,6 @@ constexpr auto flareHearts = 6;
 constexpr auto quietest = 0.15f;
 constexpr auto loudReach = 120.f;
 
-constexpr auto grassTiles = 2;
 constexpr auto portraitDistance = 6.5f;
 constexpr auto portraitPitch = 0.26f;
 
@@ -76,7 +76,7 @@ RenderPipelineDescriptor skyPipeline(int samples)
     auto descriptor = RenderPipelineDescriptor {};
     descriptor.sampleCount = samples;
     descriptor.depth = true;
-    descriptor.depthCompare = DepthCompare::Always;
+    descriptor.depthCompare = DepthCompare::LessEqual;
     descriptor.depthWrite = false;
     return descriptor;
 }
@@ -176,6 +176,54 @@ float startTime()
     return 0.f;
 }
 
+// What COWS_PROFILE runs vary, one at a time, to find what a frame costs:
+// COWS_BLADES caps the blades drawn per tile, COWS_MSAA, COWS_RENDER_SCALE and
+// COWS_SHADOW and COWS_DETAIL override the tier's sample count, render scale,
+// shadow map side and mesh detail, and COWS_SKIP names parts of the frame left out (sky, ground,
+// objects, grass, glow, hud, shadows).
+struct ProfileSettings final
+{
+    bool skips(std::string_view part) const
+    {
+        return skip.find(part) != std::string::npos;
+    }
+
+    int blades = std::numeric_limits<int>::max();
+    std::optional<int> samples;
+    std::optional<int> shadowResolution;
+    std::optional<float> renderScale;
+    std::optional<float> meshDetail;
+    std::string skip;
+};
+
+const ProfileSettings& profileSettings()
+{
+    static auto settings = []
+    {
+        auto read = ProfileSettings {};
+
+        if (auto blades = getEnv("COWS_BLADES"))
+            read.blades = std::stoi(*blades);
+
+        if (auto samples = getEnv("COWS_MSAA"))
+            read.samples = std::stoi(*samples);
+
+        if (auto scale = getEnv("COWS_RENDER_SCALE"))
+            read.renderScale = std::stof(*scale);
+
+        if (auto resolution = getEnv("COWS_SHADOW"))
+            read.shadowResolution = std::stoi(*resolution);
+
+        if (auto detail = getEnv("COWS_DETAIL"))
+            read.meshDetail = std::stof(*detail);
+
+        read.skip = getEnvValue("COWS_SKIP");
+        return read;
+    }();
+
+    return settings;
+}
+
 Graphics::Color displayColor(const Vec3& linear)
 {
     auto encode = [](float channel) { return std::pow(channel, 1.f / 2.2f); };
@@ -194,35 +242,17 @@ CowsView::CowsView()
 {
     startAfter = startAfterSetting();
 
-    setSampleCount(msaaSamples);
     setDepth(true);
-
-    auto samples = sampleCount();
-
     skyShader.setVertices(fullScreenTriangle);
-    skyShader.prepare(skyPipeline(samples));
-
-    surfaceShader.prepare(solidPipeline(samples));
-    translucentShader.prepare(translucentPipeline(samples));
-    shadowCaster.prepare(shadowMap.pipeline());
-    groundShader.prepare(solidPipeline(samples));
-
-    auto blade = makeBlade();
-    grassShader.setVertices(blade.vertices.data(), blade.vertices.size());
-    grassShader.setIndices(blade.indices.data(), blade.indices.size());
-    grassShader.setInstances(1, grass.tile.data(), grass.tile.size());
-    uploadedBlades = &grass.tile;
-    grassShader.prepare(solidPipeline(samples, CullMode::None));
-
+    glowShader.setVertices(glowQuad);
     setTitle(Ending::titleText);
-    titleShader.prepare(solidPipeline(samples));
-
     menuTitleWide = MenuTitle::makeWide();
     menuTitleTall = MenuTitle::makeTall();
-    menuTitleShader.prepare(solidPipeline(samples));
 
-    glowShader.setVertices(glowQuad);
-    glowShader.prepare(glowPipeline(samples));
+    auto forced = qualityOverride();
+    auto saved = loadQuality(qualityFile());
+    measuring = !forced.has_value() && !saved.has_value();
+    useQuality(forced.value_or(saved.value_or(Quality::High)));
 
     game.makeLevel = stages.level();
     game.reset(stages.firstSeed());
@@ -239,11 +269,86 @@ CowsView::CowsView()
     setContinuous(true);
 }
 
+void CowsView::useQuality(Quality chosen)
+{
+    quality = chosen;
+    auto settings = settingsFor(chosen);
+
+    setSampleCount(profileSettings().samples.value_or(settings.samples));
+    setRenderScale(profileSettings().renderScale.value_or(settings.renderScale));
+    grassDensity = settings.grass;
+    auto detail = profileSettings().meshDetail.value_or(settings.meshDetail);
+    shapes = ShapeMeshes {cowMeshes(detail), detail};
+    shadowMap.reset();
+    shadowMap.emplace(
+        profileSettings().shadowResolution.value_or(settings.shadowResolution));
+
+    surfaceShader.reset();
+    surfaceShader.emplace(settings.shadowTaps);
+    plainShader.reset();
+    plainShader.emplace(settings.shadowTaps, false);
+    translucentShader.reset();
+    translucentShader.emplace(settings.shadowTaps, false);
+    groundShader.reset();
+    groundShader.emplace(settings.shadowTaps, settings.cheapNoise);
+    grassShader.reset();
+    grassShader.emplace(settings.shadowTaps);
+
+    auto blade = makeBlade();
+    grassShader->setVertices(blade.vertices.data(), blade.vertices.size());
+    grassShader->setIndices(blade.indices.data(), blade.indices.size());
+    bladeTriangles = (int) blade.indices.size() / 3;
+    grassShader->setInstances(1, grass.tile.data(), grass.tile.size());
+    uploadedBlades = &grass.tile;
+
+    preparePipelines();
+    LOG("Cows: quality ", qualityName(chosen));
+}
+
+void CowsView::preparePipelines()
+{
+    auto samples = sampleCount();
+
+    skyShader.prepare(skyPipeline(samples));
+    surfaceShader->prepare(solidPipeline(samples));
+    plainShader->prepare(solidPipeline(samples));
+    translucentShader->prepare(translucentPipeline(samples));
+    shadowCaster.prepare(shadowMap->pipeline());
+    groundShader->prepare(solidPipeline(samples));
+    grassShader->prepare(solidPipeline(samples, CullMode::None));
+    titleShader.prepare(solidPipeline(samples));
+    menuTitleShader.prepare(solidPipeline(samples));
+    glowShader.prepare(glowPipeline(samples));
+}
+
+void CowsView::measureQuality()
+{
+    if (!measuring)
+        return;
+
+    const auto& timings = Device::shared().lastFrameTimings();
+
+    if (timings.frameIndex == lastTimedFrame)
+        return;
+
+    lastTimedFrame = timings.frameIndex;
+
+    if (governor.addFrame(timings.milliseconds))
+        useQuality((Quality) governor.level);
+
+    if (governor.decided())
+    {
+        measuring = false;
+        saveQuality(quality, qualityFile());
+    }
+}
+
 void CowsView::update(Threads::FrameTime time)
 {
     auto& profile = FrameProfile::shared();
     profile.frameStarted();
     auto timed = FrameProfile::Scope {profile, FrameProfile::Part::Update};
+    measureQuality();
 
     auto delta = frozen ? 0.f : (float) time.delta;
     auto wallDelta = swingClock.step(time);
@@ -894,7 +999,7 @@ void CowsView::render(Frame& frame)
     }
 
     lightViewProjection =
-        shadowMap.lightViewProjection(lighting.keyDirection, groundFocus());
+        shadowMap->lightViewProjection(lighting.keyDirection, groundFocus());
 
     {
         auto timed = FrameProfile::Scope {profile, Part::Shadows};
@@ -903,7 +1008,11 @@ void CowsView::render(Frame& frame)
 
     auto timedScene = std::optional<FrameProfile::Scope> {};
     timedScene.emplace(profile, Part::Scene);
-    auto pass = frame.beginPass({displayColor(lighting.horizonColor)});
+    auto sceneDescriptor = RenderPassDescriptor {};
+    sceneDescriptor.clearColor = displayColor(lighting.horizonColor);
+    if (profile.enabled)
+        sceneDescriptor.label = "scene";
+    auto pass = frame.beginPass(sceneDescriptor);
 
     auto width = (float) pass.targetWidth();
     auto height = (float) pass.targetHeight();
@@ -916,28 +1025,38 @@ void CowsView::render(Frame& frame)
     framePortrait(aspect);
     auto viewProjection = camera.projection(aspect) * camera.view();
 
-    setSceneUniforms(surfaceShader, viewProjection);
-    setSceneUniforms(translucentShader, viewProjection);
-    setSceneUniforms(groundShader, viewProjection);
-    setSceneUniforms(grassShader, viewProjection);
+    setSceneUniforms(*surfaceShader, viewProjection);
+    setSceneUniforms(*plainShader, viewProjection);
+    setSceneUniforms(*translucentShader, viewProjection);
+    setSceneUniforms(*groundShader, viewProjection);
+    setSceneUniforms(*grassShader, viewProjection);
     setSceneUniforms(titleShader, viewProjection);
     setSceneUniforms(menuTitleShader, viewProjection);
 
-    drawSky(pass, aspect);
-    drawGround(pass);
-    drawBatch(pass, surfaceShader, chasms);
-    drawBatch(pass, surfaceShader, backdropBatch);
-    drawBatch(pass, surfaceShader, game.level.batch);
-    drawBatch(pass, surfaceShader, game.level.moving);
-    drawBatch(pass, surfaceShader, cowBatch);
-    drawGrass(pass);
+    if (!profileSettings().skips("ground"))
+        drawGround(pass);
+    if (!profileSettings().skips("objects"))
+    {
+        drawBatch(pass, *plainShader, chasms, viewProjection);
+        drawBatch(pass, *plainShader, backdropBatch, viewProjection);
+        drawBatch(pass, *plainShader, game.level.batch, viewProjection);
+        drawBatch(pass, *plainShader, game.level.moving, viewProjection);
+        drawBatch(pass, *surfaceShader, cowBatch, viewProjection);
+    }
+    if (!profileSettings().skips("grass"))
+        drawGrass(pass, viewProjection);
     drawTitle(pass);
     drawMenuTitle(pass, width, height);
-    drawBatch(pass, translucentShader, heartBatch);
-    drawGlows(pass, viewProjection);
+    if (!profileSettings().skips("sky"))
+        drawSky(pass, aspect);
+    drawBatch(pass, *translucentShader, heartBatch, viewProjection);
+    if (!profileSettings().skips("glow"))
+        drawGlows(pass, viewProjection);
     timedScene.reset();
 
     auto timedHud = FrameProfile::Scope {profile, Part::Hud};
+    if (profileSettings().skips("hud"))
+        return;
     hud.begin(frame, pass, sampleCount());
     drawHud(hud);
     hud.end();
@@ -1059,7 +1178,7 @@ void CowsView::setSceneUniforms(SceneUniforms& uniforms, const Mat4& viewProject
     uniforms.lightViewProjection = lightViewProjection;
     uniforms.eyePosition = camera.eye();
     uniforms.time = elapsed;
-    uniforms.shadowMap = shadowMap.texture;
+    uniforms.shadowMap = shadowMap->texture;
 }
 
 void CowsView::drawShadows(Frame& frame)
@@ -1068,11 +1187,15 @@ void CowsView::drawShadows(Frame& frame)
     descriptor.clearColor = Graphics::Color {1.f, 1.f, 1.f};
     descriptor.label = "shadows";
 
-    auto pass = frame.beginPass(shadowMap.texture, descriptor);
+    if (profileSettings().skips("shadows"))
+        return;
+
+    auto pass = frame.beginPass(shadowMap->texture, descriptor);
     shadowCaster.lightViewProjection = lightViewProjection;
-    drawBatch(pass, shadowCaster, cowBatch);
-    drawBatch(pass, shadowCaster, game.level.batch);
-    drawBatch(pass, shadowCaster, game.level.moving);
+    auto counted = FrameProfile::Pass::Shadows;
+    drawBatch(pass, shadowCaster, cowBatch, lightViewProjection, counted);
+    drawBatch(pass, shadowCaster, game.level.batch, lightViewProjection, counted);
+    drawBatch(pass, shadowCaster, game.level.moving, lightViewProjection, counted);
 }
 
 void CowsView::drawSky(RenderPass& pass, float aspect)
@@ -1092,52 +1215,55 @@ void CowsView::drawSky(RenderPass& pass, float aspect)
 
 void CowsView::drawGround(RenderPass& pass)
 {
-    groundShader.firstContact = contacts[0];
-    groundShader.secondContact = contacts[1];
+    groundShader->noise = noiseLattice.texture;
+    groundShader->firstContact = contacts[0];
+    groundShader->secondContact = contacts[1];
 
-    pass.bind(groundShader, ground.vertices);
+    pass.bind(*groundShader, ground.vertices);
     pass.drawIndexed(ground.indices, ground.indexCount);
+    FrameProfile::shared().drew(FrameProfile::Pass::Scene, 1, ground.indexCount / 3);
 }
 
-void CowsView::drawGrass(RenderPass& pass)
+void CowsView::drawGrass(RenderPass& pass, const Mat4& viewProjection)
 {
     auto focus = groundFocus();
-    auto corner = Vec2 {std::round(focus.x / meadowTile) * meadowTile,
-                        std::round(focus.z / meadowTile) * meadowTile};
+    auto plan =
+        planGrass({focus.x, focus.z}, viewProjection, camera.eye(), grassDensity);
+    auto cut = Vector<GrassDraw> {};
 
-    auto cut = Vector<Vec2> {};
+    for (const auto& draw: plan)
+    {
+        const auto& blades = grass.tileAt(draw.corner);
 
-    for (auto x = -grassTiles; x < grassTiles; ++x)
-        for (auto z = -grassTiles; z < grassTiles; ++z)
-        {
-            auto at = corner + Vec2 {(float) x * meadowTile, (float) z * meadowTile};
-            const auto& blades = grass.tileAt(at);
+        if (&blades == &grass.tile)
+            drawGrassTile(pass, draw, blades);
+        else
+            cut.add(draw);
+    }
 
-            if (&blades == &grass.tile)
-                drawGrassTile(pass, at, blades);
-            else
-                cut.add(at);
-        }
-
-    for (auto at: cut)
-        drawGrassTile(pass, at, grass.tileAt(at));
+    for (const auto& draw: cut)
+        drawGrassTile(pass, draw, grass.tileAt(draw.corner));
 }
 
 void CowsView::drawGrassTile(RenderPass& pass,
-                             Vec2 corner,
+                             const GrassDraw& draw,
                              const Vector<BladeInstance>& blades)
 {
-    if (blades.empty())
+    auto count = std::min(bladesToDraw((int) blades.size(), draw.share),
+                          profileSettings().blades);
+
+    if (count == 0)
         return;
 
     if (uploadedBlades != &blades)
     {
-        grassShader.setInstances(1, blades.data(), blades.size());
+        grassShader->setInstances(1, blades.data(), blades.size());
         uploadedBlades = &blades;
     }
 
-    grassShader.patchOffset = corner;
-    pass.drawInstanced(grassShader, blades.size());
+    grassShader->patchOffset = draw.corner;
+    pass.drawInstanced(*grassShader, count);
+    FrameProfile::shared().drew(FrameProfile::Pass::Scene, count, bladeTriangles);
 }
 
 void CowsView::drawTitle(RenderPass& pass)
@@ -1194,21 +1320,29 @@ void CowsView::drawGlows(RenderPass& pass, const Mat4& viewProjection)
 
 void CowsView::drawBatch(RenderPass& pass,
                          ShaderProgram& shader,
-                         SurfaceBatch& batch)
+                         const SurfaceBatch& batch,
+                         const Mat4& cullWith,
+                         FrameProfile::Pass counted)
 {
     for (auto index = 0; index < shapeCount; ++index)
     {
-        const auto& list = batch.lists[index];
-
-        if (list.empty())
-            continue;
-
         const auto& mesh = shapes[(Shape) index];
 
-        shader.setInstances(1, list.data(), list.size());
+        visible.clear();
+
+        for (const auto& instance: batch.lists[index])
+            if (instanceInView(cullWith, instance, mesh.radius))
+                visible.add(instance);
+
+        if (visible.empty())
+            continue;
+
+        shader.setInstances(1, visible.data(), visible.size());
         pass.bind(shader, mesh.vertices);
         shader.bindInstances(pass);
-        pass.drawIndexedInstanced(mesh.indices, mesh.indexCount, list.size());
+        pass.drawIndexedInstanced(mesh.indices, mesh.indexCount, visible.size());
+        FrameProfile::shared().drew(
+            counted, (int) visible.size(), mesh.indexCount / 3);
     }
 }
 

@@ -3,6 +3,7 @@
 #include "Level.h"
 
 #include <cstdint>
+#include <limits>
 #include <map>
 #include <utility>
 
@@ -43,6 +44,42 @@ Vector<BladeInstance> makeGrassTile();
 Vector<BladeInstance> cutTile(const Vector<BladeInstance>& tile,
                               Maths::Vec2 corner,
                               const Vector<Gap>& gaps);
+
+// How much grass is drawn: the tiles round the focus (tilesAround each way),
+// the share of a tile's blades drawn up close, and the share drawn at a
+// distance - full from the eye out to thinFrom, easing down to farShare at
+// thinTo and beyond. A tile's blades are in random order, so a share of them
+// is the same meadow, thinner.
+struct GrassDensity final
+{
+    int tilesAround = 2;
+    float nearShare = 1.f;
+    float farShare = 1.f;
+    float thinFrom = std::numeric_limits<float>::max();
+    float thinTo = std::numeric_limits<float>::max();
+};
+
+// The tallest a blade stands and the furthest it leans, with room to spare:
+// what a tile's box has to hold for culling never to clip a blade.
+constexpr auto bladeReach = 1.f;
+
+// One tile to draw: where its corner lies, and the share of its blades.
+struct GrassDraw final
+{
+    Maths::Vec2 corner;
+    float share = 1.f;
+};
+
+// The tiles round `focus` that can be seen through `viewProjection`, nearest
+// the eye first, each with the share of blades `density` gives its distance.
+Vector<GrassDraw> planGrass(Maths::Vec2 focus,
+                            const Maths::Mat4& viewProjection,
+                            const Maths::Vec3& eye,
+                            const GrassDensity& density);
+
+// How many of `available` blades a draw of `share` keeps, never fewer than one
+// while there are any.
+int bladesToDraw(int available, float share);
 
 // The meadow tile laid over a level: tiles that cross a gap are cut, once,
 // and kept; the rest are the tile itself.

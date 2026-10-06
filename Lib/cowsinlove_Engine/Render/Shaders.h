@@ -37,16 +37,19 @@ struct SkyShader final
 };
 
 // Every mesh in the scene but the grass and the title, drawn instanced: each
-// instance brings its own transform and material.
-struct SurfaceShader final
-    : ShaderProgram
-    , SceneUniforms
+// instance brings its own transform and material. Without `spotted` it draws
+// no cow patchwork, whatever the material's spots say, and so spares the
+// noise behind it on everything that has none.
+struct SurfaceShader final : LitProgram
 {
-    SurfaceShader();
+    explicit SurfaceShader(int shadowTapsToUse = fullShadowTaps,
+                           bool spottedToUse = true);
 
     void define() override;
 
     void reflectMembers(ShaderVisitor& visitor) override { visitScene(visitor); }
+
+    bool spotted = true;
 };
 
 // Writes the key light's depth for everything that casts a shadow.

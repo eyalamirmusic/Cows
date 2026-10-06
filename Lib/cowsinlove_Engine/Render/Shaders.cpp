@@ -41,8 +41,10 @@ void SkyShader::define()
     setFragment(float4(Shading::toDisplay(sky + warm * glow), 1.f));
 }
 
-SurfaceShader::SurfaceShader()
+SurfaceShader::SurfaceShader(int shadowTapsToUse, bool spottedToUse)
+    : spotted(spottedToUse)
 {
+    shadowTaps = shadowTapsToUse;
     compile();
 }
 
@@ -72,16 +74,21 @@ void SurfaceShader::define()
 
     auto surface = varying(world);
     auto surfaceNormal = normalize(varying(worldNormal));
-    auto patternPosition = varying(transformed(pattern, position));
     auto color = varying(instanceInput(&SurfaceInstance::color, 1));
     auto material = varying(instanceInput(&SurfaceInstance::material, 1));
     auto mist = varying(instanceInput(&SurfaceInstance::mist, 1));
 
-    auto blotch = Shading::valueNoise(patternPosition * 1.8f) * 0.72f
-                  + Shading::valueNoise(patternPosition * 4.6f) * 0.28f;
-    auto edge = fwidth(blotch) + 0.004f;
-    auto spots = smoothstep(spotThreshold - edge, spotThreshold + edge, blotch)
-                 * material.x();
+    auto spots = constant(0.f);
+
+    if (spotted)
+    {
+        auto patternPosition = varying(transformed(pattern, position));
+        auto blotch = Shading::valueNoise(patternPosition * 1.8f) * 0.72f
+                      + Shading::valueNoise(patternPosition * 4.6f) * 0.28f;
+        auto edge = fwidth(blotch) + 0.004f;
+        spots = smoothstep(spotThreshold - edge, spotThreshold + edge, blotch)
+                * material.x();
+    }
 
     auto spotColor = float3(constant(0.012f), 0.011f, 0.014f);
     auto albedo = mix(color.xyz(), spotColor, spots);

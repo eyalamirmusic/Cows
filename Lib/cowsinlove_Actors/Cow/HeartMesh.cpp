@@ -8,8 +8,8 @@ namespace Cows
 {
 namespace
 {
-constexpr auto outlineSteps = 120;
-constexpr auto inflateSteps = 28;
+constexpr auto fullOutlineSteps = 120;
+constexpr auto fullInflateSteps = 28;
 constexpr auto thickness = 0.5f;
 constexpr Vec2 center {0.f, 0.05f};
 
@@ -54,9 +54,11 @@ void smoothNormals(MeshData& mesh)
 }
 } // namespace
 
-MeshData makeHeart()
+MeshData makeHeart(float detail)
 {
     auto mesh = MeshData {};
+    auto outlineSteps = detailed(fullOutlineSteps, detail);
+    auto inflateSteps = detailed(fullInflateSteps, detail);
 
     for (auto layer = 0; layer <= inflateSteps; ++layer)
     {

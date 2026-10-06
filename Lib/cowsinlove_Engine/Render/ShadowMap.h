@@ -9,7 +9,9 @@ namespace Cows
 // can see.
 struct ShadowMap final
 {
-    ShadowMap();
+    static constexpr auto fullResolution = 2048;
+
+    explicit ShadowMap(int resolution = fullResolution);
 
     Maths::Mat4 lightViewProjection(const Maths::Vec3& towardLight,
                                     const Maths::Vec3& around) const;

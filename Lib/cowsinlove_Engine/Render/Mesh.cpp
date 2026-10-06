@@ -430,6 +430,12 @@ MeshData makeCone(int segments)
     return mesh;
 }
 
+int detailed(int count, float detail, int least)
+{
+    auto steps = 4 * (int) std::lround((float) count * detail / 4.f);
+    return std::max(std::min(least, count), steps);
+}
+
 MeshData makeBox()
 {
     auto mesh = MeshData {};
@@ -566,6 +572,17 @@ Mesh::Mesh(const MeshData& data)
     : vertices(makeVertexBuffer(data))
     , indices(makeIndexBuffer(data))
     , indexCount(data.indices.size())
+    , radius(boundingRadius(data))
 {
+}
+
+float boundingRadius(const MeshData& data)
+{
+    auto furthest = 0.f;
+
+    for (const auto& vertex: data.vertices)
+        furthest = std::max(furthest, length(vertex.position));
+
+    return furthest;
 }
 } // namespace Cows

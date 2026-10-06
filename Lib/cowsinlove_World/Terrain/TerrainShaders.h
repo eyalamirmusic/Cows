@@ -8,29 +8,31 @@
 namespace Cows
 {
 // Each contact is (x, z, strength): the soft dark patch right under a cow.
-struct GroundShader final
-    : ShaderProgram
-    , SceneUniforms
+//
+// With `cheapNoise` the meadow's two octaves come from a NoiseLattice
+// (bound as `noise`) in two filtered fetches instead of sixteen sines.
+struct GroundShader final : LitProgram
 {
-    GroundShader();
+    explicit GroundShader(int shadowTapsToUse = fullShadowTaps,
+                          bool cheapNoiseToUse = false);
 
     void define() override;
 
     void reflectMembers(ShaderVisitor& visitor) override
     {
         visitScene(visitor);
-        EACP_GPU_FIELDS(visitor, firstContact, secondContact)
+        EACP_GPU_FIELDS(visitor, firstContact, secondContact, noise)
     }
 
     Uniform<Float3> firstContact;
     Uniform<Float3> secondContact;
+    Uniform<Texture2D> noise;
+    bool cheapNoise = false;
 };
 
-struct GrassShader final
-    : ShaderProgram
-    , SceneUniforms
+struct GrassShader final : LitProgram
 {
-    GrassShader();
+    explicit GrassShader(int shadowTapsToUse = fullShadowTaps);
 
     void define() override;
 
