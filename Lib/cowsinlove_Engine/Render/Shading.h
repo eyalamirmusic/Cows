@@ -43,6 +43,10 @@ Float3 toDisplay(const Float3& linear);
 Float hash(const Float3& cell);
 Float valueNoise(const Float3& position);
 
+// valueNoise's kind of noise, hashed by multiplies and fract instead of a sine
+// per corner: the same look in a different pattern, for a cheaper tier.
+Float quickValueNoise(const Float3& position);
+
 // valueNoise at a fixed z, read from NoiseLattice in one filtered fetch where
 // valueNoise takes eight sines. `plane` picks the lattice channel (see
 // latticePlanes). The same noise, give or take the hash's last bits and the

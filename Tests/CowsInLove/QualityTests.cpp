@@ -2,8 +2,6 @@
 
 #include <NanoTest/NanoTest.h>
 
-#include <eacp/Core/Utils/Files.h>
-
 using namespace nano;
 using namespace Cows;
 
@@ -13,7 +11,9 @@ auto tHighIsTheGame = test("Quality/highIsTheGameAsDesigned") = []
     auto design = GrassDensity {};
 
     check(high.samples == 4);
-    check(!high.cheapNoise);
+    check(!high.cheapGroundNoise);
+    check(!high.quickGrassNoise);
+    check(high.bladeSegments == 5);
     check(high.shadowTaps == 16);
     check(high.shadowResolution == 2048);
     check(high.renderScale == 1.f);
@@ -26,7 +26,7 @@ auto tHighIsTheGame = test("Quality/highIsTheGameAsDesigned") = []
 auto tLowerCostsLess = test("Quality/eachTierAsksNoMoreThanTheOneAbove") = []
 {
     auto low = settingsFor(Quality::Low);
-    auto mid = settingsFor(Quality::Mid);
+    auto mid = settingsFor(Quality::Medium);
     auto high = settingsFor(Quality::High);
 
     check(low.samples <= mid.samples && mid.samples <= high.samples);
@@ -47,30 +47,38 @@ auto tLowIsCheap = test("Quality/lowDropsMsaaAndTheFarGrass") = []
 {
     auto low = settingsFor(Quality::Low);
     check(low.samples == 1);
-    check(low.cheapNoise);
+    check(low.cheapGroundNoise);
     check(low.shadowTaps == 4);
     check(low.grass.farShare == 0.f);
 };
 
 auto tNames = test("Quality/namesRoundTrip") = []
 {
-    for (auto quality: {Quality::Low, Quality::Mid, Quality::High})
+    for (auto quality: {Quality::Low, Quality::Medium, Quality::High})
         check(qualityNamed(qualityName(quality)) == quality);
 
     check(qualityNamed(" LOW\n") == Quality::Low);
+    check(qualityNamed("mid") == Quality::Medium);
     check(!qualityNamed("ultra").has_value());
     check(!qualityNamed("").has_value());
 };
 
-auto tSaved = test("Quality/savesAndLoadsBesideTheSkin") = []
+auto tChoices = test("Quality/choicesPickTheirTier") = []
 {
-    auto directory = FilePath::tempDirectory() / "CowsQualityTest";
-    auto file = qualityFile(directory);
+    check(!chosenQuality(QualityChoice::Auto).has_value());
+    check(chosenQuality(QualityChoice::Low) == Quality::Low);
+    check(chosenQuality(QualityChoice::Medium) == Quality::Medium);
+    check(chosenQuality(QualityChoice::High) == Quality::High);
+    check(choiceLabel(QualityChoice::Medium) == "Medium");
+};
 
-    check(file == directory / "Quality.txt");
-    check(saveQuality(Quality::Mid, file));
-    check(loadQuality(file) == Quality::Mid);
+auto tToUse = test("Quality/forcedThenChosenThenMeasured") = []
+{
+    auto low = std::optional<Quality> {Quality::Low};
+    auto none = std::optional<Quality> {};
 
-    Files::removeAll(directory);
-    check(!loadQuality(file).has_value());
+    check(qualityToUse(Quality::High, QualityChoice::Low, low) == Quality::High);
+    check(qualityToUse(none, QualityChoice::Medium, low) == Quality::Medium);
+    check(qualityToUse(none, QualityChoice::Auto, low) == Quality::Low);
+    check(!qualityToUse(none, QualityChoice::Auto, none).has_value());
 };

@@ -13,7 +13,6 @@ namespace Cows
 {
 namespace
 {
-constexpr auto bladeSegments = 5;
 constexpr auto bladeColumns = 3;
 constexpr auto rimMargin = 0.15f;
 
@@ -65,7 +64,7 @@ bool nearGap(const Vector<Gap>& gaps, Vec2 point)
 }
 } // namespace
 
-Blade makeBlade()
+Blade makeBlade(int bladeSegments)
 {
     auto blade = Blade {};
 
