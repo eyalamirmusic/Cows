@@ -378,11 +378,10 @@ aligned; the .so is linked with 16 KB pages through
   `hasFragileUserData="false"`, touchscreen and portrait features, every
   screen size). versionName = project version, versionCode =
   `COWS_BUILD_NUMBER`, targetSdk 36.
-- **minSdk 33** (Android 13, August 2022), in line with the macOS and
-  Windows floors. The code needs 29 (`AChoreographer_postFrameCallback64`),
-  and the real device floor is the Vulkan 1.1 `uses-feature` Play filters
-  on. `tools/android.sh` builds
-  at 33 too.
+- **minSdk 30** (Android 11), covering devices such as the Galaxy A40 while
+  staying above the code's API 29 floor (`AChoreographer_postFrameCallback64`).
+  The real device floor is the Vulkan 1.1 `uses-feature` Play filters
+  on. `tools/android.sh` builds at 30 too.
 - `allowBackup="false"`: the game saves nothing; the only file it writes is
   the Vulkan pipeline cache.
 - Icon: adaptive only (minSdk ≥ 26), from the CowsArt icon render framed for

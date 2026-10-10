@@ -3,14 +3,14 @@
     "configurePresets": [
         {
             "name": "android",
-            "displayName": "Android arm64-v8a, API 33, Release",
+            "displayName": "Android arm64-v8a, API 30, Release",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build-android",
             "toolchainFile": "${sourceDir}/CMake/AndroidToolchain.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "ANDROID_ABI": "arm64-v8a",
-                "ANDROID_PLATFORM": "android-33"
+                "ANDROID_PLATFORM": "android-30"
             }
         }
     ],

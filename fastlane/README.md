@@ -23,6 +23,14 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 Validate the Google Play Publishing API credential
 
+### android check_access
+
+```sh
+[bundle exec] fastlane android check_access
+```
+
+Check read access to the app's internal Play track
+
 ### android upload
 
 ```sh

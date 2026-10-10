@@ -29,10 +29,13 @@ if (ANDROID)
     # same installed platform so an older local SDK cannot silently generate a
     # bundle that Play rejects.
     set(COWS_ANDROID_TARGET_SDK 36 CACHE STRING "Android target/compile SDK")
+    set(COWS_ANDROID_MIN_SDK 30 CACHE STRING "Oldest supported Android SDK")
     set(EACP_ANDROID_TARGET_SDK "${COWS_ANDROID_TARGET_SDK}" CACHE STRING
             "targetSdk selected by Cows" FORCE)
     set(EACP_ANDROID_COMPILE_SDK "${COWS_ANDROID_TARGET_SDK}" CACHE STRING
             "compileSdk selected by Cows" FORCE)
+    set(EACP_ANDROID_MIN_SDK "${COWS_ANDROID_MIN_SDK}" CACHE STRING
+            "minSdk selected by Cows" FORCE)
 endif ()
 
 # eacp supplies both the GPU module and the CMake helpers every target here is
