@@ -31,6 +31,11 @@ bool opensDressing()
     return getEnvValue("COWS_DRESS") == "1";
 }
 
+bool opensSettings()
+{
+    return getEnvValue("COWS_SETTINGS") == "1";
+}
+
 float titlebarClearance()
 {
     return Platform::isMac() ? 28.f : 0.f;
@@ -43,12 +48,12 @@ std::string versionText()
 } // namespace
 
 CowsApp::CowsApp()
-    : window {root, windowOptions()}
+    : scene {saved.quality}
+    , window {root, windowOptions()}
 {
     root.addSubview(scene);
     scene.gameInput = &gameInput;
     scene.menu = &menu;
-    scene.editor = &editor;
 
     showMainMenu();
     menu.onChoose = [this](int index)
@@ -62,23 +67,43 @@ CowsApp::CowsApp()
         if (index == 0)
             scene.startGame();
         else if (index == 1)
-            scene.openEditor();
+            scene.openEditor(editor);
+        else if (index == 2)
+            scene.openEditor(settingsPanel);
         else
             showAbout();
     };
 
     for (const auto& item: itemClasses())
-        editor.rows.add({item.name, item.choices, item.choice(skin)});
+        editor.rows.add({item.name, item.choices, item.choice(saved.skin)});
 
     editor.topClearance = titlebarClearance();
-    editor.onStep = [this](int row, int by) { dress(stepped(skin, row, by)); };
+    editor.onStep = [this](int row, int by) { dress(stepped(saved.skin, row, by)); };
     editor.onDone = [this] { scene.closeEditor(); };
     editor.onControl = [this](const ControlEvent& event)
     {
         scene.useHints(scene.pointerHints);
         scene.control(event);
     };
-    scene.wear(skin);
+
+    settingsPanel.title = "Settings";
+    settingsPanel.rows.add({"Quality", {}, 0});
+    settingsPanel.topClearance = editor.topClearance;
+    settingsPanel.onStep = [this](int, int by)
+    {
+        auto next = ((int) scene.qualityPreference.chosen + by + qualityChoices)
+                    % qualityChoices;
+        scene.chooseQuality((QualityChoice) next);
+    };
+    settingsPanel.onDone = [this] { scene.closeEditor(); };
+    settingsPanel.onControl = editor.onControl;
+    showQuality();
+    scene.wear(saved.skin);
+    scene.onQualityChanged = [this]
+    {
+        saved.quality = scene.qualityPreference;
+        save();
+    };
 
     root.onKeyDown = [this](const Graphics::KeyEvent& event)
     { scene.keyDown(event); };
@@ -113,15 +138,19 @@ CowsApp::CowsApp()
         menu.setShowing(owner == InputOwner::Menu);
         menu.hovered = -1;
         menu.pressed = -1;
-        editor.setShowing(owner == InputOwner::Editor);
-        editor.hovered = {};
-        editor.pressed = {};
+        for (auto* each: {&editor, &settingsPanel})
+        {
+            each->setShowing(owner == InputOwner::Editor && scene.editor == each);
+            each->hovered = {};
+            each->pressed = {};
+        }
 
         if (menu.isShowing())
             menu.showSelection = isGamepad(scene.hints);
 
-        if (editor.isShowing())
-            editor.showSelection = isGamepad(scene.hints);
+        for (auto* each: {&editor, &settingsPanel})
+            if (each->isShowing())
+                each->showSelection = isGamepad(scene.hints);
     };
 
     if (touchScreen)
@@ -139,8 +168,12 @@ CowsApp::CowsApp()
         {
             menu.opacity = scene.menuOpacity();
             menu.draw(hud);
-            editor.opacity = scene.editorOpacity();
-            editor.draw(hud);
+            if (scene.editor != nullptr)
+            {
+                showQuality();
+                scene.editor->opacity = scene.editorOpacity();
+                scene.editor->draw(hud);
+            }
         }
 
         if (scene.inputOwner() != InputOwner::Play)
@@ -155,6 +188,7 @@ CowsApp::CowsApp()
 
     root.addSubview(menu);
     root.addSubview(editor);
+    root.addSubview(settingsPanel);
 
     if (opensOnMenu())
         scene.openMenu(false);
@@ -162,7 +196,9 @@ CowsApp::CowsApp()
         menu.setShowing(false);
 
     if (opensOnMenu() && opensDressing())
-        scene.openEditor();
+        scene.openEditor(editor);
+    else if (opensOnMenu() && opensSettings())
+        scene.openEditor(settingsPanel);
 }
 
 void CowsApp::showMainMenu()
@@ -171,6 +207,7 @@ void CowsApp::showMainMenu()
     menu.items.clear();
     menu.items.add({"Start", "", true});
     menu.items.add({"Dress Your Cow", "", true});
+    menu.items.add({"Settings", "", true});
     menu.items.add({"About", "", true});
     menu.selected = 0;
     menu.hovered = -1;
@@ -189,12 +226,31 @@ void CowsApp::showAbout()
 
 void CowsApp::dress(const CowSkin& next)
 {
-    skin = next;
-    scene.wear(skin);
+    saved.skin = next;
+    scene.wear(saved.skin);
     showSkin();
+    save();
+}
 
-    if (!saveCowSkin(skin, skinFile))
-        LOG("Cows: could not save ", skinFile.str());
+void CowsApp::save()
+{
+    if (!saveSettings(saved, savedFile))
+        LOG("Cows: could not save ", savedFile.str());
+}
+
+void CowsApp::showQuality()
+{
+    auto& row = settingsPanel.rows[0];
+    row.choices.clear();
+
+    for (auto index = 0; index < qualityChoices; ++index)
+        row.choices.add(choiceLabel((QualityChoice) index));
+
+    if (scene.qualityPreference.chosen == QualityChoice::Auto && !scene.measuring)
+        row.choices[0] =
+            "Auto: " + choiceLabel((QualityChoice) ((int) scene.quality + 1));
+
+    row.choice = (int) scene.qualityPreference.chosen;
 }
 
 void CowsApp::showSkin()
@@ -202,6 +258,6 @@ void CowsApp::showSkin()
     const auto& classes = itemClasses();
 
     for (auto index = 0; index < (int) classes.size(); ++index)
-        editor.rows[index].choice = classes[index].choice(skin);
+        editor.rows[index].choice = classes[index].choice(saved.skin);
 }
 } // namespace Cows

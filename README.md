@@ -19,16 +19,27 @@ hats: top hat, cowboy hat, party hat, beanie, crown, the frog hat, a cow-print
 bucket hat with horns and ears, a traffic cone, and a starry wizard hat; and
 denim pants on both pairs of legs or on the back legs only.
 
-Every change is saved at once to `CowSkin.json` in the app's support folder,
-`~/Library/Application Support/Cows In Love/CowSkin.json` on macOS, as
-enumerator names so it can be read and edited by hand:
+Settings, from the start menu, picks the graphics quality: Auto (the tier
+this device measured on its first run), Low, Medium or High. It changes at
+once.
+
+Every change to either is saved at once to `settings.json` in the app's
+support folder, `~/Library/Application Support/Cows In Love/settings.json` on
+macOS, as enumerator names so it can be read and edited by hand:
 
 ```json
 {
-    "hat": "FrogHat",
-    "pants": "BackLegs"
+    "skin": {
+        "hat": "FrogHat",
+        "pants": "BackLegs"
+    },
+    "quality": {
+        "chosen": "Auto",
+        "measured": "Low"
+    }
 }
 ```
 
 A missing or unreadable file, or a name the game does not know, starts her
-bare. `COWS_DRESS=1` opens straight into the editor.
+bare on Auto. `COWS_DRESS=1` opens straight into the editor, `COWS_SETTINGS=1`
+into Settings.

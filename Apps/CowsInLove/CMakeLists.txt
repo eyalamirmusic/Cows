@@ -12,9 +12,11 @@ set(COWS_DISPLAY_NAME "Cows In Love")
 eacp_add_app(Cows
         Source/Main.cpp
         Source/CowsApp.cpp
+        Source/Settings.cpp
         Source/Stages.cpp
         Source/Templates.cpp
         Source/Scene/CowsView.cpp
+        Source/Scene/Quality.cpp
         BUNDLE_ID ${COWS_BUNDLE_ID}
         DISPLAY_NAME "${COWS_DISPLAY_NAME}"
         VERSION_CODE ${COWS_BUILD_NUMBER}

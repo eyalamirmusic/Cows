@@ -111,3 +111,82 @@ auto tGrassSnapshot = test("Grass/snapshot") = []
 
     check(middleHasGrass(image));
 };
+
+namespace
+{
+Mat4 chaseView(Vec3 eye, Vec3 target)
+{
+    auto projection = Mat4::perspective(0.48f, 1.2f, 0.1f, 300.f);
+    return projection * Mat4::lookAt(eye, target, {0.f, 1.f, 0.f});
+}
+
+Mat4 seesEverything()
+{
+    return Mat4::orthographic(-500.f, 500.f, -500.f, 500.f, -500.f, 500.f);
+}
+} // namespace
+
+auto tPlanAll = test("Grass/planKeepsEveryTileInView") = []
+{
+    auto plan = planGrass({0.f, 0.f}, seesEverything(), {0.f, 10.f, 0.f}, {});
+    check(plan.size() == 16);
+
+    for (const auto& draw: plan)
+        check(draw.share == 1.f);
+};
+
+auto tPlanCull = test("Grass/planDropsTilesBehindTheCamera") = []
+{
+    auto eye = Vec3 {0.f, 4.f, 6.f};
+    auto plan = planGrass({0.f, 0.f}, chaseView(eye, {0.f, 2.f, 0.f}), eye, {});
+
+    check(!plan.empty());
+    check(plan.size() < 16);
+
+    for (const auto& draw: plan)
+        check(draw.corner.y <= eye.z + bladeReach);
+};
+
+auto tPlanOrder = test("Grass/planDrawsTheNearestTilesFirst") = []
+{
+    auto eye = Vec3 {3.f, 4.f, 6.f};
+    auto plan = planGrass({0.f, 0.f}, seesEverything(), eye, {});
+
+    auto distance = [&](Vec2 corner)
+    {
+        auto nearest = Vec2 {std::clamp(eye.x, corner.x, corner.x + meadowTile),
+                             std::clamp(eye.z, corner.y, corner.y + meadowTile)};
+        return length(Vec2 {eye.x, eye.z} - nearest);
+    };
+
+    for (auto index = 1; index < (int) plan.size(); ++index)
+        check(distance(plan[(size_t) index - 1].corner)
+              <= distance(plan[(size_t) index].corner));
+};
+
+auto tPlanThins = test("Grass/planThinsTilesWithDistance") = []
+{
+    auto density = GrassDensity {};
+    density.nearShare = 0.5f;
+    density.farShare = 0.1f;
+    density.thinFrom = 10.f;
+    density.thinTo = 30.f;
+
+    auto plan = planGrass({0.f, 0.f}, seesEverything(), {1.f, 2.f, 1.f}, density);
+
+    check(plan.front().share == 0.5f);
+    check(plan.back().share == 0.1f);
+
+    for (const auto& draw: plan)
+        check(draw.share <= 0.5f && draw.share >= 0.1f);
+};
+
+auto tBladesToDraw = test("Grass/bladesToDrawKeepsAShare") = []
+{
+    check(bladesToDraw(14000, 1.f) == 14000);
+    check(bladesToDraw(14000, 0.25f) == 3500);
+    check(bladesToDraw(10, 0.01f) == 1);
+    check(bladesToDraw(10, 0.f) == 0);
+    check(bladesToDraw(0, 1.f) == 0);
+    check(bladesToDraw(10, 2.f) == 10);
+};

@@ -1,16 +1,12 @@
 #include "Cow/CowSkin.h"
 
-#include <eacp/Core/Utils/Files.h>
-
 #include <algorithm>
 #include <cctype>
-#include <exception>
 
 namespace Cows
 {
 namespace
 {
-constexpr auto fileName = "CowSkin.json";
 constexpr auto indent = 4;
 
 template <typename Item>
@@ -56,16 +52,6 @@ Vector<ItemClass> makeItemClasses()
     return classes;
 }
 
-CowSkin withNamedChoices(CowSkin skin)
-{
-    const auto defaults = CowSkin {};
-
-    for (const auto& item: itemClasses())
-        if (item.choice(skin) < 0)
-            item.choose(skin, item.choice(defaults));
-
-    return skin;
-}
 } // namespace
 
 const Vector<ItemClass>& itemClasses()
@@ -119,36 +105,14 @@ CowSkin cowSkinFromJSON(std::string_view text)
     return withNamedChoices(Miro::createFromJSONString<CowSkin>(text));
 }
 
-FilePath cowSkinFile()
+CowSkin withNamedChoices(CowSkin skin)
 {
-    return cowSkinFile(FilePath::appSupportDirectory());
-}
+    const auto defaults = CowSkin {};
 
-FilePath cowSkinFile(const FilePath& directory)
-{
-    return directory / fileName;
-}
+    for (const auto& item: itemClasses())
+        if (item.choice(skin) < 0)
+            item.choose(skin, item.choice(defaults));
 
-CowSkin loadCowSkin(const FilePath& file)
-{
-    return cowSkinFromJSON(Files::readFile(file));
-}
-
-bool saveCowSkin(const CowSkin& skin, const FilePath& file)
-{
-    auto text = toJSON(skin) + "\n";
-    auto bytes = Span<const std::uint8_t> {
-        reinterpret_cast<const std::uint8_t*>(text.data()), text.size()};
-
-    try
-    {
-        Files::createDirectories(file.parentDirectory());
-        Files::writeFileAtomically(file, bytes);
-        return true;
-    }
-    catch (const std::exception&)
-    {
-        return false;
-    }
+    return skin;
 }
 } // namespace Cows

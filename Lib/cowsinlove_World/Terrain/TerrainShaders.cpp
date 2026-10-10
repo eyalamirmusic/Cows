@@ -6,8 +6,11 @@ using namespace Maths;
 
 namespace Cows
 {
-GroundShader::GroundShader()
+GroundShader::GroundShader(int shadowTapsToUse, bool cheapNoiseToUse)
+    : cheapNoise(cheapNoiseToUse)
 {
+    shadowTaps = shadowTapsToUse;
+    noise.sampling = latticeSampling;
     compile();
 }
 
@@ -20,8 +23,10 @@ void GroundShader::define()
     auto ground = world.xz();
     auto up = float3(constant(0.f), 1.f, 0.f);
 
-    auto broad = Shading::valueNoise(float3(ground * 0.22f, 0.5f));
-    auto fine = Shading::valueNoise(float3(ground * 1.7f, 2.5f));
+    auto broad = cheapNoise ? Shading::latticeNoise(noise, ground * 0.22f, 0)
+                            : Shading::valueNoise(float3(ground * 0.22f, 0.5f));
+    auto fine = cheapNoise ? Shading::latticeNoise(noise, ground * 1.7f, 1)
+                           : Shading::valueNoise(float3(ground * 1.7f, 2.5f));
     auto meadow = broad * 0.7f + fine * 0.3f;
 
     auto deep = float3(constant(0.004f), 0.1f, 0.006f);
@@ -46,13 +51,21 @@ void GroundShader::define()
         float4(Shading::toDisplay(Shading::withHaze(*this, lit, world)), 1.f));
 }
 
-GrassShader::GrassShader()
+GrassShader::GrassShader(int shadowTapsToUse, bool quickNoiseToUse)
+    : quickNoise(quickNoiseToUse)
 {
+    shadowTaps = shadowTapsToUse;
     compile();
 }
 
 void GrassShader::define()
 {
+    auto noiseOf = [this](const Float3& position)
+    {
+        return quickNoise ? Shading::quickValueNoise(position)
+                          : Shading::valueNoise(position);
+    };
+
     auto shape = vertexInput(&BladeVertex::shape);
     auto placement = instanceInput(&BladeInstance::placement, 1);
     auto look = instanceInput(&BladeInstance::look, 1);
@@ -67,10 +80,10 @@ void GrassShader::define()
     auto seed = form.w();
 
     auto ground = float2(base.x(), base.z());
-    auto patch = Shading::valueNoise(float3(ground * 0.07f, 3.5f)) * 0.65f
-                 + Shading::valueNoise(float3(ground * 0.19f, 7.5f)) * 0.35f;
+    auto patch = noiseOf(float3(ground * 0.07f, 3.5f)) * 0.65f
+                 + noiseOf(float3(ground * 0.19f, 7.5f)) * 0.35f;
     auto dry = smoothstep(0.36f, 0.56f, patch);
-    auto clump = Shading::valueNoise(float3(ground * 0.55f, 11.5f));
+    auto clump = noiseOf(float3(ground * 0.55f, 11.5f));
     auto thinned = step(seed, 1.f - dry * 0.45f - (1.f - clump) * 0.25f);
 
     auto height = (placement.w() + 0.16f * clump) * (1.1f - 0.35f * dry) * thinned;
@@ -118,9 +131,9 @@ void GrassShader::define()
     auto distance = length(eyePosition - surface);
     auto detail = 1.f - smoothstep(4.f, 14.f, distance);
 
-    auto streaks = Shading::valueNoise(
-        float3(x * 3.5f + blade.w() * 97.f, tip * 2.5f, blade.w() * 31.f));
-    auto mottle = Shading::valueNoise(surface * 7.f);
+    auto streaks =
+        noiseOf(float3(x * 3.5f + blade.w() * 97.f, tip * 2.5f, blade.w() * 31.f));
+    auto mottle = noiseOf(surface * 7.f);
     auto rib = 1.f - smoothstep(0.f, 0.35f, abs(x));
     auto edge = smoothstep(0.6f, 1.f, abs(x));
 

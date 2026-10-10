@@ -4,26 +4,30 @@ namespace Cows
 {
 namespace
 {
-MeshData makeSolid(Shape shape, const std::function<MeshData(Shape)>& content)
+MeshData makeSolid(Shape shape,
+                   const std::function<MeshData(Shape)>& content,
+                   float detail)
 {
+    auto steps = [detail](int count) { return detailed(count, detail); };
+
     switch (shape)
     {
         case Shape::Sphere:
-            return makeSphere(32, 48);
+            return makeSphere(steps(32), steps(48));
         case Shape::Capsule:
-            return makeCapsule(0.14f, 32);
+            return makeCapsule(0.14f, steps(32));
         case Shape::Horn:
-            return makeHorn(24);
+            return makeHorn(steps(24));
         case Shape::Barrel:
-            return makeBarrel(48);
+            return makeBarrel(steps(48));
         case Shape::Box:
             return makeBox();
         case Shape::Wedge:
             return makeWedge();
         case Shape::Cylinder:
-            return makeCylinder(32);
+            return makeCylinder(steps(32));
         case Shape::Cone:
-            return makeCone(32);
+            return makeCone(steps(32));
         case Shape::Heart:
         case Shape::Belly:
         case Shape::BellyBand:
@@ -41,10 +45,10 @@ MeshData makeSolid(Shape shape, const std::function<MeshData(Shape)>& content)
 }
 } // namespace
 
-ShapeMeshes::ShapeMeshes(const std::function<MeshData(Shape)>& content)
+ShapeMeshes::ShapeMeshes(const std::function<MeshData(Shape)>& content, float detail)
 {
     for (auto index = 0; index < shapeCount; ++index)
-        meshes.add(Mesh {makeSolid((Shape) index, content)});
+        meshes.add(Mesh {makeSolid((Shape) index, content, detail)});
 }
 
 const Mesh& ShapeMeshes::operator[](Shape shape) const

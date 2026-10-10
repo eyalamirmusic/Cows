@@ -4,12 +4,15 @@
 
 #include <array>
 #include <chrono>
+#include <string>
 
 namespace Cows
 {
-// COWS_PROFILE=1: once a second, logs the frame interval (average, p95, max),
-// frames per second, and the CPU time of each part of a frame. Off, every call
-// is one branch.
+// COWS_PROFILE=1: once a second, logs the frame interval (average, p95, p99, max),
+// frames per second, the CPU time of each part of a frame, and the GPU time
+// of the frame and of each labelled pass, and the instances and triangles
+// drawn per frame in the shadow and scene passes. Off, every call is one
+// branch.
 struct FrameProfile final
 {
     enum class Part
@@ -19,6 +22,13 @@ struct FrameProfile final
         Shadows,
         Scene,
         Hud,
+        Count
+    };
+
+    enum class Pass
+    {
+        Shadows,
+        Scene,
         Count
     };
 
@@ -38,15 +48,22 @@ struct FrameProfile final
 
     void frameStarted();
     void add(Part part, double milliseconds);
+    void drew(Pass pass, int instances, int triangles);
 
     void report(Clock::time_point now);
+    std::string passesText() const;
 
     static constexpr auto maxFrames = 1024;
+    static constexpr auto maxPasses = 4;
 
     std::array<double, maxFrames> intervals {};
     std::array<double, (int) Part::Count> totals {};
+    std::array<double, (int) Pass::Count> instances {};
+    std::array<double, (int) Pass::Count> triangles {};
     int frames = 0;
     double gpuMilliseconds = 0.0;
+    std::array<double, maxPasses> gpuPasses {};
+    std::array<std::string, maxPasses> gpuPassLabels {};
     int gpuSamples = 0;
     Clock::time_point lastFrame;
     Clock::time_point windowStart;

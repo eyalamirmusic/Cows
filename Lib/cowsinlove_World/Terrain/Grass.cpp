@@ -1,5 +1,9 @@
 #include "Terrain/Grass.h"
 
+#include "Render/Frustum.h"
+
+#include <algorithm>
+
 #include <cmath>
 #include <random>
 
@@ -9,7 +13,6 @@ namespace Cows
 {
 namespace
 {
-constexpr auto bladeSegments = 5;
 constexpr auto bladeColumns = 3;
 constexpr auto rimMargin = 0.15f;
 
@@ -28,6 +31,25 @@ bool crossesGap(const Vector<Gap>& gaps, Vec2 corner)
     return false;
 }
 
+float distanceToTile(Vec2 point, Vec2 corner)
+{
+    auto nearest = Vec2 {std::clamp(point.x, corner.x, corner.x + meadowTile),
+                         std::clamp(point.y, corner.y, corner.y + meadowTile)};
+    return length(point - nearest);
+}
+
+float shareAt(const GrassDensity& density, float distance)
+{
+    if (distance <= density.thinFrom)
+        return density.nearShare;
+
+    if (distance >= density.thinTo)
+        return density.farShare;
+
+    auto along = (distance - density.thinFrom) / (density.thinTo - density.thinFrom);
+    return density.nearShare + (density.farShare - density.nearShare) * along;
+}
+
 bool nearGap(const Vector<Gap>& gaps, Vec2 point)
 {
     for (const auto& gap: gaps)
@@ -42,7 +64,7 @@ bool nearGap(const Vector<Gap>& gaps, Vec2 point)
 }
 } // namespace
 
-Blade makeBlade()
+Blade makeBlade(int bladeSegments)
 {
     auto blade = Blade {};
 
@@ -126,6 +148,60 @@ Vector<BladeInstance>
     }
 
     return blades;
+}
+
+Vector<GrassDraw> planGrass(Vec2 focus,
+                            const Mat4& viewProjection,
+                            const Vec3& eye,
+                            const GrassDensity& density)
+{
+    auto corner = Vec2 {std::round(focus.x / meadowTile) * meadowTile,
+                        std::round(focus.y / meadowTile) * meadowTile};
+    auto ground = Vec2 {eye.x, eye.z};
+
+    struct Placed
+    {
+        GrassDraw draw;
+        float distance = 0.f;
+    };
+
+    auto placed = Vector<Placed> {};
+
+    for (auto x = -density.tilesAround; x < density.tilesAround; ++x)
+        for (auto z = -density.tilesAround; z < density.tilesAround; ++z)
+        {
+            auto at = corner + Vec2 {(float) x * meadowTile, (float) z * meadowTile};
+            auto low = Vec3 {at.x - bladeReach, 0.f, at.y - bladeReach};
+            auto high = Vec3 {at.x + meadowTile + bladeReach,
+                              bladeReach,
+                              at.y + meadowTile + bladeReach};
+
+            if (!boxInView(viewProjection, low, high))
+                continue;
+
+            auto distance = distanceToTile(ground, at);
+            placed.add({{at, shareAt(density, distance)}, distance});
+        }
+
+    std::stable_sort(placed.begin(),
+                     placed.end(),
+                     [](const Placed& a, const Placed& b)
+                     { return a.distance < b.distance; });
+
+    auto draws = Vector<GrassDraw> {};
+
+    for (const auto& each: placed)
+        draws.add(each.draw);
+
+    return draws;
+}
+
+int bladesToDraw(int available, float share)
+{
+    if (available <= 0 || share <= 0.f)
+        return 0;
+
+    return std::clamp((int) std::lround((float) available * share), 1, available);
 }
 
 void GrassField::layOver(const Level& level)

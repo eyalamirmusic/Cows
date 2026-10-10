@@ -7,7 +7,7 @@ include(CPM)
 #
 # The WebView module pulls in WKWebView / WebView2 and a Node toolchain for its
 # schema codegen, none of which a GPU scene touches.
-set(COWS_EACP_TAG "8a3932fd" CACHE STRING "eacp branch, tag or commit to fetch")
+set(COWS_EACP_TAG "6db6b6e0" CACHE STRING "eacp branch, tag or commit to fetch")
 set(COWS_EACP_REPOSITORY "eyalamirmusic/eacp" CACHE STRING
         "GitHub repository to fetch eacp from")
 

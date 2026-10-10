@@ -6,9 +6,11 @@
 #include "Stages.h"
 #include "Input.h"
 #include "Pad.h"
+#include "Quality.h"
 #include "Terrain/Grass.h"
 #include "Terrain/Ground.h"
 #include "Render/Lighting.h"
+#include "Render/Shading.h"
 #include "Render/Mesh.h"
 #include "Render/ShapeMeshes.h"
 #include "Title/MenuTitle.h"
@@ -16,6 +18,8 @@
 #include "Terrain/TerrainShaders.h"
 #include "Cow/Moo.h"
 #include "Camera/OrbitCamera.h"
+#include "Render/FrameProfile.h"
+#include "Render/QualityGovernor.h"
 #include "Render/ShadowMap.h"
 #include "Render/Shaders.h"
 #include "UI/ControlEvent.h"
@@ -43,7 +47,10 @@ struct CowsView final : GPUView
         Undress
     };
 
-    CowsView();
+    // Starts at the tier `preference` names, else measures one (see
+    // QualityGovernor).
+    explicit CowsView(const QualityPreference& preference = {QualityChoice::High,
+                                                             {}});
 
     void update(Threads::FrameTime time) override;
     void render(Frame& frame) override;
@@ -59,7 +66,7 @@ struct CowsView final : GPUView
     void openMenu(bool swing = true);
     void startGame();
     InputOwner inputOwner() const;
-    void openEditor();
+    void openEditor(Editor& which);
     void swingTo(SwingGoal goal);
     void closeEditor();
     void wear(const CowSkin& skin);
@@ -88,6 +95,12 @@ struct CowsView final : GPUView
     void steerCamera(float delta, float wallDelta);
     void framePortrait(float aspect);
 
+    void chooseQuality(QualityChoice choice);
+    void applyQualityChoice();
+    void useQuality(Quality chosen);
+    void preparePipelines();
+    void measureQuality();
+
     void gatherInstances(float seconds);
     Maths::Vec3 groundFocus() const;
     void setSceneUniforms(SceneUniforms& uniforms,
@@ -96,14 +109,18 @@ struct CowsView final : GPUView
     void drawShadows(Frame& frame);
     void drawSky(RenderPass& pass, float aspect);
     void drawGround(RenderPass& pass);
-    void drawGrass(RenderPass& pass);
+    void drawGrass(RenderPass& pass, const Maths::Mat4& viewProjection);
     void drawGrassTile(RenderPass& pass,
-                       Maths::Vec2 corner,
+                       const GrassDraw& draw,
                        const Vector<BladeInstance>& blades);
     void drawTitle(RenderPass& pass);
     void drawMenuTitle(RenderPass& pass, float width, float height);
     void drawGlows(RenderPass& pass, const Maths::Mat4& viewProjection);
-    void drawBatch(RenderPass& pass, ShaderProgram& shader, SurfaceBatch& batch);
+    void drawBatch(RenderPass& pass,
+                   ShaderProgram& shader,
+                   const SurfaceBatch& batch,
+                   const Maths::Mat4& cullWith,
+                   FrameProfile::Pass counted = FrameProfile::Pass::Scene);
 
     Stages stages;
     Game game;
@@ -114,9 +131,10 @@ struct CowsView final : GPUView
     bool showedFall = false;
     Lighting lighting;
     OrbitCamera camera;
-    ShadowMap shadowMap;
+    std::optional<ShadowMap> shadowMap;
     Maths::Mat4 lightViewProjection;
 
+    QualityPreference qualityPreference;
     ShapeMeshes shapes;
     Mesh ground;
     TitleMesh title;
@@ -125,11 +143,13 @@ struct CowsView final : GPUView
     const TitleMesh* menuTitleShown = nullptr;
 
     SkyShader skyShader;
-    SurfaceShader surfaceShader;
-    SurfaceShader translucentShader;
+    std::optional<SurfaceShader> surfaceShader;
+    std::optional<SurfaceShader> plainShader;
+    std::optional<SurfaceShader> translucentShader;
     ShadowCasterShader shadowCaster;
-    GroundShader groundShader;
-    GrassShader grassShader;
+    std::optional<GroundShader> groundShader;
+    NoiseLattice noiseLattice;
+    std::optional<GrassShader> grassShader;
     TitleShader titleShader;
     TitleShader menuTitleShader;
     GlowShader glowShader;
@@ -138,7 +158,16 @@ struct CowsView final : GPUView
     Vector<CowPart> playerParts;
     Vector<Cow> cows;
     GrassField grass;
+    GrassDensity grassDensity;
+    Quality quality = Quality::High;
+    bool qualityReady = false;
+    std::optional<Quality> forcedQuality;
+    QualityGovernor governor;
+    bool measuring = false;
+    std::uint64_t lastTimedFrame = 0;
     const Vector<BladeInstance>* uploadedBlades = nullptr;
+    int bladeTriangles = 0;
+    Vector<SurfaceInstance> visible;
     SurfaceBatch chasms;
 
     SurfaceBatch cowBatch;
@@ -151,8 +180,11 @@ struct CowsView final : GPUView
     // Drawn last in the scene's pass: the footer and the touch controls.
     std::function<void(Hud&)> drawHud = [](Hud&) {};
     std::function<void()> onStateChanged = [] {};
+    // The player chose a tier, or Auto finished measuring one.
+    std::function<void()> onQualityChanged = [] {};
     Graphics::GameInput* gameInput = nullptr;
     Menu* menu = nullptr;
+    // The editor open or last open: the cow's clothes, or the settings.
     Editor* editor = nullptr;
     std::optional<float> startAfter;
     CameraPose swingFrom;

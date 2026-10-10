@@ -3,7 +3,6 @@
 #include "Render/Common.h"
 
 #include <Miro/Reflect.h>
-#include <eacp/Core/Utils/FilePath.h>
 
 #include <functional>
 #include <string>
@@ -33,7 +32,7 @@ enum class Pants
 };
 
 // What the player's cow wears: one choice per item class, saved as the
-// enumerators' names so CowSkin.json stays readable by hand.
+// enumerators' names so settings.json stays readable by hand.
 struct CowSkin final
 {
     bool operator==(const CowSkin& other) const = default;
@@ -45,7 +44,7 @@ struct CowSkin final
 };
 
 // One kind of thing to wear, as the editor shows it: `key` is its field in
-// CowSkin.json, `choices` its enumerators spelled out ("Top Hat"), in order.
+// the saved skin, `choices` its enumerators spelled out ("Top Hat"), in order.
 // `choice` is the skin's index into them, -1 when it holds no named value.
 struct ItemClass final
 {
@@ -71,13 +70,6 @@ std::string toJSON(const CowSkin& skin);
 // the default choice for an item it does not name.
 CowSkin cowSkinFromJSON(std::string_view text);
 
-// CowSkin.json in `directory`, the app's support folder unless told otherwise.
-FilePath cowSkinFile();
-FilePath cowSkinFile(const FilePath& directory);
-
-// The skin saved at `file`, or the default one when there is none to read.
-CowSkin loadCowSkin(const FilePath& file);
-
-// Writes `skin` to `file`, creating its folder; false when it could not.
-bool saveCowSkin(const CowSkin& skin, const FilePath& file);
+// `skin` with any item that holds no named choice put back to the default's.
+CowSkin withNamedChoices(CowSkin skin);
 } // namespace Cows

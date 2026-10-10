@@ -77,6 +77,14 @@ void FrameProfile::frameStarted()
     {
         gpuMilliseconds += timings.milliseconds;
         ++gpuSamples;
+
+        for (auto index = 0;
+             index < (int) timings.passes.size() && index < maxPasses;
+             ++index)
+        {
+            gpuPasses[(size_t) index] += timings.passes[(size_t) index].milliseconds;
+            gpuPassLabels[(size_t) index] = timings.passes[(size_t) index].label;
+        }
     }
 
     if (millisecondsBetween(windowStart, now) >= 1000.0)
@@ -87,6 +95,27 @@ void FrameProfile::add(Part part, double milliseconds)
 {
     if (enabled)
         totals[(size_t) part] += milliseconds;
+}
+
+void FrameProfile::drew(Pass pass, int instanceCount, int triangleCount)
+{
+    if (!enabled)
+        return;
+
+    instances[(size_t) pass] += instanceCount;
+    triangles[(size_t) pass] += (double) instanceCount * triangleCount;
+}
+
+std::string FrameProfile::passesText() const
+{
+    auto text = std::string {};
+
+    for (auto index = 0; index < maxPasses && gpuSamples > 0; ++index)
+        if (!gpuPassLabels[(size_t) index].empty())
+            text += " " + gpuPassLabels[(size_t) index] + " "
+                    + fixed(gpuPasses[(size_t) index] / gpuSamples, 2);
+
+    return text;
 }
 
 void FrameProfile::report(Clock::time_point now)
@@ -104,9 +133,15 @@ void FrameProfile::report(Clock::time_point now)
             sum += *at;
 
         auto p95 = sorted[(size_t) std::min(count - 1, (count * 95) / 100)];
+        auto p99 = sorted[(size_t) std::min(count - 1, (count * 99) / 100)];
         auto seconds = millisecondsBetween(windowStart, now) / 1000.0;
         auto perFrame = [&](Part part)
         { return fixed(totals[(size_t) part] / frames, 2); };
+        auto drawn = [&](Pass pass)
+        {
+            return fixed(instances[(size_t) pass] / frames, 0) + " / "
+                   + fixed(triangles[(size_t) pass] / frames / 1000.0, 0) + "k";
+        };
         auto gpu = gpuSamples > 0 ? fixed(gpuMilliseconds / gpuSamples, 2)
                                   : std::string {"-"};
 
@@ -116,6 +151,8 @@ void FrameProfile::report(Clock::time_point now)
             fixed(sum / count, 2),
             " p95 ",
             fixed(p95, 2),
+            " p99 ",
+            fixed(p99, 2),
             " max ",
             fixed(sorted[(size_t) count - 1], 2),
             " | cpu ms update ",
@@ -129,13 +166,21 @@ void FrameProfile::report(Clock::time_point now)
             " hud ",
             perFrame(Part::Hud),
             " | gpu ms ",
-            gpu);
+            gpu,
+            passesText(),
+            " | drawn shadows ",
+            drawn(Pass::Shadows),
+            " scene ",
+            drawn(Pass::Scene));
     }
 
     frames = 0;
     gpuMilliseconds = 0.0;
+    gpuPasses = {};
     gpuSamples = 0;
     totals = {};
+    instances = {};
+    triangles = {};
     windowStart = now;
 }
 } // namespace Cows
