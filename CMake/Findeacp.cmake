@@ -2,12 +2,13 @@ include(CPM)
 
 # Configure with -D CPM_eacp_SOURCE=<path> to build a local checkout instead of
 # the fetched one, or -D COWS_EACP_TAG=<branch|sha> to fetch another revision.
-# develop has the Android port (#84, #93), Vulkan 1.1 phones (#85, #94) and
-# the controller feed (#106).
+# This release pin combines the Android port, the Vulkan 1.1 compatibility
+# path and render scaling used by the adaptive quality tiers.
 #
 # The WebView module pulls in WKWebView / WebView2 and a Node toolchain for its
 # schema codegen, none of which a GPU scene touches.
-set(COWS_EACP_TAG "6db6b6e0" CACHE STRING "eacp branch, tag or commit to fetch")
+set(COWS_EACP_TAG "6db6b6e0ae56f5fadb7598b2566d947b4ff9512e" CACHE STRING
+        "eacp branch, tag or commit to fetch")
 set(COWS_EACP_REPOSITORY "eyalamirmusic/eacp" CACHE STRING
         "GitHub repository to fetch eacp from")
 
