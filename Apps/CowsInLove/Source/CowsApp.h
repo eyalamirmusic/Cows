@@ -15,6 +15,8 @@ struct CowsApp final
 
     void dress(const CowSkin& next);
     void showSkin();
+    void showMainMenu();
+    void showAbout();
 
     RootView root;
     CowsView scene;
@@ -24,6 +26,7 @@ struct CowsApp final
     Editor editor;
     FilePath skinFile = cowSkinFile();
     CowSkin skin = loadCowSkin(skinFile);
+    bool showingAbout = false;
     Graphics::Window window;
     Graphics::GameInput gameInput {window};
 };

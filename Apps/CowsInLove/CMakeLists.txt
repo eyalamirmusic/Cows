@@ -2,7 +2,7 @@ set(COWS_BUNDLE_ID "com.cowsinlove.play" CACHE STRING
         "Bundle identifier: set to the one registered on the publishing account")
 set(COWS_COPYRIGHT "© 2026 Cows In Love" CACHE STRING
         "The copyright line shown in Finder and the About box")
-set(COWS_BUILD_NUMBER "7" CACHE STRING
+set(COWS_BUILD_NUMBER "8" CACHE STRING
         "Build number (CFBundleVersion, Play versionCode): raise it for every upload")
 set(COWS_MAC_ENTITLEMENTS "" CACHE FILEPATH
         "Entitlements for the Mac App Store build (tools/release-mas.sh)")
@@ -45,6 +45,9 @@ if (IOS)
 endif ()
 
 target_include_directories(Cows PRIVATE Source)
+target_compile_definitions(Cows PRIVATE
+        COWS_APP_VERSION="${PROJECT_VERSION}"
+        COWS_APP_BUILD="${COWS_BUILD_NUMBER}")
 target_link_libraries(Cows PRIVATE cowsinlove_Game)
 
 # An Xcode archive keeps only what installs: the app, never the libraries it

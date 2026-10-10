@@ -35,6 +35,11 @@ float titlebarClearance()
 {
     return Platform::isMac() ? 28.f : 0.f;
 }
+
+std::string versionText()
+{
+    return std::string {"Version " COWS_APP_VERSION " (Build " COWS_APP_BUILD ")"};
+}
 } // namespace
 
 CowsApp::CowsApp()
@@ -45,14 +50,21 @@ CowsApp::CowsApp()
     scene.menu = &menu;
     scene.editor = &editor;
 
-    menu.items.add({"Start", "", true});
-    menu.items.add({"Dress Your Cow", "", true});
+    showMainMenu();
     menu.onChoose = [this](int index)
     {
+        if (showingAbout)
+        {
+            showMainMenu();
+            return;
+        }
+
         if (index == 0)
             scene.startGame();
-        else
+        else if (index == 1)
             scene.openEditor();
+        else
+            showAbout();
     };
 
     for (const auto& item: itemClasses())
@@ -71,7 +83,16 @@ CowsApp::CowsApp()
     root.onKeyDown = [this](const Graphics::KeyEvent& event)
     { scene.keyDown(event); };
     root.onKeyUp = [this](const Graphics::KeyEvent& event) { scene.keyUp(event); };
-    root.onEscape = [this] { return scene.escape(); };
+    root.onEscape = [this]
+    {
+        if (showingAbout)
+        {
+            showMainMenu();
+            return true;
+        }
+
+        return scene.escape();
+    };
 
     footer.text = [this]
     {
@@ -142,6 +163,28 @@ CowsApp::CowsApp()
 
     if (opensOnMenu() && opensDressing())
         scene.openEditor();
+}
+
+void CowsApp::showMainMenu()
+{
+    showingAbout = false;
+    menu.items.clear();
+    menu.items.add({"Start", "", true});
+    menu.items.add({"Dress Your Cow", "", true});
+    menu.items.add({"About", "", true});
+    menu.selected = 0;
+    menu.hovered = -1;
+    menu.pressed = -1;
+}
+
+void CowsApp::showAbout()
+{
+    showingAbout = true;
+    menu.items.clear();
+    menu.items.add({"Back", versionText(), true});
+    menu.selected = 0;
+    menu.hovered = -1;
+    menu.pressed = -1;
 }
 
 void CowsApp::dress(const CowSkin& next)
