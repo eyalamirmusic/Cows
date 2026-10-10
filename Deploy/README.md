@@ -65,6 +65,11 @@ takes an app's own res directory again, so Android uses the desktop PNG).
 | `COWS_STEAM_USER` | tools/steam-upload.sh | Steam build account login |
 | `COWS_BUILD_NUMBER` | tools/release-ios.sh, release-mas.sh | raise for every App Store upload of one version |
 | `COWS_BUILD_NUMBER` | CMake (Android) | the Play versionCode: raise for every upload, never reuse |
+| `COWS_ANDROID_KEYSTORE` | tools/play-run.sh, Gradle | ephemeral JKS path populated by `op read` |
+| `COWS_ANDROID_KEYSTORE_PASSWORD` | Gradle release signing | upload keystore password |
+| `COWS_ANDROID_KEY_ALIAS` | Gradle release signing | upload key alias (normally `upload`) |
+| `COWS_ANDROID_KEY_PASSWORD` | Gradle release signing | upload key password |
+| `COWS_PLAY_JSON_KEY` | tools/play-run.sh, Fastlane | ephemeral service-account JSON path populated by `op read` |
 | `COWS_MSIX_IDENTITY` | tools/release-msix.ps1 | Partner Center Package/Identity/Name |
 | `COWS_MSIX_PUBLISHER` | tools/release-msix.ps1 | Partner Center Package/Identity/Publisher (`CN=...`) |
 | `COWS_MSIX_PUBLISHER_NAME` | tools/release-msix.ps1 | Partner Center PublisherDisplayName |
@@ -175,43 +180,42 @@ uploaded without going live; set it live on the default branch in Steamworks
 
 ## Google Play
 
-One-time, on the Play Console account:
-1. Create the app (Game, the name and default language from
-   `Deploy/Google-Play/Metadata/store-listing.md`). The package name is fixed
-   by the first upload: `COWS_BUNDLE_ID` (default `com.cowsinlove.play`).
-2. Make the upload key and keep it (and its password) outside the repo:
-   ```bash
-   keytool -genkeypair -v -keystore ~/keys/cows-upload.jks -alias upload \
-       -keyalg RSA -keysize 4096 -validity 10000
-   ```
-3. Play App Signing: on the first release accept "Let Google manage and
-   protect your app signing key" (the default). Google holds the key that
-   signs what users install; the key above only proves uploads are yours, and
-   Play Console can reset it if it is lost.
-4. Fill in the listing and App content from `Metadata/store-listing.md`, host
-   the privacy policy, upload `Store/` and `Screenshots/`.
+Follow `Google-Play/INITIAL-UPLOAD.md` for the app record, upload key, Play App
+Signing, service account, listing, policy forms, first bundle, and real-device
+test. The first AAB is uploaded manually to bootstrap the app. Google then
+holds the app-signing key; the local JKS only authenticates future uploads.
 
-Each release:
+`tools/play-run.sh` fetches the `upload-keystore.jks` and
+`service-account.json` file fields from the **Google Play** item in the
+personal 1Password **Cows In Love** vault into a mode-0600 temporary directory.
+`Deploy/play.env` injects their passwords with `op run`; the wrapper removes
+the files as soon as the command exits. The generated Gradle project reads the
+four `COWS_ANDROID_*` variables at build time, so no secret or durable key path
+is written to the project. `just play-setup-key` creates and verifies the
+upload key directly through the 1Password CLI and will not replace one that
+already exists. `just play-setup-api` does the same for the dedicated Google
+service-account credential. Install Fastlane once with `brew install fastlane`,
+then check API access with `just play-validate`.
+
+Build the first, manually uploaded bundle with an unused version code:
 ```bash
 just release-android -DCOWS_BUILD_NUMBER=<n>
 ```
 That configures the android preset and runs Gradle's `:Cows:bundleRelease` in
 `build-android/AndroidStudio`: Release `libCows.so` for arm64-v8a and x86_64,
 in `build-android/AndroidStudio/Cows/build/outputs/bundle/release/Cows-release.aab`.
-Signing with the upload key is pending in eacp: the module eacp generates signs
-release with the debug key, and eacp has no slot for an upload key yet, so
-this bundle cannot go to Play until it does.
+The release wrapper requires the upload key and verifies the resulting AAB's
+JAR signature.
 
-Then, the one manual step: in Play Console, **Testing > Internal testing >
-Create new release**, upload the .aab, paste the release notes, roll out.
-Install from the internal testing link on a real phone, then promote the
-release to Production and **Send for review**. Start with internal testing:
-it is available within minutes, needs no review, and the pre-launch report
-runs the app on real devices (the Vulkan 1.1 floor means only very old test
-devices report "not compatible", which is expected).
-
-Checked on this Mac: `just release-android` builds the bundle (9.7 MB, both
-ABIs), signed with the debug key.
+After the first manual upload, build and upload to internal testing together:
+```bash
+just deploy-android <unused-versionCode>
+```
+After installing that Play build on a real phone, prepare a production draft
+with `just play-promote`. A completed production promotion is deliberately
+explicit: `just play-promote internal production completed true`. Fastlane
+only changes binaries and tracks; the curated listing and screenshots remain
+manual, so an upload cannot unexpectedly replace store content.
 
 ## Microsoft Store (MSIX)
 

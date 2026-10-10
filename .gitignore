@@ -29,6 +29,10 @@ Deploy/Art/Renders
 Deploy/Apple-macOS/out
 Deploy/Microsoft-Store/out
 Deploy/Google-Play/out
+*.jks
+*.keystore
+Deploy/Google-Play/service-account*.json
+fastlane/report.xml
 tools/__pycache__
 secret-data
 

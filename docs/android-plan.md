@@ -191,7 +191,7 @@ portable. The "main thread" is the glue thread, not Java's UI thread;
 
 ### Play packaging
 
-- Google Play needs an **AAB**, targetSdk ≥ 35 (Aug 2025 rule), 64-bit libs,
+- Google Play needs an **AAB**, targetSdk ≥ 36 (current submission rule), 64-bit libs,
   16 KB page-size aligned `.so`s (NDK r27+: `-Wl,-z,max-page-size=16384`,
   default in r28), an upload key (Play App Signing holds the app key),
   a privacy policy URL, content rating, data-safety form.
@@ -377,7 +377,7 @@ aligned; the .so is linked with 16 KB pages through
   (eacp's plus `isGame`, `appCategory="game"`, `allowBackup="false"`,
   `hasFragileUserData="false"`, touchscreen and portrait features, every
   screen size). versionName = project version, versionCode =
-  `COWS_BUILD_NUMBER`, targetSdk 35.
+  `COWS_BUILD_NUMBER`, targetSdk 36.
 - **minSdk 33** (Android 13, August 2022), in line with the macOS and
   Windows floors. The code needs 29 (`AChoreographer_postFrameCallback64`),
   and the real device floor is the Vulkan 1.1 `uses-feature` Play filters

@@ -66,12 +66,40 @@ release-ios *args:
 asc *args:
     {{asc}} tools/asc-listing.py {{args}}
 
-# Google Play .aab, Release arm64-v8a + x86_64, through Gradle's bundleRelease
-# (args go to the configure: -DCOWS_BUILD_NUMBER=<n>).
-# Signed with the debug key until eacp has a slot for the upload key.
+# Google Play credentials and upload key come from the Cows In Love vault.
+play := "tools/play-run.sh"
+
+# One-time: generate the Play upload key and keep its only durable copy in 1Password.
+play-setup-key:
+    tools/setup-play-upload-key.sh
+
+# One-time: create and store the dedicated Play API service-account credential.
+play-setup-api:
+    tools/setup-play-service-account.sh
+
+# Build a Play-signed .aab. Args go to CMake, e.g. -DCOWS_BUILD_NUMBER=7.
 release-android *args:
-    cmake --preset android ${EACP:+-DCPM_eacp_SOURCE=$EACP} {{args}}
-    cd build-android/AndroidStudio && JAVA_HOME="${JAVA_HOME:-/Applications/Android Studio.app/Contents/jbr/Contents/Home}" ./gradlew :Cows:bundleRelease
+    {{play}} tools/release-android.sh {{args}}
+
+# Check the Google Play service-account credential without uploading.
+play-validate:
+    {{play}} fastlane android validate_credentials
+
+# Read-only check that the service account can access Cows In Love in Play.
+play-check:
+    {{play}} fastlane android check_access
+
+# Upload an already-built AAB. The first-ever AAB must be uploaded in the UI.
+play-upload track="internal" status="completed" confirm="false":
+    {{play}} fastlane android upload track:{{track}} status:{{status}} confirm:{{confirm}}
+
+# Promote a tested release. Production defaults to draft; completed requires confirm=true.
+play-promote from="internal" to="production" status="draft" confirm="false":
+    {{play}} fastlane android promote from:{{from}} to:{{to}} status:{{status}} confirm:{{confirm}}
+
+# Subsequent releases: build a fresh versionCode, then upload it (internal by default).
+deploy-android build_number track="internal" status="completed" confirm="false":
+    {{play}} tools/deploy-android.sh {{build_number}} {{track}} {{status}} {{confirm}}
 
 # Windows x64 Release build on the Windows box, staged for Steam.
 release-windows:

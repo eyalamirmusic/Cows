@@ -1,0 +1,108 @@
+fastlane_version("2.240.1")
+opt_out_usage
+default_platform(:android)
+
+PLAY_PACKAGE = ENV.fetch("COWS_BUNDLE_ID", "com.cowsinlove.play")
+PLAY_AAB = File.expand_path(
+  "../build-android/AndroidStudio/Cows/build/outputs/bundle/release/Cows-release.aab",
+  __dir__
+)
+PLAY_TRACKS = %w[internal alpha beta production].freeze
+PLAY_STATUSES = %w[completed draft halted inProgress].freeze
+
+def play_credentials
+  if ENV["COWS_PLAY_JSON_KEY_DATA"]&.strip&.length&.positive?
+    { json_key_data: ENV.fetch("COWS_PLAY_JSON_KEY_DATA") }
+  elsif ENV["COWS_PLAY_JSON_KEY"]&.strip&.length&.positive?
+    { json_key: File.expand_path(ENV.fetch("COWS_PLAY_JSON_KEY")) }
+  elsif ENV["GOOGLE_APPLICATION_CREDENTIALS"]&.strip&.length&.positive?
+    { json_key: File.expand_path(ENV.fetch("GOOGLE_APPLICATION_CREDENTIALS")) }
+  else
+    UI.user_error!(
+      "Set COWS_PLAY_JSON_KEY_DATA, COWS_PLAY_JSON_KEY, or " \
+      "GOOGLE_APPLICATION_CREDENTIALS"
+    )
+  end
+end
+
+def play_choice!(label, value, allowed)
+  UI.user_error!("Invalid #{label} #{value.inspect}; use #{allowed.join(', ')}") unless allowed.include?(value)
+  value
+end
+
+def play_truthy?(value)
+  %w[1 true yes].include?(value.to_s.downcase)
+end
+
+def require_production_confirmation!(track, status, confirmation)
+  return unless track == "production" && status == "completed"
+  return if play_truthy?(confirmation)
+
+  UI.user_error!(
+    "A completed production release needs confirm:true. Use status:draft to " \
+    "prepare it without submitting the rollout."
+  )
+end
+
+def play_skip_listing
+  {
+    skip_upload_apk: true,
+    skip_upload_metadata: true,
+    skip_upload_changelogs: true,
+    skip_upload_images: true,
+    skip_upload_screenshots: true
+  }
+end
+
+platform :android do
+  desc "Validate the Google Play Publishing API credential"
+  lane :validate_credentials do
+    validate_play_store_json_key(**play_credentials)
+  end
+
+  desc "Check read access to the app's internal Play track"
+  lane :check_access do
+    versions = google_play_track_version_codes(
+      **play_credentials,
+      package_name: PLAY_PACKAGE,
+      track: "internal"
+    )
+    UI.success("Play app access works; internal version codes: #{versions.inspect}")
+  end
+
+  desc "Upload the signed AAB to a Play track (internal by default)"
+  lane :upload do |options|
+    track = play_choice!("track", (options[:track] || "internal").to_s, PLAY_TRACKS)
+    status = play_choice!("status", (options[:status] || "completed").to_s, PLAY_STATUSES)
+    require_production_confirmation!(track, status, options[:confirm])
+    UI.user_error!("Build the signed AAB first: #{PLAY_AAB}") unless File.file?(PLAY_AAB)
+
+    upload_to_play_store(
+      **play_credentials,
+      **play_skip_listing,
+      package_name: PLAY_PACKAGE,
+      aab: PLAY_AAB,
+      track: track,
+      release_status: status
+    )
+  end
+
+  desc "Promote a release between Play tracks (production draft by default)"
+  lane :promote do |options|
+    from = play_choice!("source track", (options[:from] || "internal").to_s, PLAY_TRACKS)
+    to = play_choice!("destination track", (options[:to] || "production").to_s, PLAY_TRACKS)
+    status = play_choice!("status", (options[:status] || "draft").to_s, PLAY_STATUSES)
+    UI.user_error!("Source and destination tracks must differ") if from == to
+    require_production_confirmation!(to, status, options[:confirm])
+
+    upload_to_play_store(
+      **play_credentials,
+      **play_skip_listing,
+      skip_upload_aab: true,
+      package_name: PLAY_PACKAGE,
+      track: from,
+      track_promote_to: to,
+      track_promote_release_status: status
+    )
+  end
+end
