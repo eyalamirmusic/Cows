@@ -10,7 +10,7 @@ endif ()
 
 # x.y.z is the marketing version; the fourth number is the build (Play
 # versionCode, CFBundleVersion): raise it for every upload.
-project(Cows VERSION 1.0.0.10 LANGUAGES C CXX)
+project(Cows VERSION 1.0.0.11 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
