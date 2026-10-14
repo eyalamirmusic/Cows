@@ -262,7 +262,7 @@ def metadata(platform):
 
 
 def version_string():
-    match = re.search(r"^project\(Cows VERSION ([0-9.]+)",
+    match = re.search(r"^project\(Cows VERSION ([0-9]+\.[0-9]+\.[0-9]+)",
                       (ROOT / "CMakeLists.txt").read_text(), re.M)
     return match.group(1)
 

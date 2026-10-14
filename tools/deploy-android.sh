@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
-# Usage: tools/deploy-android.sh <versionCode> [track] [status] [confirm]
+# Usage: tools/deploy-android.sh [track] [status] [confirm]
+# The versionCode is the fourth number of project(Cows VERSION) in CMakeLists.txt.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-if [[ $# -lt 1 || -z "$1" ]]; then
-    echo "usage: $0 <versionCode> [track] [status] [confirm]" >&2
-    exit 2
-fi
+track="${1:-internal}"
+status="${2:-completed}"
+confirm="${3:-false}"
 
-build_number="$1"
-track="${2:-internal}"
-status="${3:-completed}"
-confirm="${4:-false}"
-
-tools/release-android.sh "-DCOWS_BUILD_NUMBER=$build_number"
+tools/release-android.sh
 exec fastlane android upload track:"$track" status:"$status" confirm:"$confirm"

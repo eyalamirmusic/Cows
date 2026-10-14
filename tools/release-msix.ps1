@@ -31,7 +31,7 @@ $identity = Require 'COWS_MSIX_IDENTITY'
 $publisher = Require 'COWS_MSIX_PUBLISHER'
 $publisherName = Require 'COWS_MSIX_PUBLISHER_NAME'
 
-$project = Get-Content CMakeLists.txt | Select-String 'project\(Cows VERSION ([0-9.]+)'
+$project = Get-Content CMakeLists.txt | Select-String 'project\(Cows VERSION ([0-9]+\.[0-9]+\.[0-9]+)'
 $version = "$($project.Matches[0].Groups[1].Value).0"
 
 $kits = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'

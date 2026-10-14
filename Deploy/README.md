@@ -63,8 +63,6 @@ takes an app's own res directory again, so Android uses the desktop PNG).
 | `COWS_STEAM_DEPOT_WINDOWS` | tools/steam-upload.sh | Windows depot id (usually app id + 1) |
 | `COWS_STEAM_DEPOT_MACOS` | tools/steam-upload.sh | macOS depot id (usually app id + 2) |
 | `COWS_STEAM_USER` | tools/steam-upload.sh | Steam build account login |
-| `COWS_BUILD_NUMBER` | tools/release-ios.sh, release-mas.sh | raise for every App Store upload of one version |
-| `COWS_BUILD_NUMBER` | CMake (Android) | the Play versionCode: raise for every upload, never reuse |
 | `COWS_ANDROID_KEYSTORE` | tools/play-run.sh, Gradle | ephemeral JKS path populated by `op read` |
 | `COWS_ANDROID_KEYSTORE_PASSWORD` | Gradle release signing | upload keystore password |
 | `COWS_ANDROID_KEY_ALIAS` | Gradle release signing | upload key alias (normally `upload`) |
@@ -74,9 +72,11 @@ takes an app's own res directory again, so Android uses the desktop PNG).
 | `COWS_MSIX_PUBLISHER` | tools/release-msix.ps1 | Partner Center Package/Identity/Publisher (`CN=...`) |
 | `COWS_MSIX_PUBLISHER_NAME` | tools/release-msix.ps1 | Partner Center PublisherDisplayName |
 
-The version is `project(Cows VERSION x.y.z)` in `CMakeLists.txt`: it becomes
-CFBundleShortVersionString, the Android versionName, the Windows VERSIONINFO
-and the Steam build description. Release 1.0.0.
+The version is `project(Cows VERSION x.y.z.n)` in `CMakeLists.txt`: x.y.z
+becomes CFBundleShortVersionString, the Android versionName, the Windows
+VERSIONINFO and the Steam build description; n is the build (CFBundleVersion,
+the Play versionCode), committed, never a `-D`: raise it for every upload and
+never reuse one. Release 1.0.0.
 
 ## Before every release
 
@@ -108,7 +108,7 @@ One-time, on the Apple account:
 
 Each release:
 ```bash
-COWS_BUILD_NUMBER=<n> just release-ios --upload
+just release-ios --upload
 ```
 This archives Release (iPhone-only, iOS 15+), exports with
 `ExportOptions.plist` (app-store-connect, symbols uploaded) and uploads. Without
@@ -128,7 +128,7 @@ platform), or its own record; fill it from `Deploy/Apple-macOS/Metadata`.
 
 Each release:
 ```bash
-COWS_TEAM=<team id> COWS_BUILD_NUMBER=<n> just release-mas --upload
+COWS_TEAM=<team id> just release-mas --upload
 ```
 This archives a sandboxed (`Cows.entitlements`), universal Release build with
 the Xcode generator and exports it with method app-store-connect: Xcode signs
@@ -197,9 +197,10 @@ already exists. `just play-setup-api` does the same for the dedicated Google
 service-account credential. Install Fastlane once with `brew install fastlane`,
 then check API access with `just play-validate`.
 
-Build the first, manually uploaded bundle with an unused version code:
+Build the first, manually uploaded bundle with an unused version code (the
+build in `CMakeLists.txt`):
 ```bash
-just release-android -DCOWS_BUILD_NUMBER=<n>
+just release-android
 ```
 That configures the android preset and runs Gradle's `:Cows:bundleRelease` in
 `build-android/AndroidStudio`: Release `libCows.so` for arm64-v8a and x86_64,
@@ -209,7 +210,7 @@ JAR signature.
 
 After the first manual upload, build and upload to internal testing together:
 ```bash
-just deploy-android <unused-versionCode>
+just deploy-android
 ```
 After installing that Play build on a real phone, prepare a production draft
 with `just play-promote`. A completed production promotion is deliberately

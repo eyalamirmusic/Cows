@@ -29,7 +29,7 @@ codesign --verify --strict "$content/macos/Cows In Love.app"
 xcrun stapler validate "$content/macos/Cows In Love.app" \
     || { echo "the macOS app is not notarized: run tools/release-macos.sh" >&2; exit 1; }
 
-version="$(sed -n 's/^project(Cows VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)"
+version="$(sed -n 's/^project(Cows VERSION \([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p' CMakeLists.txt)"
 scripts="$output/scripts"
 mkdir -p "$scripts"
 

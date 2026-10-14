@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: COWS_TEAM=<team id> [COWS_BUILD_NUMBER=n, else Apps/CowsInLove/CMakeLists.txt] [COWS_BUNDLE_ID=id]
+# Usage: COWS_TEAM=<team id> [COWS_BUNDLE_ID=id]
 #        tools/release-mas.sh [--upload]
 # Builds a sandboxed, universal Release archive for the Mac App Store and
 # exports the signed .pkg into Deploy/Apple-macOS/out/. --upload sends it
@@ -19,7 +19,6 @@ cd "$root"
 export PATH="/usr/bin:$PATH"
 
 team="${COWS_TEAM:?set COWS_TEAM to the Apple Developer team id (or none)}"
-build_number="${COWS_BUILD_NUMBER:-}"
 bundle_id="${COWS_BUNDLE_ID:-com.cowsinlove.play}"
 out=Deploy/Apple-macOS/out
 build=build-mas
@@ -52,7 +51,7 @@ cmake -G Xcode -B "$build" \
     -DCMAKE_XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME=YES \
     -DCOWS_MAC_ENTITLEMENTS="$root/Deploy/Apple-macOS/Cows.entitlements" \
     -DCOWS_BUILD_TESTS=OFF \
-    ${build_number:+-DCOWS_BUILD_NUMBER="$build_number"} -DCOWS_BUNDLE_ID="$bundle_id" \
+    -DCOWS_BUNDLE_ID="$bundle_id" \
     "${signing[@]}"
 
 rm -rf "$archive"

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Usage: tools/release-android.sh -DCOWS_BUILD_NUMBER=<unused Play versionCode>
+# Usage: tools/release-android.sh [cmake args]
+# The versionCode is the fourth number of project(Cows VERSION) in CMakeLists.txt.
 # Builds a release AAB signed by the Play upload key supplied in the environment.
 set -euo pipefail
 cd "$(dirname "$0")/.."

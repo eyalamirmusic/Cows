@@ -8,7 +8,9 @@ if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     endif ()
 endif ()
 
-project(Cows VERSION 1.0.0 LANGUAGES C CXX)
+# x.y.z is the marketing version; the fourth number is the build (Play
+# versionCode, CFBundleVersion): raise it for every upload.
+project(Cows VERSION 1.0.0.10 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)

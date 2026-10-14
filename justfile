@@ -77,7 +77,7 @@ play-setup-key:
 play-setup-api:
     tools/setup-play-service-account.sh
 
-# Build a Play-signed .aab. Args go to CMake, e.g. -DCOWS_BUILD_NUMBER=7.
+# Build a Play-signed .aab. Args go to CMake, e.g. -DCPM_eacp_SOURCE=<dir>.
 release-android *args:
     {{play}} tools/release-android.sh {{args}}
 
@@ -97,9 +97,9 @@ play-upload track="internal" status="completed" confirm="false":
 play-promote from="internal" to="production" status="draft" confirm="false":
     {{play}} fastlane android promote from:{{from}} to:{{to}} status:{{status}} confirm:{{confirm}}
 
-# Subsequent releases: build a fresh versionCode, then upload it (internal by default).
-deploy-android build_number track="internal" status="completed" confirm="false":
-    {{play}} tools/deploy-android.sh {{build_number}} {{track}} {{status}} {{confirm}}
+# Subsequent releases: raise the build in CMakeLists.txt, then build and upload (internal by default).
+deploy-android track="internal" status="completed" confirm="false":
+    {{play}} tools/deploy-android.sh {{track}} {{status}} {{confirm}}
 
 # Windows x64 Release build on the Windows box, staged for Steam.
 release-windows:
