@@ -3,9 +3,16 @@
 #include "UI/Menu.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace Cows
 {
+namespace
+{
+constexpr auto outlineShare = 0.05f;
+constexpr auto outlineSteps = 16;
+} // namespace
+
 Graphics::Color pink(float brighten)
 {
     auto color = Palette::display(Palette::heart);
@@ -40,9 +47,22 @@ void drawMenuText(Hud& hud,
 {
     auto at = baselineLeft;
     auto offset = std::max(1.f, font.pointSize * 0.03f);
+    auto outline = std::max(1.5f, font.pointSize * outlineShare);
+    auto shadowAt = outline + offset;
 
     hud.drawText(
-        text, {at.x + offset, at.y + offset}, font, faded(shadowColor, opacity));
+        text, {at.x + shadowAt, at.y + shadowAt}, font, faded(shadowColor, opacity));
+
+    for (auto step = 0; step < outlineSteps; ++step)
+    {
+        auto angle = 2.f * Maths::pi * (float) step / (float) outlineSteps;
+        hud.drawText(
+            text,
+            {at.x + outline * std::cos(angle), at.y + outline * std::sin(angle)},
+            font,
+            faded(outlineColor, opacity));
+    }
+
     hud.drawText(text, at, font, color);
 }
 } // namespace Cows

@@ -51,13 +51,19 @@ struct Menu final : Graphics::View
 
     struct Placed final
     {
-        Vector<std::string> lines;
         Graphics::Point center;
         float pointSize = 0.f;
         Graphics::Rect area;
     };
 
+    // Each label on one line, never wrapped: a row shrunk to fit the width
+    // when wide, a stack shrunk to fit when tall.
     void layOut(Hud& hud);
+    void layOutInRow(Hud& hud);
+    void layOutStacked(Hud& hud);
+    float labelWidth(Hud& hud, int index, float pointSize) const;
+    static Graphics::Rect
+        targetFor(Graphics::Point center, float labelWidth, float pointSize);
     void drawItem(Hud& hud, int index);
     void choose(int index);
     void returnKeyFocus();

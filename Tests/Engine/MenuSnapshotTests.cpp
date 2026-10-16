@@ -118,6 +118,54 @@ auto tMenuTall = test("MenuSnapshot/tall") = []
     check(anyDrawnIn(image, start.area) && anyDrawnIn(image, dress.area));
 };
 
+// The main menu's four choices never wrap or touch, side by side on a wide
+// window and stacked on a narrow one, every one inside the window and below
+// the title's room.
+namespace
+{
+void checkMainMenu(float width, float height, const char* name)
+{
+    auto menu = Menu {};
+    menu.items.add({"Start", "", true});
+    menu.items.add({"Dress Your Cow", "", true});
+    menu.items.add({"Settings", "", true});
+    menu.items.add({"About", "", true});
+    menu.showSelection = true;
+
+    auto image = menuShot(menu, width, height, name);
+    check(image.isValid());
+    check(menu.placed.size() == 4);
+
+    if (!image.isValid() || menu.placed.size() != 4)
+        return;
+
+    auto title = menu.titleArea();
+
+    for (auto index = 0; index < 4; ++index)
+    {
+        const auto& area = menu.placed[index].area;
+        check(inside(area, width, height));
+        check(area.y >= title.y + title.h);
+
+        for (auto other = index + 1; other < 4; ++other)
+            check(!overlaps(area, menu.placed[other].area));
+    }
+}
+} // namespace
+
+auto tMainMenuSizes = test("MenuSnapshot/mainMenuNeverWrapsOrOverlaps") = []
+{
+    if (!hasDevice())
+        return;
+
+    checkMainMenu(1280.f, 800.f, "engine-menu-main-1280x800");
+    checkMainMenu(853.f, 533.f, "engine-menu-main-853x533");
+    checkMainMenu(1920.f, 1080.f, "engine-menu-main-1920x1080");
+    checkMainMenu(640.f, 600.f, "engine-menu-main-640x600");
+    checkMainMenu(500.f, 400.f, "engine-menu-main-500x400");
+    checkMainMenu(390.f, 844.f, "engine-menu-main-390x844");
+};
+
 // Only an enabled choice is ever chosen.
 auto tMenuDisabled = test("Menu/aDisabledChoiceNeverFires") = []
 {

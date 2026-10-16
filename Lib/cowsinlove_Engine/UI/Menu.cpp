@@ -23,36 +23,20 @@ constexpr auto padding = 14.f;
 constexpr auto leastTarget = 64.f;
 constexpr auto ringWidth = 4.f;
 
-Vector<std::string>
-    wrapWords(const std::string& text,
-              float width,
-              const std::function<float(const std::string&)>& measure)
+constexpr auto gapShare = 0.8f;
+constexpr auto fitShare = 0.9f;
+constexpr auto stackTop = 0.42f;
+constexpr auto stackBottom = 0.95f;
+constexpr auto stackFirst = 1.1f;
+constexpr auto stackRest = 0.55f;
+constexpr auto stackStep = 1.2f;
+
+float stackOffset(int index, float first)
 {
-    auto lines = Vector<std::string> {};
-    auto current = std::string {};
-    auto start = std::size_t {0};
+    if (index == 0)
+        return 0.f;
 
-    while (start < text.size())
-    {
-        auto end = std::min(text.find(' ', start), text.size());
-        auto word = text.substr(start, end - start);
-        auto joined = current.empty() ? word : current + " " + word;
-
-        if (!current.empty() && measure(joined) > width)
-        {
-            lines.add(current);
-            current = word;
-        }
-        else
-        {
-            current = joined;
-        }
-
-        start = end + 1;
-    }
-
-    lines.add(current);
-    return lines;
+    return first * stackFirst + first * stackRest * stackStep * (float) index;
 }
 
 } // namespace
@@ -94,68 +78,139 @@ Rect Menu::titleArea() const
         safe.left, safe.top, bounds.w - safe.left - safe.right, height * titleShare};
 }
 
+float Menu::labelWidth(Hud& hud, int index, float pointSize) const
+{
+    const auto& item = items[index];
+    auto width = hud.measure(item.label, menuFont(pointSize));
+
+    if (!item.note.empty())
+        width =
+            std::max(width, hud.measure(item.note, menuFont(pointSize * noteScale)));
+
+    return width;
+}
+
+Graphics::Rect Menu::targetFor(Point center, float labelWidth, float pointSize)
+{
+    auto height = pointSize * lineSpacing;
+    auto area = grown(
+        {center.x - labelWidth * 0.5f, center.y - height * 0.5f, labelWidth, height},
+        padding);
+
+    if (area.h < leastTarget)
+        area = {area.x, center.y - leastTarget * 0.5f, area.w, leastTarget};
+
+    if (area.w < leastTarget)
+        area = {center.x - leastTarget * 0.5f, area.y, leastTarget, area.h};
+
+    return area;
+}
+
 void Menu::layOut(Hud& hud)
+{
+    placed.clear();
+
+    if (items.empty())
+        return;
+
+    if (wide())
+        layOutInRow(hud);
+    else
+        layOutStacked(hud);
+}
+
+void Menu::layOutInRow(Hud& hud)
 {
     auto bounds = getLocalBounds();
     auto safe = getSafeAreaInsets();
     auto width = bounds.w - safe.left - safe.right;
     auto height = bounds.h - safe.top - safe.bottom;
-    auto isWide = wide();
     auto count = (int) items.size();
+    auto pointSize = std::clamp(height * 0.1f, 30.f, 120.f);
 
-    placed.clear();
+    auto rowWidth = [&](float size)
+    {
+        auto total = size * gapShare * (float) (count - 1);
+
+        for (auto index = 0; index < count; ++index)
+            total +=
+                std::max(labelWidth(hud, index, size) * hoverScale + 2.f * padding,
+                         leastTarget);
+
+        return total;
+    };
+
+    auto room = width * fitShare;
+    auto needed = rowWidth(pointSize);
+
+    if (needed > room)
+        pointSize *= room / needed;
+
+    auto gap = pointSize * gapShare;
+    auto x = safe.left + (width - rowWidth(pointSize)) * 0.5f;
+    auto y = safe.top + height * 0.56f;
 
     for (auto index = 0; index < count; ++index)
     {
-        auto item = Placed {};
-        auto column = 0.f;
-        auto maxWidth = width * 0.9f;
+        auto label = labelWidth(hud, index, pointSize);
+        auto slot = std::max(label * hoverScale + 2.f * padding, leastTarget);
+        auto center = Point {x + slot * 0.5f, y};
+        placed.add({center, pointSize, targetFor(center, label, pointSize)});
+        x += slot + gap;
+    }
+}
 
-        if (isWide)
+void Menu::layOutStacked(Hud& hud)
+{
+    auto bounds = getLocalBounds();
+    auto safe = getSafeAreaInsets();
+    auto width = bounds.w - safe.left - safe.right;
+    auto height = bounds.h - safe.top - safe.bottom;
+    auto count = (int) items.size();
+    auto sizeOf = [](int index, float first)
+    { return index == 0 ? first : first * stackRest; };
+
+    auto first = std::clamp(width * 0.2f, 40.f, 130.f);
+
+    for (auto index = 0; index < count; ++index)
+    {
+        auto room = width * fitShare;
+        auto needed = labelWidth(hud, index, sizeOf(index, first)) * hoverScale
+                      + 2.f * padding;
+
+        if (needed > room)
+            first *= room / needed;
+    }
+
+    auto x = safe.left + width * 0.5f;
+    auto bottom = safe.top + height * stackBottom;
+
+    for (auto attempt = 0; attempt < 20; ++attempt, first *= 0.9f)
+    {
+        placed.clear();
+        auto y = safe.top + height * stackTop;
+
+        for (auto index = 0; index < count; ++index)
         {
-            auto share = count > 1 ? (float) index / (float) (count - 1) : 0.5f;
-            item.pointSize = std::clamp(height * 0.1f, 30.f, 120.f);
-            column = 0.2f + 0.58f * share;
-            maxWidth = width * 0.38f;
-            item.center = {safe.left + width * column, safe.top + height * 0.56f};
+            auto pointSize = sizeOf(index, first);
+            auto label = labelWidth(hud, index, pointSize);
+            auto area = targetFor({x, y}, label, pointSize);
+
+            if (index > 0)
+            {
+                const auto& above = placed.back().area;
+                auto step =
+                    stackOffset(index, first) - stackOffset(index - 1, first);
+                y = std::max(placed.back().center.y + step,
+                             above.y + above.h + area.h * 0.5f);
+                area = targetFor({x, y}, label, pointSize);
+            }
+
+            placed.add({{x, y}, pointSize, area});
         }
-        else
-        {
-            auto first = std::clamp(width * 0.2f, 40.f, 130.f);
-            item.pointSize = index == 0 ? first : first * 0.55f;
-            auto below = index == 0
-                             ? 0.f
-                             : first * 1.1f + item.pointSize * 1.2f * (float) index;
-            item.center = {safe.left + width * 0.5f,
-                           safe.top + height * 0.42f + below};
-        }
 
-        auto font = menuFont(item.pointSize);
-        auto measure = [&](const std::string& line)
-        { return hud.measure(line, font); };
-        item.lines = wrapWords(items[index].label, maxWidth, measure);
-
-        auto widest = 0.f;
-
-        for (const auto& line: item.lines)
-            widest = std::max(widest, measure(line));
-
-        auto lineHeight = item.pointSize * lineSpacing;
-        auto blockHeight = lineHeight * (float) item.lines.size();
-        auto area = Rect {item.center.x - widest * 0.5f,
-                          item.center.y - blockHeight * 0.5f,
-                          widest,
-                          blockHeight};
-        area = grown(area, padding);
-
-        if (area.h < leastTarget)
-            area = {area.x, item.center.y - leastTarget * 0.5f, area.w, leastTarget};
-
-        if (area.w < leastTarget)
-            area = {item.center.x - leastTarget * 0.5f, area.y, leastTarget, area.h};
-
-        item.area = area;
-        placed.add(item);
+        if (placed.back().area.y + placed.back().area.h <= bottom)
+            return;
     }
 }
 
@@ -179,8 +234,7 @@ void Menu::drawItem(Hud& hud, int index)
     auto font = menuFont(size);
     auto color =
         faded(item.enabled ? pink(lit ? 0.2f : 0.f) : disabledColor, opacity);
-    auto lineHeight = size * lineSpacing;
-    auto top = place.center.y - lineHeight * (float) place.lines.size() * 0.5f;
+    auto top = place.center.y - size * lineSpacing * 0.5f;
     auto ascent = hud.ascent(font);
 
     if (showSelection && selected == index)
@@ -201,14 +255,9 @@ void Menu::drawItem(Hud& hud, int index)
                      faded(pink(), opacity));
     }
 
-    for (auto line = 0; line < (int) place.lines.size(); ++line)
-    {
-        const auto& text = place.lines[line];
-        auto width = hud.measure(text, font);
-        auto baseline = top + ascent * 0.9f + lineHeight * (float) line;
-        auto at = Point {place.center.x - width * 0.5f, baseline};
-        drawMenuText(hud, text, at, font, color, opacity);
-    }
+    auto width = hud.measure(item.label, font);
+    auto at = Point {place.center.x - width * 0.5f, top + ascent * 0.9f};
+    drawMenuText(hud, item.label, at, font, color, opacity);
 }
 
 int Menu::itemAt(Point position) const
