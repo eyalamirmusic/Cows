@@ -1,5 +1,4 @@
 #include "UI/Editor.h"
-#include "Layout/FitToSize.h"
 
 #include <algorithm>
 #include <cmath>

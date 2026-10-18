@@ -240,11 +240,6 @@ Point Tree::fitSize() const
             basis(Size::fit(top.node.height.least), top.fit.y)};
 }
 
-int Tree::size() const
-{
-    return entries.size();
-}
-
 void Tree::resolve(Rect available, const Measure& measure)
 {
     measureAll(measure);

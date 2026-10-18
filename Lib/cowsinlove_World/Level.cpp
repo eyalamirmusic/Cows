@@ -161,19 +161,6 @@ bool Level::overGap(Vec2 point) const
                        [&](const Gap& gap) { return gap.contains(point); });
 }
 
-bool Level::hasGround(Vec2 point) const
-{
-    if (!overGap(point))
-        return true;
-
-    auto bridged = [&](const Block& block) { return block.contains(point); };
-    auto covered = [&](const Collider& collider)
-    { return distance(point, collider.center) < collider.radius; };
-
-    return std::any_of(blocks.begin(), blocks.end(), bridged)
-           || std::any_of(colliders.begin(), colliders.end(), covered);
-}
-
 bool Level::onMover(Vec2 point, float feet) const
 {
     return std::any_of(movers.begin(),

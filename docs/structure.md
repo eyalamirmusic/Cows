@@ -45,7 +45,7 @@ Lib/
 
   cowsinlove_World/               how actors are laid out and collide
     Level          the interface: colliders, blocks, gaps, movers, start,
-                   killDepth, floorAt, hasGround, update(seconds), hideout
+                   killDepth, floorAt, update(seconds), hideout
     Terrain/       Ground (the plane minus gaps, chasm rock), Grass
                    (makeBlade, makeGrassTile, GrassField), TerrainShaders
     Levels/        level generation, in the usual segment/prefab vocabulary:

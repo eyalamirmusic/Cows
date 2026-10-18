@@ -120,7 +120,6 @@ struct Tree final
     bool overflows() const;
     // The root's fit size: what the tree needs, padding included.
     eacp::Graphics::Point fitSize() const;
-    int size() const;
 
 private:
     struct Entry final

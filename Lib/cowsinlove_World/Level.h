@@ -52,9 +52,6 @@ struct Level final : Scenery
     float groundAt(Maths::Vec2 point) const;
     bool overGap(Maths::Vec2 point) const;
 
-    // Somewhere to stand: solid ground, or a gap bridged by a block.
-    bool hasGround(Maths::Vec2 point) const;
-
     // Whether feet at `feet` stand on a mover at `point`.
     bool onMover(Maths::Vec2 point, float feet) const;
 

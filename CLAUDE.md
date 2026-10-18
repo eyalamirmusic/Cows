@@ -149,7 +149,7 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `Level` — a `Scenery` plus the hideout, `start` / `startHeading`, `gaps`
     (holes in the ground with a floor depth), `movers` (their `moving` batch
     rebuilt by `update(seconds)`), `killDepth` and `criticalPath`;
-    `pushedOut` / `floorAt` / `hasGround` / `overGap` / `isFree`; `stepUp`
+    `pushedOut` / `floorAt` / `overGap` / `isFree`; `stepUp`
   - `Levels/` — level generation (see `docs/structure.md`): `Region` (an xz
     rectangle), `Layout` (the seeded draws, hiding places, `hasRoom`,
     `chooseHideout`), `Biome` (`meadowBiome`, `populate`), `Segments/`

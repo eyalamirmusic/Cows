@@ -1,5 +1,4 @@
 #include "UI/Menu.h"
-#include "Layout/FitToSize.h"
 
 #include <ResEmbed/ResEmbed.h>
 #include <eacp/Text/GlyphRasterizer.h>
@@ -214,11 +213,6 @@ Rect Menu::titleArea() const
 Rect Menu::cowArea() const
 {
     return cowIn(frameOf(*this, topClearance).contentArea(), shape());
-}
-
-Rect Menu::itemArea() const
-{
-    return itemsIn(frameOf(*this, topClearance).contentArea(), shape());
 }
 
 void Menu::setItems(Vector<MenuItem> newItems)

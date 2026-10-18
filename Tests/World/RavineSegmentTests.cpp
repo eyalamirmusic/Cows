@@ -93,7 +93,6 @@ auto tRavineFloor = test("RavineSegment/ravineFloorAndBridgeDeck") = []
             auto at = Vec2 {x, gap.center.y};
             auto onDeck = deck.contains(at);
 
-            check(level.hasGround(at) == onDeck);
             check(level.floorAt(at, 0.f) == (onDeck ? 0.f : ravineDepth));
         }
 
@@ -103,7 +102,6 @@ auto tRavineFloor = test("RavineSegment/ravineFloorAndBridgeDeck") = []
             {
                 auto at = Vec2 {deck.center.x + x * (bridgeHalfWidth - 0.05f), z};
                 check(level.floorAt(at, 0.f) == 0.f);
-                check(level.hasGround(at));
             }
 
         check(!gap.contains({deck.center.x, deck.center.y - deck.half.y}));

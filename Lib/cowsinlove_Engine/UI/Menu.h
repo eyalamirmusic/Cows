@@ -41,7 +41,6 @@ struct Menu final : Graphics::View
     // Where the cow should stand on screen: right of the items when wide,
     // between the title and the items when tall.
     Graphics::Rect cowArea() const;
-    Graphics::Rect itemArea() const;
     // Whether the items sit in a column beside the cow rather than below her.
     bool wide() const;
 
@@ -88,7 +87,7 @@ struct Menu final : Graphics::View
     };
 
     // A column of labels, each on one line, never wrapped, at the largest
-    // size that fits itemArea, in the first shape that holds every label at
+    // size that fits the items' area, in the first shape that holds every label at
     // the readable size: the cow and the title give way before the text.
     void layOut(Hud& hud);
     Shape shape() const;
