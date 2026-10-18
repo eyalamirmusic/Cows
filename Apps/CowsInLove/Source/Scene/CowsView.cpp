@@ -28,6 +28,7 @@ constexpr auto padYawRate = 2.6f;
 constexpr auto padPitchRate = 1.5f;
 constexpr auto padZoomRate = 1.5f;
 constexpr auto lookHoldTime = 0.5f;
+constexpr auto menuFrameRate = 60;
 
 constexpr auto searchHeight = 2.2f;
 const auto searchLeastWidth = OrbitCamera {}.leastWidth;
@@ -443,6 +444,17 @@ void CowsView::update(Threads::FrameTime time)
     }
 
     steerCamera(delta, wallDelta);
+    paceFrames();
+}
+
+void CowsView::paceFrames()
+{
+    auto owner = inputOwner();
+    auto inMenus = owner == InputOwner::Menu || owner == InputOwner::Editor;
+    auto wanted = inMenus && !swinging ? menuFrameRate : 0;
+
+    if (maxFps() != wanted)
+        setMaxFps(wanted);
 }
 
 void CowsView::steerCamera(float delta, float wallDelta)

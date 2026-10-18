@@ -114,6 +114,7 @@ struct CowsView final : GPUView
     // Pulls the eye in to just short of the first block between it and the
     // target, and lets it back out once the way is clear.
     void keepEyeClear(float delta);
+    void paceFrames();
     void framePortrait(float aspect);
 
     void chooseQuality(QualityChoice choice);
