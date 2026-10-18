@@ -253,6 +253,21 @@ Graphics::Point centreOnScreen(Graphics::Rect area, Graphics::Rect bounds)
     return {2.f * (area.x + area.w * 0.5f) / bounds.w - 1.f,
             1.f - 2.f * (area.y + area.h * 0.5f) / bounds.h};
 }
+
+std::string_view ownerName(InputOwner owner)
+{
+    switch (owner)
+    {
+        case InputOwner::Menu:
+            return "menu";
+        case InputOwner::Editor:
+            return "editor";
+        case InputOwner::Play:
+            return "play";
+    }
+
+    return "play";
+}
 } // namespace
 
 CowsView::CowsView(const QualityPreference& preference,
@@ -450,6 +465,13 @@ void CowsView::update(Threads::FrameTime time)
 void CowsView::paceFrames()
 {
     auto owner = inputOwner();
+
+    if (owner != loggedOwner)
+    {
+        loggedOwner = owner;
+        LOG("Cows: input to ", ownerName(owner));
+    }
+
     auto inMenus = owner == InputOwner::Menu || owner == InputOwner::Editor;
     auto wanted = maxFramesPerSecond(forcedFrameRate.value_or(frameRate),
                                      inMenus && !swinging);

@@ -161,6 +161,7 @@ struct CowsView final : GPUView
     // The player's choice; COWS_FPS (forcedFrameRate) wins over it.
     FrameRate frameRate = FrameRate::Auto;
     std::optional<FrameRate> forcedFrameRate;
+    std::optional<InputOwner> loggedOwner;
     ShapeMeshes shapes;
     Mesh ground;
     TitleMesh title;
