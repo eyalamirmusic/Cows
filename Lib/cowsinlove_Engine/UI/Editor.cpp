@@ -187,6 +187,7 @@ Flex::Tree panelTree(const std::string& title,
         auto stacked = shape == RowShape::Stacked;
         auto line = Flex::Node {};
         line.direction = stacked ? Flex::Direction::Down : Flex::Direction::Across;
+        line.crossAlign = stacked ? Flex::Align::Centre : Flex::Align::Start;
         line.height = Flex::Size::fit(target);
         line.padding = {.left = target * rowSidePadding,
                         .right = target * rowSidePadding};
@@ -333,21 +334,20 @@ void Editor::layOut(Hud& hud)
     };
 
     // The first step at which a shape holds the rows at the readable size, the
-    // cow's room giving way a step at a time before the text shrinks. At each
-    // step the aspect's shape comes first, rows inline before names over
-    // their values, unless another makes the text a quarter larger.
+    // cow's room giving way a step at a time before the text shrinks, the
+    // aspect's shape first. Names go over their values only when no step
+    // holds them beside their values.
     auto shape = PanelShape {};
     auto fitted = ChosenShape {};
 
-    for (auto step = 0; step <= squeezeSteps && !fitted.readable; ++step)
-    {
-        auto first = squeezed(byAspect ? wideShape : tallShape, step);
-        auto second = squeezed(byAspect ? tallShape : wideShape, step);
-        std::tie(shape, fitted) = choose({{first, RowShape::Inline},
-                                          {first, RowShape::Stacked},
-                                          {second, RowShape::Inline},
-                                          {second, RowShape::Stacked}});
-    }
+    for (auto rowShape: {RowShape::Inline, RowShape::Stacked})
+        for (auto step = 0; step <= squeezeSteps && !fitted.readable; ++step)
+        {
+            auto first = squeezed(byAspect ? wideShape : tallShape, step);
+            auto second = squeezed(byAspect ? tallShape : wideShape, step);
+            std::tie(shape, fitted) =
+                choose({{first, rowShape}, {second, rowShape}});
+        }
 
     chosen = shape.area;
     stacked = shape.rows == RowShape::Stacked;
@@ -438,7 +438,7 @@ void Editor::drawRow(Hud& hud, int index)
               place.nameBaseline,
               place.pointSize,
               false,
-              false);
+              stacked);
     drawLabel(hud,
               previousArrow,
               place.previous,
