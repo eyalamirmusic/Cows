@@ -287,8 +287,8 @@ void renderScreens(const std::string& directory, const std::string& only)
             if (screen.screen == Screen::Settings)
             {
                 editor.setTitle(settingsTitle);
-                editor.setRows(
-                    {qualityRow(QualityChoice::Auto, Quality::High, false)});
+                editor.setRows(settingsRows(
+                    QualityChoice::Auto, Quality::High, false, FrameRate::Auto));
             }
 
             footer.text = [&]

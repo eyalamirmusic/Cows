@@ -134,15 +134,23 @@ CowsApp::CowsApp()
 
     settingsPanel.setTitle(settingsTitle);
     settingsPanel.topClearance = editor.topClearance;
-    settingsPanel.onStep = [this](int, int by)
+    settingsPanel.onStep = [this](int row, int by)
     {
+        if (row == 1)
+        {
+            chooseFrameRate((FrameRate) (((int) saved.frameRate + by + frameRates)
+                                         % frameRates));
+            return;
+        }
+
         auto next = ((int) scene.qualityPreference.chosen + by + qualityChoices)
                     % qualityChoices;
         scene.chooseQuality((QualityChoice) next);
     };
     settingsPanel.onDone = [this] { scene.closeEditor(); };
     settingsPanel.onControl = editor.onControl;
-    showQuality();
+    scene.frameRate = saved.frameRate;
+    showSettings();
     scene.wear(saved.skin);
     scene.onQualityChanged = [this]
     {
@@ -215,7 +223,7 @@ CowsApp::CowsApp()
             menu.draw(hud);
             if (scene.editor != nullptr)
             {
-                showQuality();
+                showSettings();
                 scene.editor->opacity = scene.editorOpacity();
                 scene.editor->draw(hud);
             }
@@ -278,18 +286,30 @@ void CowsApp::save() const
         LOG("Cows: could not save ", savedFile.str());
 }
 
-void CowsApp::showQuality()
+void CowsApp::chooseFrameRate(FrameRate rate)
 {
-    auto row =
-        qualityRow(scene.qualityPreference.chosen, scene.quality, scene.measuring);
+    saved.frameRate = rate;
+    scene.frameRate = rate;
+    showSettings();
+    save();
+}
 
-    if (settingsPanel.rows.empty() || settingsPanel.rows[0].choices != row.choices)
+void CowsApp::showSettings()
+{
+    auto rows = settingsRows(scene.qualityPreference.chosen,
+                             scene.quality,
+                             scene.measuring,
+                             scene.frameRate);
+    auto& shown = settingsPanel.rows;
+
+    if (shown.size() != rows.size() || shown[0].choices != rows[0].choices)
     {
-        settingsPanel.setRows({row});
+        settingsPanel.setRows(rows);
         return;
     }
 
-    settingsPanel.rows[0].choice = row.choice;
+    for (auto index = 0; index < (int) rows.size(); ++index)
+        shown[index].choice = rows[index].choice;
 }
 
 void CowsApp::showSkin()

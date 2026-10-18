@@ -22,6 +22,7 @@ Settings settingsFromJSON(std::string_view text)
     auto settings = Miro::createFromJSONString<Settings>(text);
     settings.skin = withNamedChoices(settings.skin);
     settings.quality = withKnownValues(settings.quality);
+    settings.frameRate = withKnownValue(settings.frameRate);
     return settings;
 }
 

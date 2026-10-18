@@ -246,13 +246,18 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   `CowsView`; `CowsArt` passes its own. `r` retries the stage with a fresh seed
 - `Apps/CowsInLove/Source/Settings` — everything kept between runs, one Miro
   document, `settings.json` in `FilePath::appSupportDirectory()`: the
-  `CowSkin` and the `QualityPreference`; anything unreadable or unnamed loads
-  as the default, and a new setting is one field. No other file is written
+  `CowSkin`, the `QualityPreference` and the `FrameRate`; anything unreadable
+  or unnamed loads as the default, and a new setting is one field. No other file is written
 - `Apps/CowsInLove/Source/Scene/Quality` — `Quality` (Low, Medium, High) and
   `settingsFor`, the one place every tier's knobs are set (MSAA, render scale,
   mesh detail, grass tiles, density and blade segments, grass and ground noise,
   shadow map side and taps); `QualityChoice` (Auto or a tier) and
   `qualityToUse` (COWS_QUALITY, else the choice, else the measured tier)
+- `Apps/CowsInLove/Source/Scene/FrameRate` — `FrameRate` (Auto, 60, Max) and
+  `maxFramesPerSecond`, the cap `CowsView::paceFrames` hands
+  `GPUView::setMaxFps` each update: Max every display refresh, 60 everywhere,
+  Auto every refresh in play and during a swing and 60 while the menu or the
+  editor has the input
 - `Apps/CowsInLove/Source/CowsApp` — the window: scene, footer, touch controls,
   root view, and the `GameInput` the scene polls for controllers; wires them the
   same on every platform and ends by attaching the platform (the app has no
@@ -312,7 +317,9 @@ varies one of `COWS_BLADES=<n>` (blades drawn per grass tile), `COWS_MSAA=<n>`,
 shadows, left out of the frame) and compares.
 `COWS_QUALITY=low|medium|high` forces a quality tier at launch (`Scene/Quality`)
 until the player picks one in Settings (the start menu's third item, an
-`Editor` with one row: Auto, Low, Medium, High; it applies at once). On Auto
+`Editor` with two rows, Quality: Auto, Low, Medium, High and Frame rate: Auto,
+60, Max; each applies at once). `COWS_FPS=auto|60|max` forces the frame rate
+for the run whatever Settings says (`Scene/FrameRate`); `tools/perf.sh` pins it. On Auto
 with nothing measured the run starts at high, `QualityGovernor`
 (`Render/QualityGovernor`) drops tiers while the GPU's frame time is over
 budget, and the tier it settles on is saved in `settings.json` and used from

@@ -18,7 +18,8 @@ struct CowsApp final
     void showSkin();
     void showMainMenu();
     void showAbout();
-    void showQuality();
+    void showSettings();
+    void chooseFrameRate(FrameRate rate);
     void save() const;
 
     FilePath savedFile = settingsFile();

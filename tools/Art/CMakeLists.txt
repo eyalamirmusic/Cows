@@ -7,6 +7,7 @@ add_executable(CowsArt
         ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Stages.cpp
         ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Templates.cpp
         ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/CowsView.cpp
+        ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/FrameRate.cpp
         ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/Quality.cpp)
 
 target_include_directories(CowsArt PRIVATE

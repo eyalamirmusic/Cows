@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cow/CowSkin.h"
+#include "Scene/FrameRate.h"
 #include "Scene/Quality.h"
 #include "UI/Editor.h"
 #include "UI/Menu.h"
@@ -19,6 +20,7 @@ constexpr auto backLabel = "Back";
 constexpr auto dressTitle = "Dress Your Cow";
 constexpr auto settingsTitle = "Settings";
 constexpr auto qualityRowName = "Quality";
+constexpr auto frameRateRowName = "Frame rate";
 constexpr auto autoPrefix = "Auto: ";
 
 // The start menu's choices, Start the biggest and About the smallest, and the
@@ -57,7 +59,7 @@ inline Vector<EditorRow> dressRows(const CowSkin& skin)
     return rows;
 }
 
-// Settings' one row: the quality choices, Auto naming the tier it measured
+// Settings' quality row: the quality choices, Auto naming the tier it measured
 // once it has one.
 inline EditorRow qualityRow(QualityChoice chosen, Quality measured, bool measuring)
 {
@@ -71,5 +73,26 @@ inline EditorRow qualityRow(QualityChoice chosen, Quality measured, bool measuri
             autoPrefix + choiceLabel((QualityChoice) ((int) measured + 1));
 
     return row;
+}
+inline EditorRow frameRateRow(FrameRate chosen)
+{
+    auto row = EditorRow {frameRateRowName, {}, (int) chosen};
+
+    for (auto index = 0; index < frameRates; ++index)
+        row.choices.add(frameRateLabel((FrameRate) index));
+
+    return row;
+}
+
+// Settings: quality, then frame rate.
+inline Vector<EditorRow> settingsRows(QualityChoice chosen,
+                                      Quality measured,
+                                      bool measuring,
+                                      FrameRate frameRate)
+{
+    auto rows = Vector<EditorRow> {};
+    rows.add(qualityRow(chosen, measured, measuring));
+    rows.add(frameRateRow(frameRate));
+    return rows;
 }
 } // namespace Cows

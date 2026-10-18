@@ -6,6 +6,7 @@
 #include "Stages.h"
 #include "Input.h"
 #include "Pad.h"
+#include "FrameRate.h"
 #include "Quality.h"
 #include "Terrain/Grass.h"
 #include "Terrain/Ground.h"
@@ -157,6 +158,9 @@ struct CowsView final : GPUView
     Maths::Mat4 lightViewProjection;
 
     QualityPreference qualityPreference;
+    // The player's choice; COWS_FPS (forcedFrameRate) wins over it.
+    FrameRate frameRate = FrameRate::Auto;
+    std::optional<FrameRate> forcedFrameRate;
     ShapeMeshes shapes;
     Mesh ground;
     TitleMesh title;

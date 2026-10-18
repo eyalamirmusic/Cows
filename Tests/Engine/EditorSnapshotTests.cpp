@@ -196,11 +196,10 @@ auto tEditorTargets = test("Editor/clicksStepAndFinish") = []
 
 // Dress Your Cow's rows at the shapes CowsArt renders, from a phone to a large
 // desktop window and a small square one.
-auto tEditorShapes = test("EditorLayout/holdsAtEveryShape") = []
+namespace
 {
-    if (!hasDevice())
-        return;
-
+void checkEveryShape(const std::string& title, const Vector<EditorRow>& rows)
+{
     struct Shape final
     {
         float width = 0.f;
@@ -231,9 +230,8 @@ auto tEditorShapes = test("EditorLayout/holdsAtEveryShape") = []
     {
         auto root = Graphics::View {};
         auto editor = Editor {};
-        editor.setTitle("Dress Your Cow");
-        editor.setRows({{"Hat", {"None", "Top Hat", "Cow Bucket Hat", "Wizard Hat"}},
-                        {"Pants", {"None", "Both Legs", "Back Legs"}}});
+        editor.setTitle(title);
+        editor.setRows(rows);
         editor.topClearance = shape.topClearance;
         root.addSubview(editor);
         root.setSafeAreaInsets(shape.safe);
@@ -241,9 +239,57 @@ auto tEditorShapes = test("EditorLayout/holdsAtEveryShape") = []
         editor.setBounds({0.f, 0.f, shape.width, shape.height});
         editor.layOut(hud);
 
-        check(editor.placed.size() == 2);
+        check(editor.placed.size() == rows.size());
 
-        if (editor.placed.size() == 2)
+        if (editor.placed.size() == rows.size())
             checkPanel(editor);
     }
+}
+
+Vector<EditorRow> settingsRows()
+{
+    auto rows = Vector<EditorRow> {};
+    rows.add({"Quality", {"Auto: High", "Low", "Medium", "High"}});
+    rows.add({"Frame rate", {"Auto", "60", "Max"}});
+    return rows;
+}
+} // namespace
+
+auto tEditorShapes = test("EditorLayout/holdsAtEveryShape") = []
+{
+    if (!hasDevice())
+        return;
+
+    auto rows = Vector<EditorRow> {};
+    rows.add({"Hat", {"None", "Top Hat", "Cow Bucket Hat", "Wizard Hat"}});
+    rows.add({"Pants", {"None", "Both Legs", "Back Legs"}});
+    checkEveryShape("Dress Your Cow", rows);
+};
+
+// Settings' two rows, quality and frame rate, hold at every shape too.
+auto tSettingsShapes = test("EditorLayout/settingsHoldAtEveryShape") = []
+{
+    if (!hasDevice())
+        return;
+
+    checkEveryShape("Settings", settingsRows());
+};
+
+auto tSettingsShot = test("EditorSnapshot/settings") = []
+{
+    if (!hasDevice())
+        return;
+
+    auto editor = Editor {};
+    editor.setTitle("Settings");
+    editor.setRows(settingsRows());
+    editor.topClearance = 28.f;
+
+    auto image = editorShot(editor, 1280.f, 800.f, "engine-editor-settings");
+    check(image.isValid());
+
+    if (!image.isValid())
+        return;
+
+    checkLayout(editor, 1280.f, 800.f);
 };

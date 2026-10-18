@@ -28,7 +28,6 @@ constexpr auto padYawRate = 2.6f;
 constexpr auto padPitchRate = 1.5f;
 constexpr auto padZoomRate = 1.5f;
 constexpr auto lookHoldTime = 0.5f;
-constexpr auto menuFrameRate = 60;
 
 constexpr auto searchHeight = 2.2f;
 const auto searchLeastWidth = OrbitCamera {}.leastWidth;
@@ -279,6 +278,7 @@ CowsView::CowsView(const QualityPreference& preference,
     menuTitleTall = MenuTitle::makeTall();
 
     forcedQuality = qualityOverride();
+    forcedFrameRate = frameRateOverride();
     applyQualityChoice();
 
     game.makeLevel = stages.level();
@@ -451,7 +451,8 @@ void CowsView::paceFrames()
 {
     auto owner = inputOwner();
     auto inMenus = owner == InputOwner::Menu || owner == InputOwner::Editor;
-    auto wanted = inMenus && !swinging ? menuFrameRate : 0;
+    auto wanted = maxFramesPerSecond(forcedFrameRate.value_or(frameRate),
+                                     inMenus && !swinging);
 
     if (maxFps() != wanted)
         setMaxFps(wanted);

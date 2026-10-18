@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cow/CowSkin.h"
+#include "Scene/FrameRate.h"
 #include "Scene/Quality.h"
 
 #include <Miro/Reflect.h>
@@ -19,8 +20,9 @@ struct Settings final
 
     CowSkin skin;
     QualityPreference quality;
+    FrameRate frameRate = FrameRate::Auto;
 
-    MIRO_REFLECT(skin, quality)
+    MIRO_REFLECT(skin, quality, frameRate)
 };
 
 std::string toJSON(const Settings& settings);
