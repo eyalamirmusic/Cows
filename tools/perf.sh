@@ -124,6 +124,14 @@ for ((run = first; run < first + runs; run++)); do
 
     sed -n "$((linesBefore + 1)),${linesAfter}p" "$log" | grep "profile fps" >"$out/$scenario-$run.profile" || true
 
+    # The window takes key focus, so a key or a controller button can leave the
+    # menu (or open it) mid-run; the app logs every change of input owner.
+    if sed -n "$((linesBefore + 1)),${linesAfter}p" "$log" | grep -q "Cows: input to"; then
+        echo "  $scenario run $run changed screens mid-window; running it again" >&2
+        ((run--)) || true
+        continue
+    fi
+
     # A window that never drew (hidden behind another space, say) logs no
     # profile lines and idles at ~0 CPU; it measures nothing.
     if [[ ! -s "$out/$scenario-$run.profile" ]]; then
