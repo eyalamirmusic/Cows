@@ -15,7 +15,8 @@ namespace
 using Graphics::Point;
 using Graphics::Rect;
 
-constexpr auto titleShare = 0.34f;
+constexpr auto wideTitleShare = 0.34f;
+constexpr auto tallTitleShare = 0.18f;
 constexpr auto lineSpacing = 1.05f;
 constexpr auto noteScale = 0.4f;
 constexpr auto hoverScale = 1.08f;
@@ -24,9 +25,9 @@ constexpr auto leastTarget = 64.f;
 constexpr auto ringWidth = 4.f;
 
 constexpr auto fitShare = 0.9f;
-constexpr auto wideAspect = 1.25f;
+constexpr auto wideAspect = 1.f;
 constexpr auto columnShare = 0.45f;
-constexpr auto tallCowShare = 0.3f;
+constexpr auto tallCowShare = 0.4f;
 constexpr auto bottomShare = 0.06f;
 constexpr auto rowStep = 1.35f;
 
@@ -63,23 +64,29 @@ Rect Menu::safeArea() const
 {
     auto bounds = getLocalBounds();
     auto safe = getSafeAreaInsets();
+    auto top = std::max(safe.top, topClearance);
 
     return {safe.left,
-            safe.top,
+            top,
             bounds.w - safe.left - safe.right,
-            bounds.h - safe.top - safe.bottom};
+            bounds.h - top - safe.bottom};
+}
+
+float Menu::titleShare() const
+{
+    return wide() ? wideTitleShare : tallTitleShare;
 }
 
 Rect Menu::titleArea() const
 {
     auto area = safeArea();
-    return {area.x, area.y, area.w, area.h * titleShare};
+    return {area.x, area.y, area.w, area.h * titleShare()};
 }
 
 Rect Menu::belowTitle() const
 {
     auto area = safeArea();
-    auto top = area.y + area.h * titleShare;
+    auto top = area.y + area.h * titleShare();
     return {area.x, top, area.w, area.y + area.h * (1.f - bottomShare) - top};
 }
 
@@ -208,8 +215,9 @@ void Menu::layOut(Hud& hud)
         auto step = rowHeight(index, pointSize) * squeeze;
         auto center = Point {x, y + step * 0.5f};
         auto target = targetFor(center, labelWidth(hud, index, size), size);
-        target.h = std::min(target.h, step);
-        target.y = center.y - target.h * 0.5f;
+        auto rowBottom = y + step;
+        target.y = std::max(target.y, y);
+        target.h = std::min(target.y + target.h, rowBottom) - target.y;
         placed.add({center, size, target});
         y += step;
     }
@@ -230,11 +238,13 @@ void Menu::drawItem(Hud& hud, int index)
 {
     const auto& item = items[index];
     const auto& place = placed[index];
-    auto lit = item.enabled == Enabled::Yes && (hovered == index || pressed == index);
+    auto lit =
+        item.enabled == Enabled::Yes && (hovered == index || pressed == index);
     auto size = place.pointSize * (lit ? hoverScale : 1.f);
     auto font = menuFont(size);
     auto color =
-        faded(item.enabled == Enabled::Yes ? pink(lit ? 0.2f : 0.f) : disabledColor, opacity);
+        faded(item.enabled == Enabled::Yes ? pink(lit ? 0.2f : 0.f) : disabledColor,
+              opacity);
     auto top = place.center.y - size * lineSpacing * 0.5f;
     auto ascent = hud.ascent(font);
 
@@ -243,7 +253,8 @@ void Menu::drawItem(Hud& hud, int index)
             place.area,
             ringWidth,
             std::min(place.area.h * 0.5f, 28.f),
-            faded(item.enabled == Enabled::Yes ? pink(0.1f) : disabledColor, opacity));
+            faded(item.enabled == Enabled::Yes ? pink(0.1f) : disabledColor,
+                  opacity));
 
     if (!item.note.empty())
     {
@@ -289,7 +300,8 @@ void Menu::chooseSelected()
 
 void Menu::choose(int index)
 {
-    if (index < 0 || index >= (int) items.size() || items[index].enabled == Enabled::No)
+    if (index < 0 || index >= (int) items.size()
+        || items[index].enabled == Enabled::No)
         return;
 
     onChoose(index);

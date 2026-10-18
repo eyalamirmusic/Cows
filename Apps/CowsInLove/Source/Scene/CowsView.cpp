@@ -45,9 +45,12 @@ constexpr auto menuTurn = 0.45f;
 constexpr auto menuHeight = 1.3f;
 constexpr auto menuPitch = 0.1f;
 constexpr auto menuDistance = 9.5f;
-constexpr auto menuCowSize = 2.2f;
-constexpr auto menuCowFill = 0.5f;
-constexpr auto nearestMenu = 5.f;
+constexpr auto menuCowHeight = 2.2f;
+constexpr auto menuCowWidth = 2.f;
+constexpr auto wideMenuCowFill = 0.5f;
+constexpr auto tallMenuCowFill = 0.85f;
+constexpr auto menuHatRoom = 0.8f;
+constexpr auto nearestMenu = 4.f;
 constexpr auto farthestMenu = 14.f;
 constexpr auto menuStick = 0.5f;
 constexpr auto swingLength = 1.1f;
@@ -493,9 +496,15 @@ CameraPose CowsView::menuPose() const
         return pose;
 
     auto fov = camera.verticalFieldOfView(viewAspect);
-    auto share = menuCowFill * std::min(area.w, area.h) / bounds.h;
-    pose.distance = std::clamp(
-        distanceToFit(menuCowSize, share, fov), nearestMenu, farthestMenu);
+    auto wide = menu->wide();
+    auto fill = wide ? wideMenuCowFill : tallMenuCowFill;
+    auto hatRoom = wide ? 0.f : menuHatRoom;
+    pose.target.y += hatRoom * 0.5f;
+    auto heightShare = fill * area.h / bounds.h;
+    auto widthShare = fill * area.w / bounds.h;
+    auto fitted = std::max(distanceToFit(menuCowHeight + hatRoom, heightShare, fov),
+                           distanceToFit(menuCowWidth, widthShare, fov));
+    pose.distance = std::clamp(fitted, nearestMenu, farthestMenu);
     return placeTargetOnScreen(pose, centreOnScreen(area, bounds), fov, viewAspect);
 }
 

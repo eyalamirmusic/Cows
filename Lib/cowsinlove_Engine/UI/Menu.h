@@ -31,7 +31,8 @@ struct Menu final : Graphics::View
 
     void draw(Hud& hud);
 
-    // Where the title goes, in points: the top of the safe area.
+    // Where the title goes, in points: the top of the safe area, below
+    // topClearance.
     Graphics::Rect titleArea() const;
     // Where the cow should stand on screen: right of the items when wide,
     // between the title and the items when tall.
@@ -70,6 +71,7 @@ struct Menu final : Graphics::View
     // itemArea.
     void layOut(Hud& hud);
     Graphics::Rect safeArea() const;
+    float titleShare() const;
     Graphics::Rect belowTitle() const;
     float labelWidth(Hud& hud, int index, float pointSize) const;
     static Graphics::Rect
@@ -83,6 +85,9 @@ struct Menu final : Graphics::View
     Vector<MenuItem> items;
     Vector<Placed> placed;
     float opacity = 1.f;
+    // Room kept at the top for the macOS title bar, which the safe area does
+    // not count.
+    float topClearance = 0.f;
     bool showSelection = false;
     int selected = 0;
     int hovered = -1;

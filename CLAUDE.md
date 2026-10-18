@@ -216,7 +216,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
 screenshots; `COWS_SEED=<n>` fixes the level, `COWS_STAGE=<n>` starts on
 stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her, skipping the menu; `COWS_MENU=0` skips
 the menu, `COWS_DRESS=1` opens the cow editor, `COWS_SETTINGS=1` opens
-Settings and `COWS_START=<seconds>` presses Start after that long (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).
+Settings, `COWS_START=<seconds>` presses Start after that long and
+`COWS_WINDOW=<w>x<h>` opens the window at that size in points (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).
 `COWS_PROFILE=1` logs, once a second, the frame interval, the CPU time of each
 part of a frame, the GPU time of the frame and of each pass (`shadows`,
 `scene`) and the instances and triangles each pass drew; a profiling run

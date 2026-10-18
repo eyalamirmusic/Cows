@@ -211,6 +211,8 @@ void renderMenus(const std::string& directory)
         Hints hints = Hints::Keys;
     };
 
+    constexpr auto macTitlebar = 28.f;
+
     auto shapes = Vector<MenuShape> {
         {"mac-16x10", 1280.f, 800.f, {}, Hints::Keys},
         {"desktop-16x9", 1280.f, 720.f, {}, Hints::Keys},
@@ -218,6 +220,7 @@ void renderMenus(const std::string& directory)
         {"ipad-landscape", 1180.f, 820.f, {24.f, 0.f, 20.f, 0.f}, Hints::Touch},
         {"square-ish", 900.f, 820.f, {}, Hints::Keys},
         {"square", 800.f, 800.f, {}, Hints::Keys},
+        {"tall-desktop", 650.f, 800.f, {}, Hints::Keys},
         {"skinny", 700.f, 900.f, {}, Hints::Keys},
         {"ipad-portrait", 820.f, 1180.f, {24.f, 0.f, 20.f, 0.f}, Hints::Touch},
         {"iphone-landscape", 932.f, 430.f, {0.f, 59.f, 21.f, 59.f}, Hints::Touch},
@@ -243,6 +246,7 @@ void renderMenus(const std::string& directory)
         root.addSubview(scene);
         root.addSubview(menu);
         root.setSafeAreaInsets(shape.safe);
+        menu.topClearance = shape.hints == Hints::Keys ? macTitlebar : 0.f;
         footer.bottomInset = shape.safe.bottom;
         root.setBounds({0.f, 0.f, shape.width, shape.height});
         root.resized();

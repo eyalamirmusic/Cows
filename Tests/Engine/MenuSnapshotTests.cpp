@@ -15,7 +15,8 @@ constexpr auto bigItemScale = 1.3f;
 void addItems(Menu& menu)
 {
     menu.items.add({"Start", "", bigItemScale});
-    menu.items.add({.label = "Dress Your Cow", .note = "Coming Soon!", .enabled = Enabled::No});
+    menu.items.add(
+        {.label = "Dress Your Cow", .note = "Coming Soon!", .enabled = Enabled::No});
 }
 
 bool anyDrawnIn(const Graphics::Image& image, const Graphics::Rect& area)
@@ -143,6 +144,8 @@ void checkMainMenu(float width, float height, const char* name)
         return;
 
     auto title = menu.titleArea();
+    check(!menu.cowArea().intersects(title));
+    check(menu.wide() == (width >= height));
 
     for (auto index = 0; index < 4; ++index)
     {
@@ -168,6 +171,10 @@ auto tMainMenuSizes = test("MenuSnapshot/mainMenuNeverWrapsOrOverlaps") = []
     checkMainMenu(640.f, 600.f, "engine-menu-main-640x600");
     checkMainMenu(500.f, 400.f, "engine-menu-main-500x400");
     checkMainMenu(390.f, 844.f, "engine-menu-main-390x844");
+    checkMainMenu(650.f, 800.f, "engine-menu-main-650x800");
+    checkMainMenu(800.f, 800.f, "engine-menu-main-800x800");
+    checkMainMenu(320.f, 320.f, "engine-menu-main-320x320");
+    checkMainMenu(320.f, 700.f, "engine-menu-main-320x700");
 };
 
 // Only an enabled choice is ever chosen.

@@ -3,17 +3,51 @@
 
 #include <eacp/Core/Utils/Environment.h>
 
+#include <algorithm>
+#include <string>
+
 namespace Cows
 {
 namespace
 {
+constexpr auto defaultWidth = 1280;
+constexpr auto defaultHeight = 800;
+constexpr auto smallestSide = 320;
+
+struct WindowSize final
+{
+    int width = defaultWidth;
+    int height = defaultHeight;
+};
+
+// COWS_WINDOW=<width>x<height> in points, else the default.
+WindowSize firstWindowSize()
+{
+    auto value = getEnvValue("COWS_WINDOW");
+    auto by = value.find('x');
+
+    if (by == std::string::npos)
+        return {};
+
+    try
+    {
+        return {std::max(smallestSide, std::stoi(value.substr(0, by))),
+                std::max(smallestSide, std::stoi(value.substr(by + 1)))};
+    }
+    catch (const std::exception&)
+    {
+        return {};
+    }
+}
+
 Graphics::WindowOptions windowOptions()
 {
+    auto size = firstWindowSize();
     auto options = Graphics::WindowOptions {};
-    options.width = 1280;
-    options.height = 800;
-    options.minWidth = 640;
-    options.minHeight = 400;
+    options.width = size.width;
+    options.height = size.height;
+    options.minWidth = smallestSide;
+    options.minHeight = smallestSide;
     options.title = "Cows In Love";
     options.flags.add(Graphics::WindowFlags::FullSizeContentView);
     options.titlebarTransparent = true;
@@ -95,6 +129,7 @@ CowsApp::CowsApp()
         editor.rows.add({item.name, item.choices, item.choice(saved.skin)});
 
     editor.topClearance = titlebarClearance();
+    menu.topClearance = editor.topClearance;
     editor.onStep = [this](int row, int by) { dress(stepped(saved.skin, row, by)); };
     editor.onDone = [this] { scene.closeEditor(); };
     editor.onControl = [this](const ControlEvent& event)
