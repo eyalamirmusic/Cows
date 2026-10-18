@@ -76,14 +76,16 @@ def scan(entry):
     if errors:
         sys.exit(f"{entry['file']}: {errors[0]}")
 
-    def visit(cursor):
+    # Implicit nodes, such as a conversion operator's member call, have no
+    # file: they belong to the code around them.
+    def visit(cursor, outer=None):
         for child in cursor.get_children():
             loc = child.location
-            path = loc.file.name if loc.file else None
+            path = loc.file.name if loc.file else outer
             if child.kind == K.NAMESPACE or ours(path):
                 if ours(path):
                     note(child, path, loc.line)
-                visit(child)
+                visit(child, path)
 
     def note(c, path, line):
         if c.kind in TRACKED and c.semantic_parent is not None \
