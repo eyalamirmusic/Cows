@@ -6,7 +6,8 @@ below it; the app links the top. One NanoTest executable per library under
 PNGs to `docs/shots/tests/`.
 
 ```
-Lib/cowsinlove_Engine       <- eacp-gpu            Render, Camera, UI, Platform
+Lib/cowsinlove_Layout       <- eacp-graphics       Tree, FitToSize
+Lib/cowsinlove_Engine       <- eacp-gpu, Layout    Render, Camera, UI, Platform
 Lib/cowsinlove_AudioEngine  <- eacp, MakeASound    sample playback
 Lib/cowsinlove_Actors       <- Engine, AudioEngine Animation, Cow, Props, Sky
 Lib/cowsinlove_World        <- Actors              Level, Terrain, Levels
@@ -93,6 +94,32 @@ Tests/
   Engine/, AudioEngine/, Actors/, World/, Game/   one executable per library
   CowsInLove/                     the app's own content (Stages)
 ```
+
+## Layout
+
+`Lib/cowsinlove_Layout` is a flexbox-lite of our own, game-independent and
+GPU-free so eacp can take it: it sees only eacp's `Graphics::Rect`, `Point`
+and `Insets`, and widths of text through a `Measure` callback the caller
+supplies (in Cows, `Hud::measure` in the menu's font). A screen builds a
+`Flex::Tree` of `Node`s per layout pass (direction, width and height as
+`fit` / `grow(least, most)` / `fixed` / `share`, padding, gap, alignment along
+and across, an optional text leaf) and `resolve`s it into a rect: fit sizes
+bottom up, then fixed, share and fit children take their room and grow
+children share the rest (shrinking to nothing rather than overflowing), then
+positions; every rect is snapped to whole points from exact numbers, so
+neighbours meet without overlapping, and a node that holds more than its room
+reports `overflow`. Two things flexbox lacks: nodes sharing a `column` take one
+width, the widest, so a table lines up across rows; and `largestPointSize`
+finds the largest point size, on a grid, at which a tree builder's tree fits,
+by a closed form when the tree scales linearly with the size and a short search
+on the grid otherwise. `UI/Menu` and `UI/Editor` lay out the start menu, About,
+Dress Your Cow and Settings through it, again only when the window, its safe
+area or their content (`setItems`, `setRows`, `setTitle`) change. Text is the
+one thing a screen never gives up: every label is held to
+`smallestReadableSize` (18 pt on a phone to 22 pt on a desktop, from the 64 pt
+tap target). When a shape can't hold it, the cow's room (and the menu's
+title) gives way a step at a time, the editor's names go over their values,
+and in the smallest windows the menu's cow stands behind the items.
 
 ## Why this shape
 

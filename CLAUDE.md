@@ -21,6 +21,12 @@ and its shader EDSL. Game-independent code lives in static libraries under
 `Lib/`; each app under `Apps/` links them. Today there is one app target, `Cows`,
 under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
 
+- `Lib/cowsinlove_Layout` — a flexbox-lite, GPU-free and game-free (for eacp
+  to take): `Layout/Tree` (`Flex::Tree` of `Node`s — Across/Down, `Size::fit`,
+  `grow`, `fixed`, `share`, padding, gap, alignment, text leaves measured
+  through a caller's `Measure`, shared `column`s — resolved to whole-point
+  rects with `overflow` per node) and `Layout/FitToSize` (`largestPointSize`
+  on a `fontSizeStep` grid). See `docs/structure.md`
 - `Lib/cowsinlove_Engine` — knows nothing about cows. Include with the
   subdirectory: `#include "Render/Mesh.h"`.
   - `Render/Common.h` — `using namespace eacp` and `eacp::GPU`, included by all
@@ -51,21 +57,41 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `UI/Menu` — the start menu: `MenuItem`s in Comic Neue Bold (embedded
     from `Resources/ComicNeue-Bold.ttf`, OFL, registered as a memory font
     through `Text::registerMemoryFont`; see `Resources/CREDITS.md`), one
-    column shrunk to fit `itemArea`: on the left with `cowArea` on the right
-    when wide (`w >= 1.25 h`), below `cowArea` when tall (by aspect, not
-    platform); `menuPose` frames the cow in `cowArea`; a `MenuItem` is
-    `{label, note, scale, enabled}`, `scale` sizing one item against the rest
-    (Start biggest, About smallest, `mainMenuItems` in the app's `MainMenu.h`)
-    and `enabled` an `Enabled::Yes` / `No`, Yes by default; a `titleArea` left at the top; hover and click, tap (targets at least
+    column at the largest size that fits `itemArea` (through Layout). Wide
+    (`w >= h`) the title gets 0.34 of the content's height and the items' column
+    sits beside `cowArea` (0.55 of the width); tall the title 0.18, `cowArea`
+    0.4, the items below. Every label, About and its note included, is held to
+    `smallestReadableSize`; when neither shape can, the cow's and the title's
+    room give way a step at a time (`Menu::Shape`), and in the smallest windows
+    the cow stands behind the items. `titleArea`, `cowArea` and `itemArea` are
+    worked out from the window on demand; `menuPose` frames the cow in
+    `cowArea`. A `MenuItem` is `{label, note, scale, enabled}`, `scale` sizing
+    one item against the rest (Start biggest, About smallest; `mainMenuItems`
+    and `aboutItems` in the app's `MainMenu.h`, which names every string it
+    shows); `setItems` replaces them. Hover and click, tap (targets at least
     64 pt), and a selection ring for keys and controllers; a disabled item is
     grey and never chosen; `opacity` fades it
   - `UI/Editor` — the cow editor's rows ("Hat  <  Top Hat  >", then Done) in
-    the menu's look over the live scene, right of `sceneArea` when wide and
-    below it when tall; hover and click, tap, a selection ring for keys and
-    controllers; a drag or wheel off the rows goes out through `onControl` as
-    Look / Zoom. `topClearance` keeps it under the macOS title bar, which the
-    safe area does not count. `UI/MenuStyle` — the pink Comic Neue look the
-    menu and the editor share
+    the menu's look over the live scene: a heading, then a table through
+    Layout (names in one shared column, values in another as wide as the
+    widest choice of any row), then Done, right of `cowArea` (0.55 of the
+    width) when wide and below it (0.55 of the height) when tall, in
+    `panelArea`. Text is held to `smallestReadableSize`: the cow's room gives
+    way first, then each name goes over its value (`stacked`). `setRows` and
+    `setTitle` lay it out again; a row's `choice` alone doesn't. `editorPose`
+    frames the cow in `cowArea` (`framedCow`, `CowFraming`); `dressRows` and
+    `qualityRow` in `MainMenu.h` build the rows. Hover and click, tap, a
+    selection ring for keys and controllers; a drag or wheel off the rows
+    goes out through `onControl` as Look / Zoom. `topClearance` keeps it
+    under the macOS title bar, which the safe area does not count
+  - `UI/MenuStyle` — the pink Comic Neue look the menu and the editor share,
+    `ScreenFrame` (`contentArea`: the safe area, the top at least
+    `topClearance` — `macTitleBarClearance` on macOS — and the footer's strip,
+    `Footer::reserveFor`, kept clear), `tapTarget`, `smallestReadableSize`
+    (18 pt on a phone to 22 pt on a desktop), `largestShape` (the first of a
+    list of shapes to fit, unless another fits text a quarter larger) and
+    `menuFont`. `UI/FontCache` — every UI font, on the 0.5 pt `fontSizeStep`
+    grid, in an LRU behind `Singleton::get<FontCache>()` (`uiFont`)
   - `UI/Overlay` — `Footer` (the footer text, drawn through `Hud`), and
     `RootView` (q quits; Esc goes to `onEscape` first, quitting when it
     declines)
@@ -200,24 +226,27 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   stick, touch drag), and Done, Esc and the controller's East / Start swing
   back to the menu. `CowsApp` saves `Settings` on every change
 - `tools/Art` — `CowsArt`, a macOS tool that renders the icon, key art, logo
-  and store screenshots from the game's own views (`CowsArt menu <dir>`
-  renders the start menu at eleven window shapes, ultrawide to phone); `tools/store-art.sh` and
+  and store screenshots from the game's own views (`CowsArt screens <dir>
+  [menu|dress|settings|about]` renders those screens at sixteen phone,
+  tablet and desktop shapes, logging each one's text size and shape);
+  `tools/store-art.sh` and
   `tools/screenshots.sh` drive it. `tools/release-*.sh`, `release-msix.ps1`
   and `steam-upload.sh` build and package each store; `Deploy/README.md` is
   the runbook
-- `Tests/Engine`, `Tests/AudioEngine`, `Tests/Actors`, `Tests/World`,
+- `Tests/Layout`, `Tests/Engine`, `Tests/AudioEngine`, `Tests/Actors`, `Tests/World`,
   `Tests/Game` — one NanoTest executable per library, and `Tests/CowsInLove`
   for the app's content; run with `ctest --test-dir build` or `just test`.
   `Tests/Support` holds the shared `TestMain` and `SnapshotView`, which draws a
   `SurfaceBatch` (plus anything in `drawOpaque`) off-screen and saves
   `docs/shots/tests/<name>.png`; snapshot tests skip without a GPU
 
-`COWS_TIME=<seconds>` starts the clock there and `COWS_FREEZE=1` stops it, for
+`COWS_TIME=<seconds>` starts the clock there and `COWS_FREEZE=1` stops it (the
+camera's swing between screens still runs), for
 screenshots; `COWS_SEED=<n>` fixes the level, `COWS_STAGE=<n>` starts on
 stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her, skipping the menu; `COWS_MENU=0` skips
 the menu, `COWS_DRESS=1` opens the cow editor, `COWS_SETTINGS=1` opens
 Settings, `COWS_START=<seconds>` presses Start after that long and
-`COWS_WINDOW=<w>x<h>` opens the window at that size in points (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).
+`COWS_WINDOW=<w>x<h>` opens the window at that size in points, as far as the screen allows (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).
 `COWS_PROFILE=1` logs, once a second, the frame interval, the CPU time of each
 part of a frame, the GPU time of the frame and of each pass (`shadows`,
 `scene`) and the instances and triangles each pass drew; a profiling run
