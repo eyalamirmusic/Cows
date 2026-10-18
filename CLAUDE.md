@@ -332,3 +332,14 @@ Follows eacp's style:
 Enforced via `.clang-format` (copied from eacp): Allman braces, 85 columns,
 4-space indentation, left pointer alignment. Always run clang-format on edited
 C++ files.
+
+## Dead code
+
+`just dead-code` (`tools/dead-code.sh`, macOS, `brew install llvm cppcheck`)
+lists code nothing uses and deletes nothing. It builds `build-dead-code` once
+with extra unused warnings and dead-stripped links that write link maps, then
+runs clang-tidy's include-cleaner, cppcheck's unusedFunction, a libclang pass
+matching every declaration to its references (`tools/dead-code-refs.py`), the
+link maps against our objects' symbols (`tools/dead-code-link.py`), and checks
+for files nothing builds, includes, calls or shows. "Test-only" lists what only
+`Tests/` uses: delete it with its tests or keep it as a test seam, on purpose.

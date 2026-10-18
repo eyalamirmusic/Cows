@@ -135,3 +135,8 @@ perf-compare a b:
         other="$dir/{{b}}/$(basename "$csv")"
         [[ -f "$other" ]] && tools/perf-stats.py "$csv" "$other"
     done
+
+# List code nothing uses (compiler, clang-tidy, cppcheck, libclang references,
+# link maps, files); deletes nothing. See tools/dead-code.sh.
+dead-code:
+    tools/dead-code.sh
