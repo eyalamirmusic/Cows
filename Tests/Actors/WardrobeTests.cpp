@@ -63,6 +63,8 @@ auto tHatsOnHead = test("Wardrobe/everyHatSitsOnTheHead") = []
     }
 };
 
+namespace
+{
 CowSkin dressed(Hat hat, Pants pants)
 {
     auto skin = wearing(hat);
@@ -94,6 +96,7 @@ void shoot(const CowSkin& skin, const Shot& shot, const std::string& name)
 
     check(snapshot(view, 360.f, 270.f, name + shot.name).isValid());
 }
+} // namespace
 
 auto tPantsOnBody = test("Wardrobe/pantsSitOnTheBody") = []
 {
