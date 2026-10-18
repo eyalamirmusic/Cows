@@ -1,5 +1,5 @@
 #include "UI/Menu.h"
-#include "UI/MenuStyle.h"
+#include "Layout/FitToSize.h"
 #include "Render/Palette.h"
 
 #include <ResEmbed/ResEmbed.h>
@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <tuple>
+#include <utility>
 
 namespace Cows
 {
@@ -15,22 +17,159 @@ namespace
 using Graphics::Point;
 using Graphics::Rect;
 
-constexpr auto wideTitleShare = 0.34f;
-constexpr auto tallTitleShare = 0.18f;
+// The shapes the menu takes, wide or tall, and the most the cow's and the
+// title's room give way to the items, a step at a time, before the cow goes
+// behind them (tightTallShape) in a window too small for anything else.
+constexpr auto wideShape = Menu::Shape {true, 0.34f, 0.55f};
+constexpr auto tallShape = Menu::Shape {false, 0.18f, 0.4f};
+constexpr auto roomyWideShape = Menu::Shape {true, 0.24f, 0.4f};
+constexpr auto roomyTallShape = Menu::Shape {false, 0.14f, 0.26f};
+constexpr auto tightTallShape = Menu::Shape {false, 0.12f, 0.f};
+
 constexpr auto lineSpacing = 1.05f;
-constexpr auto noteScale = 0.4f;
-constexpr auto hoverScale = 1.08f;
-constexpr auto padding = 14.f;
-constexpr auto leastTarget = 64.f;
-constexpr auto ringWidth = 4.f;
-
-constexpr auto fitShare = 0.9f;
-constexpr auto wideAspect = 1.f;
-constexpr auto columnShare = 0.45f;
-constexpr auto tallCowShare = 0.4f;
-constexpr auto bottomShare = 0.06f;
 constexpr auto rowStep = 1.35f;
+constexpr auto noteScale = 0.4f;
+constexpr auto noteLift = 0.12f;
+constexpr auto hoverScale = 1.08f;
+// Room each side of a label for it to grow by hoverScale, as a share of its
+// point size.
+constexpr auto hoverRoom = 0.25f;
+constexpr auto padding = 14.f;
+constexpr auto ringWidth = 4.f;
+constexpr auto ringCorner = 28.f;
+constexpr auto ascentShare = 0.9f;
+constexpr auto litBrighten = 0.2f;
+constexpr auto ringBrighten = 0.1f;
 
+constexpr auto leastLargest = 24.f;
+constexpr auto mostLargest = 110.f;
+constexpr auto largestShare = 0.09f;
+
+bool aspectWide(const Graphics::View& view)
+{
+    auto bounds = view.getLocalBounds();
+    return bounds.w >= bounds.h;
+}
+
+Rect titleIn(Rect content, Menu::Shape shape)
+{
+    return {content.x, content.y, content.w, std::round(content.h * shape.title)};
+}
+
+Rect bodyIn(Rect content, Menu::Shape shape)
+{
+    auto title = std::round(content.h * shape.title);
+    return {content.x, content.y + title, content.w, content.h - title};
+}
+
+Rect cowIn(Rect content, Menu::Shape shape)
+{
+    auto body = bodyIn(content, shape);
+
+    if (shape.wide)
+    {
+        auto width = std::round(body.w * shape.cow);
+        return {body.x + body.w - width, body.y, width, body.h};
+    }
+
+    // With no band of her own she stands behind the items.
+    if (shape.cow <= 0.f)
+        return body;
+
+    return {body.x, body.y, body.w, std::round(content.h * shape.cow)};
+}
+
+Rect itemsIn(Rect content, Menu::Shape shape)
+{
+    auto body = bodyIn(content, shape);
+
+    if (shape.wide)
+        return {body.x, body.y, body.w - std::round(body.w * shape.cow), body.h};
+
+    auto cow = std::round(content.h * shape.cow);
+    return {body.x, body.y + cow, body.w, body.h - cow};
+}
+
+float smallestScale(const Vector<MenuItem>& items)
+{
+    auto least = 1.f;
+
+    for (const auto& item: items)
+        least = std::min(least, item.scale);
+
+    return least;
+}
+
+constexpr auto squeezeSteps = 6;
+
+Menu::Shape squeezed(Menu::Shape from, Menu::Shape to, int step)
+{
+    auto along = (float) step / (float) squeezeSteps;
+    return {from.wide,
+            from.title + (to.title - from.title) * along,
+            from.cow + (to.cow - from.cow) * along};
+}
+
+struct ItemNodes final
+{
+    Flex::NodeId row = 0;
+    Flex::NodeId label = 0;
+};
+
+float noteSizeFor(float labelSize, float leastNote)
+{
+    return onFontGrid(std::max(labelSize * noteScale, leastNote));
+}
+
+// One centred column of rows, each a label (with its note above it, never
+// under `leastNote`) padded to at least a tap target, the labels at
+// `pointSize` times their item's scale.
+Flex::Tree itemTree(const Vector<MenuItem>& items,
+                    float pointSize,
+                    float target,
+                    float leastNote,
+                    Vector<ItemNodes>* nodes)
+{
+    auto column = Flex::Node {};
+    column.direction = Flex::Direction::Down;
+    column.mainAlign = Flex::Align::Centre;
+    column.crossAlign = Flex::Align::Centre;
+    auto tree = Flex::Tree {column};
+
+    for (const auto& item: items)
+    {
+        auto size = onFontGrid(pointSize * item.scale);
+        auto line = size * lineSpacing;
+        auto rowPadding = line * (rowStep - 1.f) * 0.5f;
+        auto side = padding + size * hoverRoom;
+
+        auto row = Flex::Node {};
+        row.direction = Flex::Direction::Down;
+        row.width = Flex::Size::fit(target);
+        row.height = Flex::Size::fit(target);
+        row.padding = {
+            .top = rowPadding, .left = side, .bottom = rowPadding, .right = side};
+        row.mainAlign = Flex::Align::Centre;
+        row.crossAlign = Flex::Align::Centre;
+        auto rowId = tree.add(Flex::Tree::root, row);
+
+        if (!item.note.empty())
+        {
+            auto note = Flex::Node {};
+            note.text = Flex::Text {item.note, noteSizeFor(size, leastNote)};
+            tree.add(rowId, note);
+        }
+
+        auto label = Flex::Node {};
+        label.text = Flex::Text {item.label, size, lineSpacing};
+        auto labelId = tree.add(rowId, label);
+
+        if (nodes != nullptr)
+            nodes->add({rowId, labelId});
+    }
+
+    return tree;
+}
 } // namespace
 
 const std::string& menuFontFamily()
@@ -54,172 +193,119 @@ Menu::Menu()
     setShowing(true);
 }
 
+Menu::Shape Menu::shape() const
+{
+    if (laidOutFor.has_value()
+        && sameFrame(*laidOutFor, frameOf(*this, topClearance)))
+        return chosen;
+
+    return aspectWide(*this) ? wideShape : tallShape;
+}
+
 bool Menu::wide() const
 {
-    auto bounds = getLocalBounds();
-    return bounds.w >= bounds.h * wideAspect;
-}
-
-Rect Menu::safeArea() const
-{
-    auto bounds = getLocalBounds();
-    auto safe = getSafeAreaInsets();
-    auto top = std::max(safe.top, topClearance);
-
-    return {safe.left,
-            top,
-            bounds.w - safe.left - safe.right,
-            bounds.h - top - safe.bottom};
-}
-
-float Menu::titleShare() const
-{
-    return wide() ? wideTitleShare : tallTitleShare;
+    return shape().wide;
 }
 
 Rect Menu::titleArea() const
 {
-    auto area = safeArea();
-    return {area.x, area.y, area.w, area.h * titleShare()};
-}
-
-Rect Menu::belowTitle() const
-{
-    auto area = safeArea();
-    auto top = area.y + area.h * titleShare();
-    return {area.x, top, area.w, area.y + area.h * (1.f - bottomShare) - top};
-}
-
-Rect Menu::itemArea() const
-{
-    auto area = belowTitle();
-
-    if (wide())
-        return {area.x, area.y, area.w * columnShare, area.h};
-
-    auto cow = safeArea().h * tallCowShare;
-    return {area.x, area.y + cow, area.w, area.h - cow};
+    return titleIn(frameOf(*this, topClearance).contentArea(), shape());
 }
 
 Rect Menu::cowArea() const
 {
-    auto area = belowTitle();
-
-    if (wide())
-    {
-        auto left = area.w * columnShare;
-        return {area.x + left, area.y, area.w - left, area.h};
-    }
-
-    return {area.x, area.y, area.w, safeArea().h * tallCowShare};
+    return cowIn(frameOf(*this, topClearance).contentArea(), shape());
 }
 
-float Menu::labelWidth(Hud& hud, int index, float pointSize) const
+Rect Menu::itemArea() const
 {
-    const auto& item = items[index];
-    auto width = hud.measure(item.label, menuFont(pointSize));
-
-    if (!item.note.empty())
-        width =
-            std::max(width, hud.measure(item.note, menuFont(pointSize * noteScale)));
-
-    return width;
+    return itemsIn(frameOf(*this, topClearance).contentArea(), shape());
 }
 
-Graphics::Rect Menu::targetFor(Point center, float labelWidth, float pointSize)
+void Menu::setItems(Vector<MenuItem> newItems)
 {
-    auto height = pointSize * lineSpacing;
-    auto area = Graphics::Rect {center.x - labelWidth * 0.5f,
-                                center.y - height * 0.5f,
-                                labelWidth,
-                                height}
-                    .inset(-padding);
-
-    if (area.h < leastTarget)
-        area = {area.x, center.y - leastTarget * 0.5f, area.w, leastTarget};
-
-    if (area.w < leastTarget)
-        area = {center.x - leastTarget * 0.5f, area.y, leastTarget, area.h};
-
-    return area;
+    items = std::move(newItems);
+    itemsChanged = true;
 }
 
 void Menu::layOut(Hud& hud)
 {
+    auto frame = frameOf(*this, topClearance);
+
+    if (!itemsChanged && laidOutFor.has_value() && sameFrame(*laidOutFor, frame))
+        return;
+
+    itemsChanged = false;
+    laidOutFor = frame;
     placed.clear();
 
     if (items.empty())
         return;
 
-    auto area = itemArea();
-    auto count = (int) items.size();
-    auto pointSize = std::clamp(safeArea().h * 0.09f, 24.f, 110.f);
+    auto content = frame.contentArea();
+    auto measure = menuMeasure(hud);
+    auto byAspect = aspectWide(*this);
+    auto leastNote = smallestReadableSize(content);
+    auto targetIn = [&](Rect area)
+    { return std::min(tapTarget(content), area.h / (float) items.size()); };
 
-    auto rowHeight = [&](int index, float size)
+    auto choose = [&](const Vector<Shape>& shapes)
     {
-        auto line = size * items[index].scale * lineSpacing;
-        return std::max({line * rowStep, line + 2.f * padding, leastTarget});
-    };
+        auto candidates = Vector<LayoutShape> {};
 
-    auto totalHeight = [&](float size)
-    {
-        auto total = 0.f;
-
-        for (auto index = 0; index < count; ++index)
-            total += rowHeight(index, size);
-
-        return total;
-    };
-
-    for (auto index = 0; index < count; ++index)
-    {
-        auto needed =
-            labelWidth(hud, index, pointSize * items[index].scale) * hoverScale
-            + 2.f * padding;
-
-        if (needed > area.w * fitShare)
-            pointSize *= area.w * fitShare / needed;
-    }
-
-    auto spaced = 0.f;
-
-    for (auto index = 0; index < count; ++index)
-        spaced += pointSize * items[index].scale * lineSpacing * rowStep;
-
-    pointSize = std::min(pointSize, pointSize * area.h / spaced);
-
-    if (totalHeight(pointSize) > area.h && totalHeight(0.f) < area.h)
-    {
-        auto low = 0.f;
-        auto high = pointSize;
-
-        for (auto attempt = 0; attempt < 20; ++attempt)
+        for (const auto& each: shapes)
         {
-            auto middle = (low + high) * 0.5f;
-            (totalHeight(middle) > area.h ? high : low) = middle;
+            auto area = itemsIn(content, each);
+            auto target = targetIn(area);
+            candidates.add(
+                {[this, target, leastNote](float size)
+                 { return itemTree(items, size, target, leastNote, nullptr); },
+                 area});
         }
 
-        pointSize = low;
+        // The smallest item, About, is held to the readable size, so the rest
+        // are larger.
+        auto readable = smallestReadableSize(content) / smallestScale(items);
+        auto largest =
+            std::clamp(content.h * largestShare, leastLargest, mostLargest);
+        auto best = largestShape(candidates, measure, readable, largest);
+        return std::pair {shapes[best.index], best};
+    };
+
+    // The first step of squeeze at which either shape, the aspect's first,
+    // holds the items at the readable size, so the text is near that size
+    // either side of a step and the cow keeps as much room as it can.
+    auto shapeChosen = Shape {};
+    auto size = ChosenShape {};
+
+    for (auto step = 0; step <= squeezeSteps && !size.readable; ++step)
+    {
+        auto wideStep = squeezed(wideShape, roomyWideShape, step);
+        auto tallStep = squeezed(tallShape, roomyTallShape, step);
+        std::tie(shapeChosen, size) =
+            choose(byAspect ? Vector<Shape> {wideStep, tallStep}
+                            : Vector<Shape> {tallStep, wideStep});
     }
 
-    auto total = totalHeight(pointSize);
-    auto squeeze = std::min(1.f, area.h / total);
-    total *= squeeze;
+    if (!size.readable)
+        std::tie(shapeChosen, size) = choose({tightTallShape});
 
-    auto x = area.x + area.w * 0.5f;
-    auto y = area.y + (area.h - total) * 0.5f;
+    chosen = shapeChosen;
+    pointSize = size.pointSize;
 
-    for (auto index = 0; index < count; ++index)
+    auto area = itemsIn(content, chosen);
+    auto nodes = Vector<ItemNodes> {};
+    auto tree = itemTree(items, pointSize, targetIn(area), leastNote, &nodes);
+    tree.resolve(area, measure);
+
+    for (auto index = 0; index < items.size(); ++index)
     {
-        auto size = pointSize * items[index].scale;
-        auto step = rowHeight(index, pointSize) * squeeze;
-        auto center = Point {x, y + step * 0.5f};
-        auto target = targetFor(center, labelWidth(hud, index, size), size);
-        auto rowBottom = y + step;
-        target.y = std::max(target.y, y);
-        target.h = std::min(target.y + target.h, rowBottom) - target.y;
-        placed.add({center, size, target});
-        y += step;
+        auto label = tree.rect(nodes[index].label);
+        auto labelSize = tree.node(nodes[index].label).text->pointSize;
+        placed.add({label.center(),
+                    labelSize,
+                    tree.rect(nodes[index].row),
+                    noteSizeFor(labelSize, leastNote)});
     }
 }
 
@@ -240,11 +326,11 @@ void Menu::drawItem(Hud& hud, int index)
     const auto& place = placed[index];
     auto lit =
         item.enabled == Enabled::Yes && (hovered == index || pressed == index);
-    auto size = place.pointSize * (lit ? hoverScale : 1.f);
-    auto font = menuFont(size);
-    auto color =
-        faded(item.enabled == Enabled::Yes ? pink(lit ? 0.2f : 0.f) : disabledColor,
-              opacity);
+    const auto& font = menuFont(place.pointSize * (lit ? hoverScale : 1.f));
+    auto size = font.pointSize;
+    auto color = faded(item.enabled == Enabled::Yes ? pink(lit ? litBrighten : 0.f)
+                                                    : disabledColor,
+                       opacity);
     auto top = place.center.y - size * lineSpacing * 0.5f;
     auto ascent = hud.ascent(font);
 
@@ -252,23 +338,25 @@ void Menu::drawItem(Hud& hud, int index)
         hud.strokeRoundedRect(
             place.area,
             ringWidth,
-            std::min(place.area.h * 0.5f, 28.f),
-            faded(item.enabled == Enabled::Yes ? pink(0.1f) : disabledColor,
+            std::min(place.area.h * 0.5f, ringCorner),
+            faded(item.enabled == Enabled::Yes ? pink(ringBrighten) : disabledColor,
                   opacity));
 
     if (!item.note.empty())
     {
-        auto noteFont = menuFont(place.pointSize * noteScale);
+        const auto& noteFont = menuFont(place.noteSize);
         auto width = hud.measure(item.note, noteFont);
-        auto baseline = top - place.pointSize * 0.12f;
-        hud.drawText(item.note,
+        auto baseline = top - place.pointSize * noteLift;
+        drawMenuText(hud,
+                     item.note,
                      {place.center.x - width * 0.5f, baseline},
                      noteFont,
-                     faded(pink(), opacity));
+                     faded(pink(), opacity),
+                     opacity);
     }
 
     auto width = hud.measure(item.label, font);
-    auto at = Point {place.center.x - width * 0.5f, top + ascent * 0.9f};
+    auto at = Point {place.center.x - width * 0.5f, top + ascent * ascentShare};
     drawMenuText(hud, item.label, at, font, color, opacity);
 }
 

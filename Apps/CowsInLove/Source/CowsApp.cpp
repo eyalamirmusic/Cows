@@ -89,12 +89,7 @@ std::uint32_t firstSeed()
 
 float titlebarClearance()
 {
-    return Platform::isMac() ? 28.f : 0.f;
-}
-
-std::string versionText()
-{
-    return std::string {"Version " COWS_APP_VERSION " (Build " COWS_APP_BUILD ")"};
+    return Platform::isMac() ? macTitleBarClearance : 0.f;
 }
 } // namespace
 
@@ -125,9 +120,7 @@ CowsApp::CowsApp()
             showAbout();
     };
 
-    for (const auto& item: itemClasses())
-        editor.rows.add({item.name, item.choices, item.choice(saved.skin)});
-
+    editor.rows = dressRows(saved.skin);
     editor.topClearance = titlebarClearance();
     menu.topClearance = editor.topClearance;
     editor.onStep = [this](int row, int by) { dress(stepped(saved.skin, row, by)); };
@@ -138,8 +131,8 @@ CowsApp::CowsApp()
         scene.control(event);
     };
 
-    settingsPanel.title = "Settings";
-    settingsPanel.rows.add({"Quality", {}, 0});
+    settingsPanel.title = settingsTitle;
+    settingsPanel.rows.add(EditorRow {});
     settingsPanel.topClearance = editor.topClearance;
     settingsPanel.onStep = [this](int, int by)
     {
@@ -256,7 +249,7 @@ CowsApp::CowsApp()
 void CowsApp::showMainMenu()
 {
     showingAbout = false;
-    menu.items = mainMenuItems();
+    menu.setItems(mainMenuItems());
     menu.selected = 0;
     menu.hovered = -1;
     menu.pressed = -1;
@@ -265,8 +258,7 @@ void CowsApp::showMainMenu()
 void CowsApp::showAbout()
 {
     showingAbout = true;
-    menu.items.clear();
-    menu.items.add({"Back", versionText()});
+    menu.setItems(aboutItems());
     menu.selected = 0;
     menu.hovered = -1;
     menu.pressed = -1;
@@ -280,7 +272,7 @@ void CowsApp::dress(const CowSkin& next)
     save();
 }
 
-void CowsApp::save()
+void CowsApp::save() const
 {
     if (!saveSettings(saved, savedFile))
         LOG("Cows: could not save ", savedFile.str());
@@ -288,17 +280,8 @@ void CowsApp::save()
 
 void CowsApp::showQuality()
 {
-    auto& row = settingsPanel.rows[0];
-    row.choices.clear();
-
-    for (auto index = 0; index < qualityChoices; ++index)
-        row.choices.add(choiceLabel((QualityChoice) index));
-
-    if (scene.qualityPreference.chosen == QualityChoice::Auto && !scene.measuring)
-        row.choices[0] =
-            "Auto: " + choiceLabel((QualityChoice) ((int) scene.quality + 1));
-
-    row.choice = (int) scene.qualityPreference.chosen;
+    settingsPanel.rows[0] =
+        qualityRow(scene.qualityPreference.chosen, scene.quality, scene.measuring);
 }
 
 void CowsApp::showSkin()

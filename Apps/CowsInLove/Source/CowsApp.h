@@ -19,7 +19,7 @@ struct CowsApp final
     void showMainMenu();
     void showAbout();
     void showQuality();
-    void save();
+    void save() const;
 
     FilePath savedFile = settingsFile();
     Settings saved = loadSettings(savedFile);

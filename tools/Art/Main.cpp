@@ -195,10 +195,38 @@ void renderAll()
 
     saveLogo("logo", 2560, 1440);
 }
+
+void run(const std::string& mode,
+         const std::string& directory,
+         const std::string& only)
+{
+    if (mode == "art")
+        renderAll();
+    else if (mode == "screens")
+        renderScreens(directory, only);
+    else if (mode == "steam")
+        renderScreenshots(directory, desktopScreen);
+    else if (mode == "mac")
+        renderScreenshots(directory, macScreen);
+    else if (mode == "ios-6.9")
+        renderScreenshots(directory, iPhone69);
+    else if (mode == "ios-6.5")
+        renderScreenshots(directory, iPhone65);
+    else if (mode == "play-phone")
+        renderScreenshots(directory, playPhone);
+    else if (mode == "play-7")
+        renderScreenshots(directory, playTablet7);
+    else if (mode == "play-10")
+        renderScreenshots(directory, playTablet10);
+    else
+        LOG("unknown mode ", mode);
+}
 } // namespace
 
 // CowsArt              renders the key art, icon and logo
-// CowsArt menu <dir>     the start menu at a spread of window shapes
+// CowsArt screens <dir> [menu|dress|settings|about]  those screens (all four
+//                        by default) at a spread of phone, tablet and desktop
+//                        shapes
 // CowsArt steam <dir>    the Steam screenshots, 1920x1080
 // CowsArt mac <dir>      the Mac App Store screenshots, 2880x1800
 // CowsArt ios-6.9 <dir>  the App Store 6.9" iPhone screenshots, 1320x2868
@@ -210,30 +238,21 @@ int main(int argc, char* argv[])
 {
     auto mode = std::string {argc > 1 ? argv[1] : "art"};
     auto directory = std::string {argc > 2 ? argv[2] : "."};
+    auto only = std::string {argc > 3 ? argv[3] : ""};
+    auto exitCode = 0;
 
     Apps::run(
         [&]
         {
-            if (mode == "art")
-                renderAll();
-            else if (mode == "menu")
-                renderMenus(directory);
-            else if (mode == "steam")
-                renderScreenshots(directory, desktopScreen);
-            else if (mode == "mac")
-                renderScreenshots(directory, macScreen);
-            else if (mode == "ios-6.9")
-                renderScreenshots(directory, iPhone69);
-            else if (mode == "ios-6.5")
-                renderScreenshots(directory, iPhone65);
-            else if (mode == "play-phone")
-                renderScreenshots(directory, playPhone);
-            else if (mode == "play-7")
-                renderScreenshots(directory, playTablet7);
-            else if (mode == "play-10")
-                renderScreenshots(directory, playTablet10);
-            else
-                LOG("unknown mode ", mode);
+            try
+            {
+                run(mode, directory, only);
+            }
+            catch (const std::exception& error)
+            {
+                LOG("CowsArt ", mode, " failed: ", error.what());
+                exitCode = 1;
+            }
         });
-    return 0;
+    return exitCode;
 }

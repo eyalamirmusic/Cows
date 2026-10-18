@@ -1,7 +1,8 @@
 #include "UI/Editor.h"
-#include "UI/MenuStyle.h"
+#include "Layout/FitToSize.h"
 
 #include <algorithm>
+#include <array>
 
 namespace Cows
 {
@@ -10,18 +11,226 @@ namespace
 using Graphics::Point;
 using Graphics::Rect;
 
+constexpr auto wideSceneShare = 0.55f;
+constexpr auto tallSceneShare = 0.55f;
+constexpr auto panelMargin = 0.04f;
+
 constexpr auto lineSpacing = 1.05f;
 constexpr auto hoverScale = 1.08f;
-constexpr auto padding = 14.f;
-constexpr auto leastTarget = 64.f;
+// Room either side of a button's label, and of a row, as shares of the tap
+// target, so a small window's targets shrink with their padding.
+constexpr auto buttonPadding = 14.f / leastTarget;
+constexpr auto rowSidePadding = 7.f / leastTarget;
 constexpr auto ringWidth = 4.f;
+constexpr auto ringCorner = 28.f;
 constexpr auto titleScale = 1.3f;
-constexpr auto wideSceneShare = 0.6f;
-constexpr auto tallSceneShare = 0.6f;
+constexpr auto titleLine = 1.4f;
+constexpr auto ascentShare = 0.9f;
+constexpr auto hoverDrop = 0.3f;
+constexpr auto litBrighten = 0.2f;
+constexpr auto ringBrighten = 0.1f;
+
+// Shares of the point size: the space after a name, a cell's padding top and
+// bottom, the gap between rows and before Done.
+constexpr auto nameGap = 0.4f;
+constexpr auto rowPadding = 0.25f;
+constexpr auto rowGap = 0.1f;
+constexpr auto doneGap = 0.3f;
+
+// A row is a name and three targets, so none is wider than this share of the
+// panel.
+constexpr auto targetWidthShare = 1.f / 6.f;
+// The largest the rows' text goes, as a share of the content's short side,
+// the same whatever shape is chosen so the cap never jumps between shapes.
+constexpr auto largestShare = 0.065f;
+constexpr auto leastLargest = 22.f;
+constexpr auto mostLargest = 52.f;
+// The title's share of the panel's height, in tap targets.
+constexpr auto titleLines = 1.5f;
+
+constexpr auto stackedRowLines = 1.5f;
+
+constexpr auto nameColumn = 0;
+constexpr auto valueColumn = 1;
 
 constexpr auto previousArrow = "<";
 constexpr auto nextArrow = ">";
 
+Flex::Node band(Flex::Size width, Flex::Size height)
+{
+    auto node = Flex::Node {};
+    node.width = width;
+    node.height = height;
+    return node;
+}
+
+// Wide: the scene's column, then the panel beside it. Tall: the scene's band
+// over the panel.
+Editor::Bands bandsFor(Rect content, bool wide)
+{
+    using Flex::Size;
+
+    auto root = Flex::Node {};
+    root.direction = wide ? Flex::Direction::Across : Flex::Direction::Down;
+    auto tree = Flex::Tree {root};
+    auto scene = tree.add(Flex::Tree::root,
+                          wide ? band(Size::share(wideSceneShare), Size::grow())
+                               : band(Size::grow(), Size::share(tallSceneShare)));
+    auto panel = tree.add(Flex::Tree::root, band(Size::grow(), Size::grow()));
+    tree.resolve(content, {});
+    return {tree.rect(scene), tree.rect(panel)};
+}
+
+// A cell of a row, as tall as the row, with room above and below its text.
+Flex::Node label(std::string text, float pointSize)
+{
+    auto node = Flex::Node {};
+    node.text = Flex::Text {std::move(text), pointSize, lineSpacing};
+    node.height = Flex::Size::grow();
+    node.padding = {.top = pointSize * rowPadding, .bottom = pointSize * rowPadding};
+    return node;
+}
+
+// An arrow or Done: its label centred in at least a tap target.
+Flex::Node button(std::string text, float pointSize, float target)
+{
+    auto node = label(std::move(text), pointSize);
+    node.width = Flex::Size::fit(target);
+    node.padding.left = target * buttonPadding;
+    node.padding.right = target * buttonPadding;
+    return node;
+}
+
+struct RowNodes final
+{
+    Flex::NodeId row = 0;
+    Flex::NodeId name = 0;
+    Flex::NodeId previous = 0;
+    Flex::NodeId value = 0;
+    Flex::NodeId next = 0;
+};
+
+struct PanelNodes final
+{
+    Flex::NodeId title = 0;
+    Vector<RowNodes> rows;
+    Flex::NodeId done = 0;
+};
+
+// How a row sits: its name beside its arrows and value, or over them when
+// the panel is too narrow for both at a readable size.
+enum class RowShape
+{
+    Inline,
+    Stacked
+};
+
+struct PanelShape final
+{
+    bool wide = true;
+    RowShape rows = RowShape::Inline;
+};
+
+// What the rows and Done need of the panel's height, in tap targets: a row
+// each (and half again for a name over its row, a line of text rather than a
+// target), Done, and the title.
+float linesFor(RowShape shape, int rows)
+{
+    auto perRow = shape == RowShape::Stacked ? stackedRowLines : 1.f;
+    return perRow * (float) rows + 1.f + titleLines;
+}
+
+// A centred block in the panel: the title, a table of rows (name, <, value,
+// >), and Done under it.
+Flex::Tree panelTree(const std::string& title,
+                     const Vector<EditorRow>& rows,
+                     const std::string& doneLabel,
+                     RowShape shape,
+                     float pointSize,
+                     float target,
+                     float margin,
+                     PanelNodes* nodes)
+{
+    auto block = Flex::Node {};
+    block.direction = Flex::Direction::Down;
+    block.mainAlign = Flex::Align::Centre;
+    block.crossAlign = Flex::Align::Centre;
+    block.padding = {.left = margin, .right = margin};
+    block.gap = pointSize * doneGap;
+    auto tree = Flex::Tree {block};
+
+    auto heading = Flex::Node {};
+    heading.text = Flex::Text {title, onFontGrid(pointSize * titleScale), titleLine};
+    auto titleId = tree.add(Flex::Tree::root, heading);
+
+    auto table = Flex::Node {};
+    table.direction = Flex::Direction::Down;
+    table.gap = pointSize * rowGap;
+    auto tableId = tree.add(Flex::Tree::root, table);
+
+    auto made = PanelNodes {};
+    made.title = titleId;
+
+    for (const auto& row: rows)
+    {
+        auto stacked = shape == RowShape::Stacked;
+        auto line = Flex::Node {};
+        line.direction = stacked ? Flex::Direction::Down : Flex::Direction::Across;
+        line.height = Flex::Size::fit(target);
+        line.padding = {.left = target * rowSidePadding,
+                        .right = target * rowSidePadding};
+        auto lineId = tree.add(tableId, line);
+
+        auto name = label(row.name, pointSize);
+        name.column = nameColumn;
+
+        if (stacked)
+            name.height = Flex::Size::fit();
+        else
+            name.padding.right = pointSize * nameGap;
+
+        auto nameId = tree.add(lineId, name);
+        auto controls = lineId;
+
+        if (stacked)
+        {
+            auto group = Flex::Node {};
+            group.height = Flex::Size::fit(target);
+            controls = tree.add(lineId, group);
+        }
+
+        auto value = button({}, pointSize, target);
+        value.text->alsoFits = row.choices;
+        value.column = valueColumn;
+
+        auto previousId =
+            tree.add(controls, button(previousArrow, pointSize, target));
+        auto valueId = tree.add(controls, value);
+        auto nextId = tree.add(controls, button(nextArrow, pointSize, target));
+        made.rows.add({lineId, nameId, previousId, valueId, nextId});
+    }
+
+    auto done = button(doneLabel, pointSize, target);
+    done.height = Flex::Size::fit(target);
+    made.done = tree.add(Flex::Tree::root, done);
+
+    if (nodes != nullptr)
+        *nodes = made;
+
+    return tree;
+}
+
+bool sameRows(const Vector<EditorRow>& a, const Vector<EditorRow>& b)
+{
+    if (a.size() != b.size())
+        return false;
+
+    for (auto index = 0; index < a.size(); ++index)
+        if (a[index].name != b[index].name || a[index].choices != b[index].choices)
+            return false;
+
+    return true;
+}
 } // namespace
 
 Editor::Editor()
@@ -31,30 +240,33 @@ Editor::Editor()
 
 bool Editor::wide() const
 {
+    if (chosenWide.has_value() && placedFrame.has_value()
+        && sameFrame(*placedFrame, frameOf(*this, topClearance)))
+        return *chosenWide;
+
     auto bounds = getLocalBounds();
     return bounds.w >= bounds.h;
 }
 
-Rect Editor::contentArea() const
+const Editor::Bands& Editor::bands() const
 {
-    auto bounds = getLocalBounds();
-    auto safe = getSafeAreaInsets();
-    auto top = std::max(safe.top, topClearance);
+    auto frame = frameOf(*this, topClearance);
+    auto isWide = wide();
 
-    return {safe.left,
-            top,
-            bounds.w - safe.left - safe.right,
-            bounds.h - top - safe.bottom};
+    if (!bandsFrame.has_value() || !sameFrame(*bandsFrame, frame)
+        || bandsWide != isWide)
+    {
+        bandsMade = bandsFor(frame.contentArea(), isWide);
+        bandsFrame = frame;
+        bandsWide = isWide;
+    }
+
+    return bandsMade;
 }
 
 Rect Editor::sceneArea() const
 {
-    auto area = contentArea();
-
-    if (wide())
-        return {area.x, area.y, area.w * wideSceneShare, area.h};
-
-    return {area.x, area.y, area.w, area.h * tallSceneShare};
+    return bands().scene;
 }
 
 int Editor::doneIndex() const
@@ -64,100 +276,112 @@ int Editor::doneIndex() const
 
 void Editor::layOut(Hud& hud)
 {
-    auto area = contentArea();
-    auto scene = sceneArea();
-    auto panel = wide() ? Rect {scene.right(),
-                                area.y,
-                                area.right() - scene.right() - area.w * 0.03f,
-                                area.h}
-                        : Rect {area.x + area.w * 0.04f,
-                                scene.bottom(),
-                                area.w * 0.92f,
-                                area.bottom() - scene.bottom()};
+    auto frame = frameOf(*this, topClearance);
 
-    auto size = wide() ? std::clamp(area.h * 0.06f, 22.f, 52.f)
-                       : std::clamp(area.w * 0.1f, 22.f, 48.f);
+    if (placedFrame.has_value() && sameFrame(*placedFrame, frame)
+        && placedContent.title == title && placedContent.doneLabel == doneLabel
+        && sameRows(placedContent.rows, rows))
+        return;
 
-    auto widest = [&](float pointSize, auto&& texts)
+    placedFrame = frame;
+    placedContent = {title, doneLabel, rows};
+
+    auto content = frame.contentArea();
+    auto measure = menuMeasure(hud);
+    auto aspectWide = getLocalBounds().w >= getLocalBounds().h;
+    auto shapes = std::array {PanelShape {aspectWide, RowShape::Inline},
+                              PanelShape {aspectWide, RowShape::Stacked},
+                              PanelShape {!aspectWide, RowShape::Inline},
+                              PanelShape {!aspectWide, RowShape::Stacked}};
+
+    auto panelFor = [&](const PanelShape& shape)
+    { return bandsFor(content, shape.wide).panel; };
+    auto targetFor = [&](const PanelShape& shape)
     {
-        auto font = menuFont(pointSize);
-        auto most = 0.f;
-
-        for (const auto& text: texts)
-            most = std::max(most, hud.measure(text, font));
-
-        return most;
+        auto panel = panelFor(shape);
+        return std::min({tapTarget(content),
+                         panel.h / linesFor(shape.rows, rows.size()),
+                         panel.w * targetWidthShare});
     };
 
-    auto names = Vector<std::string> {};
-    auto values = Vector<std::string> {};
+    auto candidates = Vector<LayoutShape> {};
 
-    for (const auto& row: rows)
+    for (const auto& shape: shapes)
     {
-        names.add(row.name);
-
-        for (const auto& choice: row.choices)
-            values.add(choice);
+        auto panel = panelFor(shape);
+        auto target = targetFor(shape);
+        auto margin = panel.w * panelMargin;
+        candidates.add({[this, shape, target, margin](float pointSize)
+                        {
+                            return panelTree(title,
+                                             rows,
+                                             doneLabel,
+                                             shape.rows,
+                                             pointSize,
+                                             target,
+                                             margin,
+                                             nullptr);
+                        },
+                        panel});
     }
 
-    auto arrowWidth = [&](float pointSize)
-    {
-        auto arrows = Vector<std::string> {previousArrow, nextArrow};
-        return std::max(leastTarget, widest(pointSize, arrows) + 2.f * padding);
-    };
+    auto largest = std::clamp(
+        std::min(content.w, content.h) * largestShare, leastLargest, mostLargest);
+    // Names over their rows only when no shape fits them beside their rows
+    // at a readable size.
+    auto readable = smallestReadableSize(content);
+    auto inlineCandidates = Vector<LayoutShape> {candidates[0], candidates[2]};
+    auto inlineChosen = largestShape(inlineCandidates, measure, readable, largest);
+    auto chosen =
+        inlineChosen.readable
+            ? ChosenShape {inlineChosen.index * 2, inlineChosen.pointSize, true}
+            : largestShape(candidates, measure, readable, largest);
+    const auto& shape = shapes[chosen.index];
+    auto size = chosen.pointSize;
+    chosenWide = shape.wide;
+    stacked = shape.rows == RowShape::Stacked;
 
-    auto gap = size * 0.4f;
-    auto textWidth = widest(size, names) + widest(size, values);
-    auto room = panel.w - 2.f * arrowWidth(size) - gap - 2.f * padding;
+    auto panel = panelFor(shape);
+    auto nodes = PanelNodes {};
+    auto tree = panelTree(title,
+                          rows,
+                          doneLabel,
+                          shape.rows,
+                          size,
+                          targetFor(shape),
+                          panel.w * panelMargin,
+                          &nodes);
+    tree.resolve(panel, measure);
 
-    if (textWidth > room && textWidth > 0.f)
-        size *= std::max(room, 0.f) / textWidth;
-
-    gap = size * 0.4f;
-    titleSize = size * titleScale;
-
-    auto nameWidth = widest(size, names);
-    auto valueWidth = widest(size, values) + padding;
-    auto arrow = arrowWidth(size);
-    auto rowHeight = std::max(leastTarget, size * 1.5f);
-    auto titleHeight = titleSize * 1.6f;
-    auto blockWidth = nameWidth + gap + 2.f * arrow + valueWidth;
-    auto blockHeight =
-        titleHeight + rowHeight * (float) rows.size() + rowHeight * 1.3f;
-    auto left = panel.x + (panel.w - blockWidth) * 0.5f;
-    auto top = std::max(panel.y, panel.y + (panel.h - blockHeight) * 0.5f);
     auto ascent = hud.ascent(menuFont(size));
-    auto baselineIn = [&](float rowTop)
+    auto baselineIn = [&](const Rect& area)
     {
-        return rowTop + rowHeight * 0.5f - size * lineSpacing * 0.5f + ascent * 0.9f;
+        return area.y + area.h * 0.5f - size * lineSpacing * 0.5f
+               + ascent * ascentShare;
     };
 
-    titleBox = {panel.x, top, panel.w, titleHeight};
+    titleBox = tree.rect(nodes.title);
+    titleSize = tree.node(nodes.title).text->pointSize;
     placed.clear();
 
-    for (auto index = 0; index < (int) rows.size(); ++index)
+    for (const auto& row: nodes.rows)
     {
-        auto rowTop = top + titleHeight + rowHeight * (float) index;
         auto place = Placed {};
         place.pointSize = size;
-        place.baseline = baselineIn(rowTop);
-        place.name = {left, rowTop, nameWidth, rowHeight};
-        place.previous = {place.name.right() + gap, rowTop, arrow, rowHeight};
-        place.value = {place.previous.right(), rowTop, valueWidth, rowHeight};
-        place.next = {place.value.right(), rowTop, arrow, rowHeight};
-        place.row = Rect {left, rowTop, blockWidth, rowHeight}.inset(-padding * 0.5f);
+        place.row = tree.rect(row.row);
+        place.name = tree.rect(row.name);
+        place.baseline = baselineIn(stacked ? tree.rect(row.value) : place.row);
+        place.nameBaseline = stacked ? baselineIn(place.name) : place.baseline;
+        place.previous = tree.rect(row.previous);
+        place.value = tree.rect(row.value);
+        place.next = tree.rect(row.next);
         placed.add(place);
     }
 
-    auto doneTop = top + titleHeight + rowHeight * ((float) rows.size() + 0.3f);
-    auto doneWidth = std::max(
-        leastTarget, hud.measure(doneLabel, menuFont(size)) + 2.f * padding);
-
     done = {};
     done.pointSize = size;
-    done.baseline = baselineIn(doneTop);
-    done.value = {
-        panel.x + (panel.w - doneWidth) * 0.5f, doneTop, doneWidth, rowHeight};
+    done.value = tree.rect(nodes.done);
+    done.baseline = baselineIn(done.value);
     done.row = done.value;
 }
 
@@ -168,14 +392,15 @@ void Editor::draw(Hud& hud)
     if (opacity <= 0.f)
         return;
 
-    auto titleFont = menuFont(titleSize);
+    const auto& titleFont = menuFont(titleSize);
     auto titleWidth = hud.measure(title, titleFont);
-    auto titleBaseline = titleBox.y + hud.ascent(titleFont) * 0.9f;
+    auto titleBaseline = titleBox.y + (titleBox.h - titleSize * lineSpacing) * 0.5f
+                         + hud.ascent(titleFont) * ascentShare;
     drawMenuText(hud,
                  title,
                  {titleBox.x + (titleBox.w - titleWidth) * 0.5f, titleBaseline},
                  titleFont,
-                 faded(pink(0.1f), opacity),
+                 faded(pink(ringBrighten), opacity),
                  opacity);
 
     for (auto index = 0; index < (int) rows.size(); ++index)
@@ -195,8 +420,13 @@ void Editor::drawRow(Hud& hud, int index)
     if (showSelection && selected == index)
         drawRing(hud, place.row);
 
-    drawLabel(
-        hud, row.name, place.name, place.baseline, place.pointSize, false, false);
+    drawLabel(hud,
+              row.name,
+              place.name,
+              place.nameBaseline,
+              place.pointSize,
+              false,
+              false);
     drawLabel(hud,
               previousArrow,
               place.previous,
@@ -242,24 +472,26 @@ void Editor::drawLabel(Hud& hud,
                        bool lit,
                        bool centred)
 {
-    auto size = pointSize * (lit ? hoverScale : 1.f);
-    auto font = menuFont(size);
+    const auto& font = menuFont(pointSize * (lit ? hoverScale : 1.f));
+    auto size = font.pointSize;
     auto width = hud.measure(text, font);
     auto x = centred ? area.x + (area.w - width) * 0.5f : area.x;
-    auto grownBy = (size - pointSize) * 0.3f;
+    auto grownBy = (size - pointSize) * hoverDrop;
 
     drawMenuText(hud,
                  text,
                  {x, baseline + grownBy},
                  font,
-                 faded(pink(lit ? 0.2f : 0.f), opacity),
+                 faded(pink(lit ? litBrighten : 0.f), opacity),
                  opacity);
 }
 
 void Editor::drawRing(Hud& hud, const Rect& area)
 {
-    hud.strokeRoundedRect(
-        area, ringWidth, std::min(area.h * 0.5f, 28.f), faded(pink(0.1f), opacity));
+    hud.strokeRoundedRect(area,
+                          ringWidth,
+                          std::min(area.h * 0.5f, ringCorner),
+                          faded(pink(ringBrighten), opacity));
 }
 
 bool Editor::isLit(Target target) const

@@ -3,14 +3,18 @@
 #include "Render/Common.h"
 #include "UI/ControlEvent.h"
 #include "UI/Hud.h"
+#include "UI/MenuStyle.h"
 
 #include <functional>
+#include <optional>
 #include <string>
 
 namespace Cows
 {
 struct EditorRow final
 {
+    bool operator==(const EditorRow& other) const = default;
+
     std::string name;
     Vector<std::string> choices;
     int choice = 0;
@@ -18,7 +22,10 @@ struct EditorRow final
 
 // Rows in the start menu's style over the live scene, for choosing one of
 // several things per row: "Hat  <  Top Hat  >", then Done. They sit to the
-// right on a wide screen and at the bottom of a tall one. The arrows step a
+// right on a wide screen and at the bottom of a tall one, as a table: the
+// names in one column, the values in another as wide as the widest choice of
+// any row, at the largest size that fits. Laid out through Flex trees, again
+// only when the window, its safe area or the rows change. The arrows step a
 // row back and on, the value steps it on; the mouse hovers and clicks, a
 // finger taps, and keys or a controller move a selection ring. A drag or a
 // wheel anywhere else is passed on through onControl as Look and Zoom, so the
@@ -48,6 +55,9 @@ struct Editor final : Graphics::View
 
     // The part of the screen the rows leave for the scene, in points.
     Graphics::Rect sceneArea() const;
+    // Whether the rows sit beside the scene rather than below it: whichever
+    // shape (and rows inline or with each name over its arrows) lets the text
+    // be largest, wide on a tie when the window is.
     bool wide() const;
 
     void selectNext();
@@ -77,6 +87,7 @@ struct Editor final : Graphics::View
     {
         float pointSize = 0.f;
         float baseline = 0.f;
+        float nameBaseline = 0.f;
         Graphics::Rect name;
         Graphics::Rect previous;
         Graphics::Rect value;
@@ -84,7 +95,15 @@ struct Editor final : Graphics::View
         Graphics::Rect row;
     };
 
-    Graphics::Rect contentArea() const;
+    // The scene's band and the panel the rows sit in, which depend on the
+    // window alone.
+    struct Bands final
+    {
+        Graphics::Rect scene;
+        Graphics::Rect panel;
+    };
+
+    const Bands& bands() const;
     void layOut(Hud& hud);
     void drawRow(Hud& hud, int index);
     void drawDone(Hud& hud);
@@ -112,9 +131,11 @@ struct Editor final : Graphics::View
     Placed done;
     Graphics::Rect titleBox;
     float titleSize = 0.f;
+    // Each name over its arrows and value, rather than beside them.
+    bool stacked = false;
 
     // Points at the top kept clear of anything clickable, for a title bar the
-    // safe area does not count.
+    // safe area does not count (macTitleBarClearance on macOS).
     float topClearance = 0.f;
     float opacity = 1.f;
     bool showSelection = false;
@@ -125,6 +146,20 @@ struct Editor final : Graphics::View
     Graphics::Point lookedFrom;
 
 private:
+    // Everything the rows' layout depends on besides the window.
+    struct Content final
+    {
+        std::string title;
+        std::string doneLabel;
+        Vector<EditorRow> rows;
+    };
+
     bool showing = false;
+    mutable std::optional<ScreenFrame> bandsFrame;
+    mutable bool bandsWide = false;
+    mutable Bands bandsMade;
+    std::optional<bool> chosenWide;
+    std::optional<ScreenFrame> placedFrame;
+    Content placedContent;
 };
 } // namespace Cows

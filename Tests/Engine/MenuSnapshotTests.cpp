@@ -145,14 +145,15 @@ void checkMainMenu(float width, float height, const char* name)
 
     auto title = menu.titleArea();
     check(!menu.cowArea().intersects(title));
-    check(menu.wide() == (width >= height));
 
     for (auto index = 0; index < 4; ++index)
     {
         const auto& area = menu.placed[index].area;
         check(inside(area, width, height));
         check(area.y >= title.y + title.h);
-        check(!area.intersects(menu.cowArea()));
+
+        if (menu.shape().cow > 0.f)
+            check(!area.intersects(menu.cowArea()));
 
         for (auto other = index + 1; other < 4; ++other)
             check(!area.intersects(menu.placed[other].area));

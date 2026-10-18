@@ -1,9 +1,11 @@
 #include "UI/MenuStyle.h"
 #include "Render/Palette.h"
 #include "UI/Menu.h"
+#include "UI/Overlay.h"
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 namespace Cows
 {
@@ -11,6 +13,33 @@ namespace
 {
 constexpr auto outlineShare = 0.05f;
 constexpr auto outlineSteps = 16;
+constexpr auto targetShare = 0.2f;
+// The readable size as a share of a finger's target (leastTarget): 18 pt on
+// a phone, as tall as a button's label there, 22 pt on a desktop, and in
+// between for content whose short side is between theirs.
+constexpr auto phoneTextShare = 0.285f;
+constexpr auto desktopTextShare = 0.345f;
+constexpr auto phoneSide = 400.f;
+constexpr auto desktopSide = 480.f;
+// The least any text goes to in a window too small for readable text.
+constexpr auto smallestFallback = 6.f;
+// A shape earlier in the order of preference (the one the window's aspect
+// suggests) is kept while its text is at least this share of the largest any
+// shape allows: a 16:10 window keeps the cow beside the rows unless that
+// costs a fifth of their size, and the text never jumps by more than 1 / 0.8
+// when the shape changes.
+constexpr auto preferenceShare = 0.8f;
+
+bool sameRect(const Graphics::Rect& a, const Graphics::Rect& b)
+{
+    return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h;
+}
+
+bool sameInsets(const Graphics::Insets& a, const Graphics::Insets& b)
+{
+    return a.top == b.top && a.left == b.left && a.bottom == b.bottom
+           && a.right == b.right;
+}
 } // namespace
 
 Graphics::Color pink(float brighten)
@@ -31,6 +60,87 @@ Graphics::Color faded(Graphics::Color color, float opacity)
 const Text::Font& menuFont(float pointSize)
 {
     return uiFont(menuFontFamily(), pointSize, Text::FontStyle::Bold);
+}
+
+Flex::Measure menuMeasure(Hud& hud)
+{
+    return [&hud](std::string_view text, float pointSize)
+    { return hud.measure(text, menuFont(pointSize)); };
+}
+
+bool sameFrame(const ScreenFrame& a, const ScreenFrame& b)
+{
+    return sameRect(a.bounds, b.bounds) && sameInsets(a.safe, b.safe)
+           && a.topClearance == b.topClearance;
+}
+
+Graphics::Rect ScreenFrame::contentArea() const
+{
+    auto top = std::max(safe.top, topClearance);
+    auto bottom = bounds.h - safe.bottom - Footer::reserveFor(bounds.w);
+
+    return {safe.left,
+            top,
+            std::max(bounds.w - safe.left - safe.right, 0.f),
+            std::max(bottom - top, 0.f)};
+}
+
+ScreenFrame frameOf(const Graphics::View& view, float topClearance)
+{
+    return {view.getLocalBounds(), view.getSafeAreaInsets(), topClearance};
+}
+
+float tapTarget(const Graphics::Rect& content)
+{
+    return std::min(leastTarget, std::min(content.w, content.h) * targetShare);
+}
+
+float smallestReadableSize(const Graphics::Rect& content)
+{
+    auto side = std::min(content.w, content.h);
+    auto along =
+        std::clamp((side - phoneSide) / (desktopSide - phoneSide), 0.f, 1.f);
+    auto share = phoneTextShare + (desktopTextShare - phoneTextShare) * along;
+    return onFontGrid(leastTarget * share);
+}
+
+ChosenShape largestShape(const Vector<LayoutShape>& shapes,
+                         const Flex::Measure& measure,
+                         float readable,
+                         float largest)
+{
+    auto pick = [&](float least, float most)
+    {
+        auto fits = Vector<ChosenShape> {};
+        auto largestFit = 0.f;
+
+        for (auto index = 0; index < shapes.size(); ++index)
+        {
+            const auto& shape = shapes[index];
+            auto fitted = Flex::largestPointSize(
+                shape.build, shape.area, measure, {least, most, fontSizeStep});
+
+            if (!fitted.fits)
+                continue;
+
+            fits.add({index, fitted.pointSize, least >= readable});
+            largestFit = std::max(largestFit, fitted.pointSize);
+        }
+
+        for (const auto& fit: fits)
+            if (fit.pointSize >= largestFit * preferenceShare)
+                return std::optional {fit};
+
+        return std::optional<ChosenShape> {};
+    };
+
+    if (auto readableBest = pick(readable, std::max(readable, largest)))
+        return *readableBest;
+
+    if (auto smallBest = pick(smallestFallback, readable))
+        return *smallBest;
+
+    return {0, smallestFallback, false};
 }
 
 void drawMenuText(Hud& hud,

@@ -18,7 +18,7 @@ add_library(cowsinlove_Engine STATIC
         UI/TouchControls.cpp)
 
 target_include_directories(cowsinlove_Engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(cowsinlove_Engine PUBLIC eacp-gpu eacp-ui)
+target_link_libraries(cowsinlove_Engine PUBLIC eacp-gpu eacp-ui cowsinlove_Layout)
 
 set_default_target_setting(cowsinlove_Engine)
 

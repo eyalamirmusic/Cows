@@ -14,6 +14,8 @@ target_include_directories(CowsArt PRIVATE
         ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source)
 target_link_libraries(CowsArt PRIVATE cowsinlove_Game)
 target_compile_definitions(CowsArt PRIVATE
-        COWS_RENDERS_DIR="${CMAKE_SOURCE_DIR}/Deploy/Art/Renders")
+        COWS_RENDERS_DIR="${CMAKE_SOURCE_DIR}/Deploy/Art/Renders"
+        COWS_APP_VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}"
+        COWS_APP_BUILD="${PROJECT_VERSION_TWEAK}")
 
 set_default_target_setting(CowsArt)

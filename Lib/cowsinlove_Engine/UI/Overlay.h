@@ -18,6 +18,15 @@ struct Footer final
               float width,
               const std::function<float(std::string_view)>& measure) const;
 
+    static constexpr auto bottomMargin = 16.f;
+    static constexpr auto lineHeight = 18.f;
+    // The strip above the safe area's bottom a screen keeps clear for one line
+    // of footer, and below `oneLineWidth` for the two the menu's and the
+    // editor's footers wrap to.
+    static constexpr auto reserve = bottomMargin + lineHeight;
+    static constexpr auto oneLineWidth = 400.f;
+    static float reserveFor(float width);
+
     std::function<std::string()> text = [] { return std::string {}; };
     float bottomInset = 0.f;
 

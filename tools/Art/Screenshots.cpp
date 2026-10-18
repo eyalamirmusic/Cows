@@ -200,9 +200,17 @@ std::uint32_t openMeadowSeed()
             return seed;
 }
 
-void renderMenus(const std::string& directory)
+void renderScreens(const std::string& directory, const std::string& only)
 {
-    struct MenuShape final
+    enum class Screen
+    {
+        Menu,
+        Dress,
+        Settings,
+        About
+    };
+
+    struct ScreenShape final
     {
         std::string name;
         float width = 0.f;
@@ -211,63 +219,137 @@ void renderMenus(const std::string& directory)
         Hints hints = Hints::Keys;
     };
 
-    constexpr auto macTitlebar = 28.f;
-
-    auto shapes = Vector<MenuShape> {
-        {"mac-16x10", 1280.f, 800.f, {}, Hints::Keys},
-        {"desktop-16x9", 1280.f, 720.f, {}, Hints::Keys},
-        {"ultrawide", 1720.f, 720.f, {}, Hints::Keys},
-        {"ipad-landscape", 1180.f, 820.f, {24.f, 0.f, 20.f, 0.f}, Hints::Touch},
-        {"square-ish", 900.f, 820.f, {}, Hints::Keys},
-        {"square", 800.f, 800.f, {}, Hints::Keys},
-        {"tall-desktop", 650.f, 800.f, {}, Hints::Keys},
-        {"skinny", 700.f, 900.f, {}, Hints::Keys},
-        {"ipad-portrait", 820.f, 1180.f, {24.f, 0.f, 20.f, 0.f}, Hints::Touch},
-        {"iphone-landscape", 932.f, 430.f, {0.f, 59.f, 21.f, 59.f}, Hints::Touch},
-        {"iphone-portrait", 430.f, 932.f, {59.f, 0.f, 34.f, 0.f}, Hints::Touch},
-        {"very-skinny", 400.f, 1000.f, {}, Hints::Keys},
+    struct Named final
+    {
+        Screen screen = Screen::Menu;
+        std::string name;
     };
 
-    for (const auto& shape: shapes)
-    {
-        auto root = RootView {};
-        auto scene =
-            CowsView {{QualityChoice::High, {}}, Stages {menuStage}, menuSeed};
-        auto menu = Menu {};
-        auto footer = Footer {};
+    constexpr auto phoneSides =
+        Graphics::Insets {.left = 59.f, .bottom = 21.f, .right = 59.f};
+    constexpr auto phoneUpright = Graphics::Insets {.top = 59.f, .bottom = 34.f};
+    constexpr auto androidUpright = Graphics::Insets {.top = 24.f, .bottom = 24.f};
+    constexpr auto tablet = Graphics::Insets {.top = 24.f, .bottom = 20.f};
 
-        scene.frozen = true;
-        scene.menu = &menu;
-        scene.pointerHints = shape.hints;
-        scene.hints = scene.pointerHints;
-        menu.items = mainMenuItems();
-        footer.text = [&]
-        { return footerText(scene.game, scene.hint, scene.hints); };
-        root.addSubview(scene);
-        root.addSubview(menu);
-        root.setSafeAreaInsets(shape.safe);
-        menu.topClearance = shape.hints == Hints::Keys ? macTitlebar : 0.f;
-        footer.bottomInset = shape.safe.bottom;
-        root.setBounds({0.f, 0.f, shape.width, shape.height});
-        root.resized();
-        scene.viewAspect = shape.width / shape.height;
-        scene.openMenu(false);
-        settle(scene, 2.f);
-        scene.drawHud = [&](Hud& hud)
+    auto shapes = Vector<ScreenShape> {
+        {"phone-430x932", 430.f, 932.f, phoneUpright, Hints::Touch},
+        {"phone-932x430", 932.f, 430.f, phoneSides, Hints::Touch},
+        {"phone-360x800", 360.f, 800.f, androidUpright, Hints::Touch},
+        {"tablet-820x1180", 820.f, 1180.f, tablet, Hints::Touch},
+        {"tablet-1180x820", 1180.f, 820.f, tablet, Hints::Touch},
+        {"desktop-1280x800", 1280.f, 800.f, {}, Hints::Keys},
+        {"desktop-1920x1080", 1920.f, 1080.f, {}, Hints::Keys},
+        {"desktop-1720x720", 1720.f, 720.f, {}, Hints::Keys},
+        {"desktop-650x800", 650.f, 800.f, {}, Hints::Keys},
+        {"desktop-800x800", 800.f, 800.f, {}, Hints::Keys},
+        {"desktop-1000x1000", 1000.f, 1000.f, {}, Hints::Keys},
+        {"desktop-900x820", 900.f, 820.f, {}, Hints::Keys},
+        {"desktop-820x900", 820.f, 900.f, {}, Hints::Keys},
+        {"desktop-700x700", 700.f, 700.f, {}, Hints::Keys},
+        {"desktop-500x500", 500.f, 500.f, {}, Hints::Keys},
+        {"desktop-320x320", 320.f, 320.f, {}, Hints::Keys},
+    };
+
+    auto screens = Vector<Named> {{Screen::Menu, "menu"},
+                                  {Screen::Dress, "dress"},
+                                  {Screen::Settings, "settings"},
+                                  {Screen::About, "about"}};
+
+    for (const auto& screen: screens)
+        for (const auto& shape: shapes)
         {
-            footer.draw(hud);
-            menu.opacity = scene.menuOpacity();
-            menu.draw(hud);
-        };
+            if (!only.empty() && only != screen.name)
+                continue;
 
-        auto image = root.renderToImage(1.f);
-        auto path = directory + "/" + shape.name + ".png";
+            auto root = RootView {};
+            auto scene =
+                CowsView {{QualityChoice::High, {}}, Stages {menuStage}, menuSeed};
+            auto menu = Menu {};
+            auto editor = Editor {};
+            auto footer = Footer {};
+            auto clearance = shape.hints == Hints::Keys ? macTitleBarClearance : 0.f;
 
-        if (image.isValid())
-            image.save(FilePath {path});
+            scene.frozen = true;
+            scene.menu = &menu;
+            scene.pointerHints = shape.hints;
+            scene.hints = scene.pointerHints;
+            menu.setItems(screen.screen == Screen::About ? aboutItems()
+                                                         : mainMenuItems());
+            menu.topClearance = clearance;
+            editor.topClearance = clearance;
 
-        LOG(path);
-    }
+            if (screen.screen == Screen::Dress)
+                editor.rows = dressRows(CowSkin {});
+
+            if (screen.screen == Screen::Settings)
+            {
+                editor.title = settingsTitle;
+                editor.rows.add(
+                    qualityRow(QualityChoice::Auto, Quality::High, false));
+            }
+
+            footer.text = [&]
+            {
+                if (scene.dressing)
+                    return editorText(scene.hints);
+
+                return footerText(scene.game, scene.hint, scene.hints);
+            };
+            root.addSubview(scene);
+            root.addSubview(menu);
+            root.addSubview(editor);
+            root.setSafeAreaInsets(shape.safe);
+            footer.bottomInset = shape.safe.bottom;
+            root.setBounds({0.f, 0.f, shape.width, shape.height});
+            root.resized();
+            scene.viewAspect = shape.width / shape.height;
+            scene.openMenu(false);
+
+            if (screen.screen == Screen::Dress || screen.screen == Screen::Settings)
+            {
+                scene.openEditor(editor);
+                scene.dressAmount = 1.f;
+            }
+
+            settle(scene, 2.f);
+            scene.drawHud = [&](Hud& hud)
+            {
+                footer.draw(hud);
+                menu.opacity = scene.menuOpacity();
+                menu.draw(hud);
+
+                if (scene.editor != nullptr)
+                {
+                    scene.editor->opacity = scene.editorOpacity();
+                    scene.editor->draw(hud);
+                }
+            };
+
+            // The first render lays the screen out, which picks its shape;
+            // the camera frames the cow for that shape before the second, as
+            // the app's swing does over the frames it draws.
+            root.renderToImage(1.f);
+            settle(scene, step);
+
+            if (scene.dressing)
+                scene.camera.setPose(scene.editorPose());
+
+            auto image = root.renderToImage(1.f);
+            auto path = directory + "/" + screen.name + "-" + shape.name + ".png";
+
+            if (image.isValid())
+                image.save(FilePath {path});
+            else
+                LOG("could not render ", path);
+
+            if (scene.editor != nullptr && !scene.editor->placed.empty())
+                LOG(path,
+                    " text ",
+                    scene.editor->placed.front().pointSize,
+                    scene.editor->wide() ? " wide" : " tall");
+            else
+                LOG(path, " text ", menu.pointSize, menu.wide() ? " wide" : " tall");
+        }
 }
 
 void renderScreenshots(const std::string& directory, const Screen& screen)

@@ -9,9 +9,7 @@ namespace Cows
 {
 namespace
 {
-constexpr auto bottomMargin = 16.f;
 constexpr auto sideMargin = 16.f;
-constexpr auto lineHeight = 18.f;
 constexpr std::string_view separator = "  -  ";
 } // namespace
 
@@ -46,6 +44,11 @@ Vector<std::string>
 
     result.add(current);
     return result;
+}
+
+float Footer::reserveFor(float width)
+{
+    return width < oneLineWidth ? reserve + lineHeight : reserve;
 }
 
 void Footer::draw(Hud& hud) const
