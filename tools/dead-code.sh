@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Usage: tools/dead-code.sh
-# Lists code nothing uses; deletes nothing. One build (build-dead-code: extra
+# Usage: tools/dead-code.sh [--check]
+# Lists code nothing uses; deletes nothing. --check is the CI gate: the same
+# report, then tools/dead-code-check.py fails if it lists anything outside
+# tools/dead-code-allow.txt, as GitHub annotations. One build (build-dead-code: extra
 # unused warnings, a section per function, dead-stripped links with link maps)
 # feeds every pass:
 #   warnings   the compiler's unused / missing-prototype warnings
@@ -19,6 +21,13 @@ set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
+
+if [[ ${1:-} == --check ]]; then
+    report="$(mktemp)"
+    "$0" | tee "$report"
+    python3 tools/dead-code-check.py tools/dead-code-allow.txt <"$report"
+    exit
+fi
 
 llvm="${LLVM_PREFIX:-$(brew --prefix llvm 2>/dev/null || echo /opt/homebrew/opt/llvm)}"
 missing=()

@@ -1,0 +1,10 @@
+# Test-only code kept on purpose, for tools/dead-code.sh --check. One symbol
+# per line (as the report names it, parameters optional), then why.
+Cows::toJSON                          CowSkin's reflect() and named choices, tested without Settings
+Cows::cowSkinFromJSON                 the same, read back
+Cows::Editor::panelArea               tests keep the panel clear of the cow
+Cows::FontCache::size                 tests keep the cache bounded by the size grid
+Cows::Flex::Tree::overflow            tests check overflow per node; the screens ask overflows()
+Cows::Flex::Size::fixed               a Layout size no screen uses yet; Tree resolves it, tests cover it
+Cows::Flex::Size::share               the same
+Cows::QualityGovernor::QualityGovernor  tests pass their own budgets

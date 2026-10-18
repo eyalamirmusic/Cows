@@ -68,6 +68,14 @@ def specialized(cursor):
         return None
 
 
+def qualified(cursor):
+    names = []
+    while cursor is not None and cursor.kind != K.TRANSLATION_UNIT:
+        names.append(cursor.spelling or "(anonymous)")
+        cursor = cursor.semantic_parent
+    return "::".join(reversed(names))
+
+
 def scan(entry):
     os.chdir(entry["directory"])
     tu = cindex.Index.create().parse(entry["file"], args=arguments(entry))
@@ -94,7 +102,7 @@ def scan(entry):
             if usr and not (c.kind == K.CXX_METHOD and c.is_virtual_method()) \
                     and c.spelling not in ROOTS \
                     and not c.spelling.startswith("operator"):
-                d = decls.setdefault(usr, [c.spelling, c.kind.name, None, []])
+                d = decls.setdefault(usr, [qualified(c), c.kind.name, None, []])
                 if c.is_definition() or d[2] is None:
                     d[2] = f"{os.path.relpath(path, ROOT)}:{line}"
         where = "test" if path.startswith(os.path.join(ROOT, "Tests") + "/") else "prod"
