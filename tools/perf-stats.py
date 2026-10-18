@@ -8,7 +8,7 @@ import csv
 import math
 import sys
 
-SKIP = {"label", "scenario", "run", "build", "commit", "warmup_s", "window_s", "env"}
+SKIP = {"label", "scenario", "run", "build", "commit", "pid", "from", "to", "warmup_s", "window_s", "env"}
 
 
 def read(path):

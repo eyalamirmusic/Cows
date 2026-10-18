@@ -53,19 +53,25 @@ done < <(env)
 out="${COWS_PERF_DIR:-/tmp/cows-perf}/$label"
 mkdir -p "$out"
 csv="$out/$scenario.csv"
-header="label,scenario,run,build,commit,warmup_s,window_s,cpu_s_per_s,user_s_per_s,system_s_per_s,main_s_per_s,other_s_per_s,energy_w,ipc,wakeups_per_s,footprint_mb,top_cpu,top_power,gpu_util,fps,frame_ms,frame_p95_ms,cpu_update_ms,cpu_gather_ms,cpu_shadows_ms,cpu_scene_ms,cpu_hud_ms,gpu_ms,gpu_shadows_ms,gpu_scene_ms,env"
+header="label,scenario,run,build,commit,pid,from,to,warmup_s,window_s,cpu_s_per_s,user_s_per_s,system_s_per_s,main_s_per_s,other_s_per_s,energy_w,ipc,wakeups_per_s,footprint_mb,top_cpu,top_power,gpu_util,fps,frame_ms,frame_p95_ms,cpu_update_ms,cpu_gather_ms,cpu_shadows_ms,cpu_scene_ms,cpu_hud_ms,gpu_ms,gpu_shadows_ms,gpu_scene_ms,env"
 [[ -f "$csv" ]] || echo "$header" > "$csv"
 
 commit="$(git -C "$root" rev-parse --short HEAD)$(git -C "$root" diff --quiet HEAD -- Apps Lib CMake || echo +)"
 
-if pgrep -f "Cows In Love.app/Contents/MacOS/Cows In Love" >/dev/null; then
-    echo "another Cows is running; the numbers would share the machine" >&2
-fi
+cows_running() {
+    pgrep -f "Cows In Love.app/Contents/MacOS/Cows In Love" | grep -vx "${1:-none}" || true
+}
 
 pid=""
 trap '[[ -n "$pid" ]] && kill "$pid" 2>/dev/null || true' EXIT
 
 for ((run = 1; run <= runs; run++)); do
+    # Another Cows (someone else's) would share the CPU and GPU with this one.
+    while [[ -n "$(cows_running)" ]]; do
+        echo "  waiting for another Cows ($(cows_running | tr '\n' ' ')) to quit" >&2
+        sleep 10
+    done
+
     log="$out/$scenario-$run.log"
     env COWS_SEED=3 COWS_WINDOW=1280x800 COWS_QUALITY=high COWS_PROFILE=1 \
         ${scenario_env[@]+"${scenario_env[@]}"} \
@@ -85,22 +91,33 @@ for ((run = 1; run <= runs; run++)); do
     done) >"$gpulog" &
     gpupid=$!
 
+    started="$(date +%H:%M:%S)"
     linesBefore=$(wc -l <"$log")
-    before="$(python3 "$root/tools/perf-probe.py" "$pid")"
+    before="$(python3 "$root/tools/perf-probe.py" "$pid" 2>/dev/null)" || before=""
     sleep "$window"
-    after="$(python3 "$root/tools/perf-probe.py" "$pid")"
+    after="$(python3 "$root/tools/perf-probe.py" "$pid" 2>/dev/null)" || after=""
     linesAfter=$(wc -l <"$log")
+    ended="$(date +%H:%M:%S)"
+    others="$(cows_running "$pid")"
 
+    runpid="$pid"
     kill "$pid" 2>/dev/null || true
     wait "$pid" 2>/dev/null || true
     pid=""
     wait "$toppid" 2>/dev/null || true
     wait "$gpupid" 2>/dev/null || true
 
+    # The window takes focus, so a key typed into it (q) can end a run early.
+    if [[ -z "$before" || -z "$after" || -n "$others" ]]; then
+        echo "  $scenario run $run ended early or shared the machine; running it again" >&2
+        ((run--)) || true
+        continue
+    fi
+
     sed -n "$((linesBefore + 1)),${linesAfter}p" "$log" | grep "profile fps" >"$out/$scenario-$run.profile" || true
 
     python3 - "$before" "$after" "$out/$scenario-$run.profile" "$toplog" "$gpulog" \
-        "$label,$scenario,$run,$build,$commit,$warmup,$window" \
+        "$label,$scenario,$run,$build,$commit,$runpid,$started,$ended,$warmup,$window" \
         "${scenario_env[*]+${scenario_env[*]}} ${passthrough[*]+${passthrough[*]}}" \
         "$out/$scenario-threads.jsonl" >>"$csv" <<'PY'
 import json, re, sys
@@ -177,7 +194,7 @@ row += [mean(fields[k]) for k in
 row.append(envtext.strip().replace(",", ";"))
 print(",".join(row))
 PY
-    tail -1 "$csv" | cut -d, -f2,3,8,13,20,28 | sed 's/^/  /' >&2
+    tail -1 "$csv" | cut -d, -f2,3,7,8,11,16,23,31 | sed 's/^/  /' >&2
     sleep 1
 done
 

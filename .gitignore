@@ -47,3 +47,4 @@ Deploy/Apple-iOS/Review/*.mp4
 
 __pycache__
 *.pyc
+/docs/perf/data/
