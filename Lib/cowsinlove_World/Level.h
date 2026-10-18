@@ -6,11 +6,16 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 
 namespace Cows
 {
 // How high feet can step up onto a surface without jumping.
 constexpr auto stepUp = 0.55f;
+
+// The heading that faces along `direction`, as the player's and the ending
+// stage's headings are measured.
+float headingToward(Maths::Vec2 direction);
 
 // A hole in the ground, `half` its size on each axis, its floor at `depth`.
 struct Gap final
@@ -33,7 +38,8 @@ struct Level final : Scenery
         Stack,
         Grove,
         Hedge,
-        Meadow
+        Meadow,
+        Loft
     };
 
     // Moves a circle of `radius` with its feet at `feet` out of everything too
@@ -46,7 +52,19 @@ struct Level final : Scenery
     // The highest surface under `point` that feet at `feet` can stand on.
     float floorAt(Maths::Vec2 point, float feet) const;
 
+    // The lowest bottom of the floating blocks over feet at `feet` at `point`
+    // (a loft, a roof), which a jump from there cannot rise into; infinity
+    // when the sky is open.
+    float ceilingAt(Maths::Vec2 point, float feet) const;
+
+    // Whether nothing stands within `margin` of `point`, a floating block
+    // included: for placing things.
     bool isFree(Maths::Vec2 point, float margin) const;
+
+    // How far along the line from `from` to `to` is clear of blocks: the
+    // point `margin` short of the first block it enters, or `to`. Blocks
+    // `from` is already inside are passed through.
+    Maths::Vec3 clearReach(Maths::Vec3 from, Maths::Vec3 to, float margin) const;
 
     // The ground's height at `point`: 0, or a gap's floor.
     float groundAt(Maths::Vec2 point) const;
@@ -60,6 +78,10 @@ struct Level final : Scenery
 
     Maths::Vec3 hideout;
     Hiding hiding = Hiding::Roof;
+
+    // The way the ending's stage faces when she is found there; unset, it
+    // faces from the player to her.
+    std::optional<float> hideoutHeading;
 
     Maths::Vec3 start;
     float startHeading = 0.f;

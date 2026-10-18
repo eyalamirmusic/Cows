@@ -2,6 +2,7 @@ nano_add_executable(WorldTests
         NO_MAIN
         SOURCES
             BiomeTests.cpp
+            FloatingBlockTests.cpp
             GrassTests.cpp
             GroundTests.cpp
             LayoutTests.cpp

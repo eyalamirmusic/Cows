@@ -8,22 +8,28 @@ namespace Cows
 namespace
 {
 constexpr std::uint32_t strawColor = 0xe3bf5a;
+constexpr std::uint32_t twineColor = 0x8c6a3c;
+constexpr auto baleSoftness = 0.2f;
+constexpr auto baleGloss = 0.1f;
+constexpr auto baleLength = 1.7f;
+constexpr auto baleColliderRadius = 1.05f;
 } // namespace
+
+Vector<Mover::Part> baleParts()
+{
+    return {{Shape::BaleStraw, matte(strawColor, baleSoftness, baleGloss)},
+            {Shape::BaleTwine, matte(twineColor, baleSoftness, baleGloss)}};
+}
 
 void addBale(Scenery& scenery, std::mt19937& random, Vec2 at)
 {
-    auto straw = matte(strawColor, 0.2f, 0.1f);
     auto heading = randomBetween(random, 0.f, twoPi);
-    auto radius = baleRadius;
-    scenery.batch.add(
-        Shape::Barrel,
-        makeInstance(Mat4::translation({at.x, radius, at.y})
-                         * Mat4::rotationY(heading) * Mat4::rotationX(halfPi)
-                         * Mat4::scale({radius * 2.f, 1.7f, radius * 2.f})
-                         * Mat4::translation({0.f, -0.5f, 0.f}),
-                     straw));
+    auto model = lyingDrum(at, 0.f, heading, 0.f, baleRadius, baleLength);
 
-    scenery.colliders.add({at, 1.05f, radius * 2.f});
+    for (const auto& part: baleParts())
+        scenery.batch.add(part.shape, makeInstance(model, part.material));
+
+    scenery.colliders.add({at, baleColliderRadius, baleRadius * 2.f});
 }
 
 Mover makeRollingBale(Vec2 from, Vec2 to, float period, float phase)
@@ -34,7 +40,7 @@ Mover makeRollingBale(Vec2 from, Vec2 to, float period, float phase)
     mover.period = period;
     mover.phase = phase;
     mover.radius = rollingBaleRadius;
-    mover.material = matte(strawColor, 0.2f, 0.1f);
+    mover.parts = baleParts();
     mover.collider = {
         mover.positionAt(0.f), rollingBaleRadius, rollingBaleRadius * 2.f};
     return mover;

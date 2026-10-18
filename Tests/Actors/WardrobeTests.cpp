@@ -85,7 +85,7 @@ struct Shot final
 void shoot(const CowSkin& skin, const Shot& shot, const std::string& name)
 {
     auto cow = Cow {};
-    auto view = SnapshotView {makeCowMesh};
+    auto view = SnapshotView {cowMeshes(1.f)};
     auto pose = cow.freePose({}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f);
     pose.lean = shot.lean;
     cow.addTo(view.batch, view.glows, makeCowParts(skin), pose);
@@ -172,7 +172,7 @@ auto tCoarserMeshes = test("Wardrobe/coarserMeshesHaveFewerTriangles") = []
                       Shape::WizardCone,
                       Shape::WizardBrim})
     {
-        auto fine = makeCowMesh(shape).indices.size();
+        auto fine = cowMeshes(1.f)(shape).indices.size();
         auto cut = coarse(shape).indices.size();
         check(cut > 0);
         check(cut < fine);

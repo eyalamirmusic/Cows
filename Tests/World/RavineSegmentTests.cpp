@@ -130,7 +130,9 @@ auto tJumpLines = test("RavineSegment/jumpLinesAreJumpableNotSteppable") = []
 
     for (const auto& block: level.blocks)
     {
-        if (block.top == 0.f || block.half.x < 2.f || block.half.y > 1.f)
+        auto barnPart = block.bottom > 0.f || block.top >= 2.f * jumpHeight;
+
+        if (block.top == 0.f || barnPart || block.half.x < 2.f || block.half.y > 1.f)
             continue;
 
         ++lines;
@@ -192,7 +194,7 @@ auto tUpdateMoves = test("RavineSegment/updateMovesTheColliders") = []
 
     check(distance(before, after) > 1.f);
     check(distance(after, mover.positionAt(mover.period * 0.25f)) < 1e-5f);
-    check(level.moving.lists[(int) Shape::Barrel].size() == 3);
+    check(level.moving.lists[(int) Shape::BaleStraw].size() == 3);
 };
 
 auto tClearWindow = test("RavineSegment/eachLaneLeavesAClearWindow") = []

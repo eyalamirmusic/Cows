@@ -16,6 +16,11 @@ using namespace Maths;
 
 namespace
 {
+bool inBarn(Level::Hiding hiding)
+{
+    return hiding == Level::Hiding::Roof || hiding == Level::Hiding::Loft;
+}
+
 Level makeMeadow(std::uint32_t seed)
 {
     return generate(meadowFixture(), seed);
@@ -61,7 +66,7 @@ auto tSameSeed = test("Meadow/sameSeedSameLevel") = []
 
 auto tHideouts = test("Meadow/hideoutRules") = []
 {
-    auto kinds = std::array<int, 5> {};
+    auto kinds = std::array<int, hidingKinds> {};
 
     for (auto seed = 1u; seed <= 40u; ++seed)
     {
@@ -70,14 +75,29 @@ auto tHideouts = test("Meadow/hideoutRules") = []
 
         check(length(at) >= nearestHiding);
         check(std::abs(at.x) <= arenaReach && std::abs(at.y) <= arenaReach);
-        check(std::abs(level.floorAt(at, level.hideout.y) - level.hideout.y)
-              <= 0.01f);
+
+        if (!inBarn(level.hiding))
+            check(std::abs(level.floorAt(at, level.hideout.y) - level.hideout.y)
+                  <= 0.01f);
 
         ++kinds[(std::size_t) level.hiding];
     }
 
     for (auto count: kinds)
         check(count > 0);
+};
+
+auto tBarnHideouts = test("Meadow/barnHideoutsStandOnTheBarn") = []
+{
+    for (auto seed = 1u; seed <= 40u; ++seed)
+    {
+        auto level = makeMeadow(seed);
+        auto at = Vec2 {level.hideout.x, level.hideout.z};
+
+        if (inBarn(level.hiding))
+            check(std::abs(level.floorAt(at, level.hideout.y) - level.hideout.y)
+                  <= 0.01f);
+    }
 };
 
 auto tMeadowSnapshot = test("Meadow/snapshot") = []

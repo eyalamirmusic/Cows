@@ -89,6 +89,19 @@ auto tFound = test("Game/foundBesideHer") = []
     check(game.sinceFound == 0.f);
 };
 
+auto tFoundFacing = test("Game/foundWhereHerSpotSetsTheStagesHeading") = []
+{
+    constexpr auto alongTheRidge = 0.7f;
+
+    auto game = openField();
+    game.level.hideoutHeading = alongTheRidge;
+    game.partner = {0.f, 0.f, -4.f};
+    game.update(frame, 0.f, 0.f, false);
+
+    check(game.state == Game::State::Found);
+    check(near(game.stageHeading, alongTheRidge));
+};
+
 auto tNotFoundFar = test("Game/searchingWhenTooFar") = []
 {
     auto game = openField();

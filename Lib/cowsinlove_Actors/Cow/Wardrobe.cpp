@@ -668,11 +668,6 @@ std::function<MeshData(Shape)> cowMeshes(float detail)
     return [detail](Shape shape) { return makeCowMeshAt(shape, detail); };
 }
 
-MeshData makeCowMesh(Shape shape)
-{
-    return makeCowMeshAt(shape, 1.f);
-}
-
 Vector<CowPart> makeCowParts(const CowSkin& skin)
 {
     auto parts = makeCowParts();

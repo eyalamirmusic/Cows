@@ -44,3 +44,6 @@ Deploy/Apple-iOS/Review/*.mp4
 # Local logs and lists
 /*.log
 /cows.csv
+
+__pycache__
+*.pyc

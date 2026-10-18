@@ -21,8 +21,6 @@ constexpr auto hedgeRoom = 2.f;
 constexpr auto baleRoom = 1.5f;
 constexpr auto rockRoom = 1.5f;
 constexpr auto crateRoom = 3.f;
-constexpr auto barnRoom = 13.f;
-constexpr auto barnSpacing = 26.f;
 constexpr auto nearestHideout = 50.f;
 constexpr auto furthestHideout = 75.f;
 constexpr auto structureMargin = 2.5f;
@@ -138,11 +136,20 @@ std::optional<Vec2> hideoutSpot(Layout& layout, const Region& area)
         auto at =
             layout.home + Vec2 {std::cos(angle) * reach, std::sin(angle) * reach};
 
-        if (area.holds(at) && !layout.onPath(at, barnRoom))
+        if (area.holds(at) && !layout.onPath(at, barnReach()))
             return at;
     }
 
     return std::nullopt;
+}
+
+// On the ridge, facing along it so the ending plays out on the roof's top;
+// and in the loft, facing along it.
+void addBarnHidings(Layout& layout, Vec2 center, int quarterTurns)
+{
+    auto spots = barnSpots(center, quarterTurns);
+    layout.addHiding(Level::Hiding::Roof, spots.roof.at, spots.roof.heading);
+    layout.addHiding(Level::Hiding::Loft, spots.loft.at, spots.loft.heading);
 }
 
 void addBarns(Level& level, Layout& layout, const Region& region, int barns)
@@ -153,30 +160,35 @@ void addBarns(Level& level, Layout& layout, const Region& region, int barns)
         return;
     auto count = layout.share(barns, region);
     auto spots = Vector<Vec2> {};
-    auto roof = hideoutSpot(layout, area);
+    auto hideout = hideoutSpot(layout, area);
 
-    if (roof)
-        spots.add(*roof);
+    if (hideout)
+        spots.add(*hideout);
 
     for (auto attempt = 0; attempt < 400 && spots.size() < count; ++attempt)
     {
         auto at = Vec2 {layout.between(area.min.x, area.max.x),
                         layout.between(area.min.y, area.max.y)};
-        auto roomy = distance(at, layout.home) > 25.f && !layout.onPath(at, barnRoom)
-                     && std::all_of(spots.begin(),
-                                    spots.end(),
-                                    [&](Vec2 other)
-                                    { return distance(at, other) > barnSpacing; });
+        auto roomy =
+            distance(at, layout.home) > 25.f && !layout.onPath(at, barnReach())
+            && std::all_of(spots.begin(),
+                           spots.end(),
+                           [&](Vec2 other)
+                           { return distance(at, other) > 2.f * barnReach(); });
 
         if (roomy)
             spots.add(at);
     }
 
-    if (roof)
-        layout.addHiding(Level::Hiding::Roof, {roof->x, barnRoofHeight, roof->y});
+    for (auto index = 0; index < spots.size(); ++index)
+    {
+        auto quarterTurns = (int) (layout.unit() * 4.f) % 4;
 
-    for (const auto& spot: spots)
-        addBarn(level, spot, (int) (layout.unit() * 4.f) % 4);
+        if (hideout && index == 0)
+            addBarnHidings(layout, spots[index], quarterTurns);
+
+        addBarn(level, spots[index], quarterTurns);
+    }
 }
 
 void addCrates(Level& level, Layout& layout, const Region& region, int crates)

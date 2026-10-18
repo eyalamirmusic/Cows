@@ -26,13 +26,58 @@ Level levelWithBlock()
 }
 } // namespace
 
-auto tRoof = test("Level/floorOnBarnRoof") = []
+namespace
+{
+Vec2 ground(Vec3 point)
+{
+    return {point.x, point.z};
+}
+
+// A barn turned a quarter, off the origin, so nothing passes by luck.
+constexpr auto barnCenter = Vec2 {12.f, -7.f};
+constexpr auto barnTurns = 1;
+// How far along the front wall from the doorway's middle is surely wall.
+constexpr auto alongTheWall = 4.f;
+
+Level withBarn()
 {
     auto level = Level {};
-    addBarn(level, {}, 0);
+    addBarn(level, barnCenter, barnTurns);
+    return level;
+}
+} // namespace
 
-    check(near(level.floorAt({}, barnRoofHeight), barnRoofHeight));
-    check(level.floorAt({}, 0.f) < barnRoofHeight);
+auto tRoof = test("Level/floorOnBarnRoof") = []
+{
+    auto level = withBarn();
+    auto roof = barnSpots(barnCenter, barnTurns).roof;
+
+    check(near(level.floorAt(ground(roof.at), roof.at.y), roof.at.y));
+};
+
+auto tBarnInside = test("Level/floorInsideTheBarn") = []
+{
+    auto level = withBarn();
+    auto spots = barnSpots(barnCenter, barnTurns);
+
+    check(near(level.floorAt(ground(spots.doorway.at), 0.f), 0.f));
+    check(near(level.floorAt(barnCenter, 0.f), 0.f));
+    check(near(level.floorAt(ground(spots.loft.at), spots.loft.at.y),
+               spots.loft.at.y));
+    check(near(level.floorAt(ground(spots.loft.at), 0.f), 0.f));
+    check(near(level.floorAt(ground(spots.rampTop.at), spots.rampTop.at.y),
+               spots.rampTop.at.y));
+};
+
+auto tBarnWalls = test("Level/barnWallsKeepHerOut") = []
+{
+    auto level = withBarn();
+    auto doorway = barnSpots(barnCenter, barnTurns).doorway;
+    auto forward = Vec2 {std::cos(doorway.heading), -std::sin(doorway.heading)};
+    auto wall = ground(doorway.at) + Vec2 {forward.y, -forward.x} * alongTheWall;
+
+    check(level.pushedOut(wall, 1.f, 0.f) != wall);
+    check(!level.isFree(wall, 0.f));
 };
 
 auto tRamp = test("Level/floorHalfwayUpARamp") = []

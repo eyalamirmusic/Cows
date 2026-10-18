@@ -18,10 +18,8 @@ void addPants(Vector<CowPart>& parts, Pants pants);
 // torso's Barrel, worn on its placement scaled out.
 MeshData makePantsMesh(Shape shape, float detail = 1.f);
 
-// The meshes ShapeMeshes leaves to the game: the heart, the hats and the pants.
-MeshData makeCowMesh(Shape shape);
-
-// makeCowMesh with every mesh's steps coarsened by `detail` (see `detailed`).
+// The cow's meshes ShapeMeshes leaves to the game (the heart, the hats and the
+// pants), every mesh's steps coarsened by `detail` (see `detailed`).
 std::function<MeshData(Shape)> cowMeshes(float detail);
 
 // The cow in its rest pose wearing `skin`.

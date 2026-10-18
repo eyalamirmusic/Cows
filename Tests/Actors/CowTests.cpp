@@ -121,7 +121,7 @@ auto tCowSnapshot = test("Cow/snapshot") = []
         return;
 
     auto cow = Cow {};
-    auto view = SnapshotView {makeCowMesh};
+    auto view = SnapshotView {cowMeshes(1.f)};
     cow.addTo(view.batch,
               view.glows,
               makeCowParts(),
@@ -175,7 +175,7 @@ int eyePixels(const Graphics::Image& image)
 Graphics::Image cowSeenFrom(float distance, const std::string& name)
 {
     auto cow = Cow {};
-    auto view = SnapshotView {makeCowMesh};
+    auto view = SnapshotView {cowMeshes(1.f)};
     cow.addTo(view.batch,
               view.glows,
               makeCowParts(),

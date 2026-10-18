@@ -1,7 +1,9 @@
 #include "Level.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <limits>
 
 using namespace Maths;
 
@@ -30,7 +32,100 @@ bool standsOn(const Collider& collider, Vec2 point, float feet)
     return collider.top <= feet + stepUp
            && distance(point, collider.center) < collider.radius;
 }
+
+bool floats(const Block& block)
+{
+    return block.bottom > 0.f;
+}
+
+// Under a floating block, and out of a step's reach of its top there.
+bool passesUnder(const Block& block, Vec2 at, float feet)
+{
+    return floats(block) && feet < block.bottom
+           && feet + stepUp < block.heightAt(at);
+}
+
+// One side of a convex solid: the points x with dot(normal, x) <= offset.
+struct HalfSpace final
+{
+    Vec3 normal;
+    float offset = 0.f;
+};
+
+// The block as the solid it is: its footprint between its bottom and its top,
+// the top a plane sloping along `rise` on a ramp (heightAt, as a plane). A
+// floating ramp (a roof's pitch) is a slab a step deep under its top, which is
+// how far below it passesUnder still counts as on it.
+std::array<HalfSpace, 6> sidesOf(const Block& block)
+{
+    auto low = block.center - block.half;
+    auto high = block.center + block.half;
+    auto sides =
+        std::array<HalfSpace, 6> {HalfSpace {{1.f, 0.f, 0.f}, high.x},
+                                  HalfSpace {{-1.f, 0.f, 0.f}, -low.x},
+                                  HalfSpace {{0.f, 0.f, 1.f}, high.y},
+                                  HalfSpace {{0.f, 0.f, -1.f}, -low.y},
+                                  HalfSpace {{0.f, -1.f, 0.f}, -block.bottom},
+                                  HalfSpace {{0.f, 1.f, 0.f}, block.top}};
+
+    if (lengthSquared(block.rise) > 0.f)
+    {
+        auto along = dot(absolute(block.rise), block.half);
+        auto slope = (block.top - block.bottom) * 0.5f / along;
+        sides[5] = {{-slope * block.rise.x, 1.f, -slope * block.rise.y},
+                    (block.top + block.bottom) * 0.5f
+                        - slope * dot(block.center, block.rise)};
+
+        if (floats(block))
+            sides[4] = {-sides[5].normal, stepUp - sides[5].offset};
+    }
+
+    return sides;
+}
+
+// Where along from + (to - from) * s, s in [0, 1], the segment enters the
+// block (Cyrus-Beck clipping against its sides); nothing when it misses or
+// starts inside.
+std::optional<float> entryInto(const Block& block, Vec3 from, Vec3 to)
+{
+    auto direction = to - from;
+    auto entry = 0.f;
+    auto exit = 1.f;
+    auto inside = true;
+
+    for (const auto& side: sidesOf(block))
+    {
+        auto room = side.offset - dot(side.normal, from);
+        auto closing = dot(side.normal, direction);
+        inside = inside && room >= 0.f;
+
+        if (closing == 0.f)
+        {
+            if (room < 0.f)
+                return std::nullopt;
+
+            continue;
+        }
+
+        auto crossing = room / closing;
+
+        if (closing < 0.f)
+            entry = std::max(entry, crossing);
+        else
+            exit = std::min(exit, crossing);
+    }
+
+    if (inside || entry > exit)
+        return std::nullopt;
+
+    return entry;
+}
 } // namespace
+
+float headingToward(Vec2 direction)
+{
+    return std::atan2(-direction.y, direction.x);
+}
 
 bool Gap::contains(Vec2 point) const
 {
@@ -51,6 +146,9 @@ Vec2 Level::pushedOut(Vec2 point, float radius, float feet) const
         for (const auto& block: blocks)
         {
             auto closest = block.closestTo(point);
+
+            if (passesUnder(block, closest, feet))
+                continue;
 
             if (block.heightAt(closest) <= feet + stepUp)
                 continue;
@@ -123,7 +221,7 @@ float Level::floorAt(Vec2 point, float feet) const
 
     for (const auto& block: blocks)
     {
-        if (!block.contains(point))
+        if (!block.contains(point) || passesUnder(block, point, feet))
             continue;
 
         auto height = block.heightAt(point);
@@ -135,12 +233,39 @@ float Level::floorAt(Vec2 point, float feet) const
     return floor;
 }
 
+float Level::ceilingAt(Vec2 point, float feet) const
+{
+    auto ceiling = std::numeric_limits<float>::infinity();
+
+    for (const auto& block: blocks)
+        if (block.contains(point) && passesUnder(block, point, feet))
+            ceiling = std::min(ceiling, block.bottom);
+
+    return ceiling;
+}
+
 bool Level::isFree(Vec2 point, float margin) const
 {
     return std::none_of(blocks.begin(),
                         blocks.end(),
                         [&](const Block& block)
                         { return block.contains(point, margin); });
+}
+
+Vec3 Level::clearReach(Vec3 from, Vec3 to, float margin) const
+{
+    auto clear = 1.f;
+
+    for (const auto& block: blocks)
+        if (auto entry = entryInto(block, from, to))
+            clear = std::min(clear, *entry);
+
+    if (clear >= 1.f)
+        return to;
+
+    auto span = length(to - from);
+    auto reach = std::max(clear * span - margin, 0.f);
+    return from + (to - from) * (reach / span);
 }
 
 float Level::groundAt(Vec2 point) const
@@ -179,8 +304,10 @@ void Level::update(float seconds)
     for (auto& mover: movers)
     {
         mover.collider.center = mover.positionAt(seconds);
-        moving.add(Shape::Barrel,
-                   makeInstance(mover.modelAt(seconds), mover.material));
+        auto model = mover.modelAt(seconds);
+
+        for (const auto& part: mover.parts)
+            moving.add(part.shape, makeInstance(model, part.material));
     }
 }
 } // namespace Cows

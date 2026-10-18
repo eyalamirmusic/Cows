@@ -82,8 +82,9 @@ Vector<GrassDraw> planGrass(Maths::Vec2 focus,
 // while there are any.
 int bladesToDraw(int available, float share);
 
-// The meadow tile laid over a level: tiles that cross a gap are cut, once,
-// and kept; the rest are the tile itself.
+// The meadow tile laid over a level: tiles that cross a gap or a clearing
+// (kept with the gaps, as nowhere for grass) are cut, once, and kept; the
+// rest are the tile itself.
 struct GrassField final
 {
     void layOver(const Level& level);

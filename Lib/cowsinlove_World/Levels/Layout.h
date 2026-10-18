@@ -6,6 +6,7 @@
 #include <array>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <random>
 
 namespace Cows
@@ -15,8 +16,16 @@ namespace Cows
 constexpr auto arenaInset = 14.f;
 constexpr auto arenaReach = arenaSize * 0.5f - arenaInset;
 constexpr auto clearing = 9.f;
-constexpr auto hidingKinds = 5;
+constexpr auto hidingKinds = 6;
 constexpr auto nearestHiding = 25.f;
+
+// Somewhere she could hide, and the way the ending's stage faces there when
+// the spot sets it (Level::hideoutHeading).
+struct HidingSpot final
+{
+    Maths::Vec3 at;
+    std::optional<float> heading;
+};
 
 // The seeded draws a level is laid out from, and the hiding places found
 // while laying it out. `home` is where the player starts: nothing is put in
@@ -43,7 +52,9 @@ struct Layout final
     // Scales a whole-arena count to `region`'s share of the arena.
     int share(int count, const Region& region) const;
 
-    void addHiding(Level::Hiding kind, Maths::Vec3 at);
+    void addHiding(Level::Hiding kind,
+                   Maths::Vec3 at,
+                   std::optional<float> heading = std::nullopt);
 
     bool inClearing(Maths::Vec2 point) const;
 
@@ -51,7 +62,7 @@ struct Layout final
     bool onPath(Maths::Vec2 point, float margin) const;
 
     std::mt19937 random;
-    std::array<Vector<Maths::Vec3>, hidingKinds> hidings;
+    std::array<Vector<HidingSpot>, hidingKinds> hidings;
     Vector<Maths::Vec2> trees;
     Maths::Vec2 home;
     Region path;

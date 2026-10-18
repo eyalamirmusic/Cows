@@ -2,6 +2,7 @@
 
 #include "Render/Common.h"
 
+#include <limits>
 #include <optional>
 
 namespace Cows
@@ -49,6 +50,8 @@ CameraPose placeTargetOnScreen(CameraPose pose,
 // The idle sway drift() gives at `seconds`, as yaw and pitch.
 Maths::Vec2 driftAt(float seconds);
 
+constexpr auto unlimitedReach = std::numeric_limits<float>::infinity();
+
 struct OrbitCamera final
 {
     void orbit(float horizontal, float vertical);
@@ -81,6 +84,9 @@ struct OrbitCamera final
     float yaw = 0.f;
     float pitch = 0.22f;
     float distance = 11.f;
+    // How far out the eye may stand, short of `distance` when something is in
+    // the way; the pose keeps the distance wanted.
+    float reach = unlimitedReach;
     float swayYaw = 0.f;
     float swayPitch = 0.f;
     float fieldOfView = Maths::radians(42.f);

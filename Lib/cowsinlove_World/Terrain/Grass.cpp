@@ -207,6 +207,10 @@ int bladesToDraw(int available, float share)
 void GrassField::layOver(const Level& level)
 {
     gaps = level.gaps;
+
+    for (const auto& clearing: level.clearings)
+        gaps.add(Gap {clearing.center, clearing.half});
+
     cutTiles.clear();
 }
 
