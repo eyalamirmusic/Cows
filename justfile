@@ -118,3 +118,20 @@ steam-upload:
 # and uploaded with the API key from 1Password.
 release-mas *args:
     {{asc}} tools/release-mas.sh {{args}}
+
+# Measure one scenario (S1 menu, S2 editor, S3 play, S4 walking, S5 ending) n
+# times in Release into $COWS_PERF_DIR/<label> (tools/perf.sh).
+perf scenario label runs="10":
+    [[ -f build-release/CMakeCache.txt ]] || cmake -G Ninja -B build-release -DCMAKE_BUILD_TYPE=Release ${EACP:+-DCPM_eacp_SOURCE=$EACP}
+    cmake --build build-release
+    tools/perf.sh {{scenario}} {{label}} {{runs}}
+
+# Compare two labels' runs, scenario by scenario (tools/perf-stats.py).
+perf-compare a b:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dir="${COWS_PERF_DIR:-/tmp/cows-perf}"
+    for csv in "$dir/{{a}}"/S*.csv; do
+        other="$dir/{{b}}/$(basename "$csv")"
+        [[ -f "$other" ]] && tools/perf-stats.py "$csv" "$other"
+    done
