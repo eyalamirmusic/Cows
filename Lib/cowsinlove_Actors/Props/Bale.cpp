@@ -1,8 +1,6 @@
 #include "Props/Bale.h"
 #include "Props/Props.h"
 
-#include <cmath>
-
 using namespace Maths;
 
 namespace Cows

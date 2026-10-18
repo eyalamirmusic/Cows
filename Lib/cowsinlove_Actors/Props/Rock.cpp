@@ -2,7 +2,6 @@
 #include "Props/Props.h"
 
 #include <array>
-#include <cmath>
 
 using namespace Maths;
 
