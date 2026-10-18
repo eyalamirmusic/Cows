@@ -105,14 +105,23 @@ def scan(entry):
                     refs.append((field.get_usr(), where))
         if c.kind.is_declaration():
             return
-        r = c.referenced
-        if r is None or r.kind.is_invalid():
-            return
-        for target in (r, r.canonical, specialized(r)):
-            if target is not None:
-                usr = target.get_usr()
-                if usr:
-                    refs.append((usr, where))
+        lib = cindex.conf.lib
+        if c.kind == K.OVERLOADED_DECL_REF:
+            # A call a template leaves dependent names every candidate.
+            found = [lib.clang_getOverloadedDecl(c, i)
+                     for i in range(lib.clang_getNumOverloadedDecls(c))]
+            for r in found:
+                r._tu = c._tu
+        else:
+            found = [c.referenced]
+        for r in found:
+            if r is None or r.kind.is_invalid():
+                continue
+            for target in (r, r.canonical, specialized(r)):
+                if target is not None:
+                    usr = target.get_usr()
+                    if usr:
+                        refs.append((usr, where))
 
     visit(tu.cursor)
     return decls, refs
