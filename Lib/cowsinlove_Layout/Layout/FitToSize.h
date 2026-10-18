@@ -6,13 +6,17 @@
 
 namespace Cows::Flex
 {
+// The grid every point size the UI lays text out at lands on, so a window
+// being resized asks for a few fonts rather than hundreds.
+constexpr auto fontSizeStep = 0.5f;
+
 // The point sizes a fit may choose: from `least` to `most`, on whole steps of
 // `step` so the answer is always one of a few sizes a font cache can keep.
 struct PointSizeRange final
 {
     float least = 0.f;
     float most = 0.f;
-    float step = 0.5f;
+    float step = fontSizeStep;
 };
 
 // `size` rounded down to the range's grid.

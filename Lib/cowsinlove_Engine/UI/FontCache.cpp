@@ -4,24 +4,22 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 
 namespace Cows
 {
-namespace
-{
-bool matches(const Text::Font& font,
-             std::string_view family,
-             float pointSize,
-             Text::FontStyle style)
-{
-    return font.pointSize == pointSize && font.style == style
-           && font.family == family;
-}
-} // namespace
-
 float onFontGrid(float pointSize)
 {
     return std::max(1.f, std::floor(pointSize / fontSizeStep)) * fontSizeStep;
+}
+
+std::size_t FontCache::KeyHash::operator()(const Key& key) const
+{
+    auto hash = std::hash<std::string> {}(key.family);
+    hash ^= std::hash<int> {}(key.steps) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+    hash ^=
+        std::hash<int> {}((int) key.style) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+    return hash;
 }
 
 const Text::Font& FontCache::fontFor(std::string_view family,
@@ -29,48 +27,20 @@ const Text::Font& FontCache::fontFor(std::string_view family,
                                      Text::FontStyle style)
 {
     auto size = onFontGrid(pointSize);
-    ++clock;
+    auto key =
+        Key {std::string {family}, (int) std::lround(size / fontSizeStep), style};
+    auto found = fonts.find(key);
 
-    for (auto& entry: entries)
-        if (entry.used && matches(entry.font, family, size, style))
-        {
-            entry.lastUsed = clock;
-            return entry.font;
-        }
+    if (found != fonts.end())
+        return found->second;
 
-    auto& oldest = *std::min_element(entries.begin(),
-                                     entries.end(),
-                                     [](const Entry& a, const Entry& b)
-                                     {
-                                         if (a.used != b.used)
-                                             return !a.used;
-
-                                         return a.lastUsed < b.lastUsed;
-                                     });
-
-    oldest.font = {std::string {family}, size, style};
-    oldest.lastUsed = clock;
-    oldest.used = true;
-    return oldest.font;
+    auto font = Text::Font {key.family, size, style};
+    return fonts.emplace(std::move(key), std::move(font)).first->second;
 }
 
 int FontCache::size() const
 {
-    return (int) std::count_if(entries.begin(),
-                               entries.end(),
-                               [](const Entry& entry) { return entry.used; });
-}
-
-bool FontCache::holds(std::string_view family,
-                      float pointSize,
-                      Text::FontStyle style) const
-{
-    auto size = onFontGrid(pointSize);
-    return std::any_of(
-        entries.begin(),
-        entries.end(),
-        [&](const Entry& entry)
-        { return entry.used && matches(entry.font, family, size, style); });
+    return (int) fonts.size();
 }
 
 const Text::Font&

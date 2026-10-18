@@ -1,55 +1,54 @@
 #pragma once
 
+#include "Layout/FitToSize.h"
 #include "Render/Common.h"
 
 #include <eacp/Text/Font.h>
 
-#include <array>
-#include <cstdint>
+#include <cstddef>
+#include <string>
 #include <string_view>
+#include <unordered_map>
 
 namespace Cows
 {
-// Every point size the UI asks a font for lands on this grid, so a window
-// being resized asks the glyph atlas for a few faces rather than hundreds
-// (eacp keeps a face for every size it is ever asked for).
-constexpr auto fontSizeStep = 0.5f;
+using Flex::fontSizeStep;
 
 // `pointSize` rounded down to fontSizeStep, never below one step.
 float onFontGrid(float pointSize);
 
-// The UI's fonts, kept as plain Text::Font values so a frame never builds one
-// (and copies its family) per label. A least-recently-used set of `capacity`:
-// a frame uses a handful of sizes (the menu's four items, notes, the editor's
-// rows, heading, hover sizes, the footer, the touch labels), and a resize
-// walks through more, so a few dozen keeps a whole frame's set while bounding
-// what a long session of resizing keeps. Reach it through
-// `Singleton::get<FontCache>()`; `uiFont` does.
+// The UI's fonts, kept as Text::Font values so a frame never builds one (and
+// copies its family) per label. A map, so a reference it hands out holds for
+// as long as the cache does. Sizes land on the fontSizeStep grid between the
+// readable floor and the size cap, about 109 per family and style, so it holds
+// a few hundred fonts (a Font is 40 bytes, an entry about 110 bytes of heap:
+// some 40 KB) however long a window is resized; a thousand would be about
+// 110 KB. Reach it through `Singleton::get<FontCache>()`; `uiFont` does.
 struct FontCache final
 {
-    static constexpr auto capacity = 48;
-
-    // The font of `family` and `style` at `pointSize` on the grid. The
-    // reference holds until `capacity` other fonts have been asked for.
+    // The font of `family` and `style` at `pointSize` on the grid.
     const Text::Font& fontFor(std::string_view family,
                               float pointSize,
                               Text::FontStyle style = Text::FontStyle::Regular);
 
     int size() const;
-    bool holds(std::string_view family,
-               float pointSize,
-               Text::FontStyle style = Text::FontStyle::Regular) const;
 
 private:
-    struct Entry final
+    struct Key final
     {
-        Text::Font font;
-        std::uint64_t lastUsed = 0;
-        bool used = false;
+        bool operator==(const Key& other) const = default;
+
+        std::string family;
+        int steps = 0;
+        Text::FontStyle style = Text::FontStyle::Regular;
     };
 
-    std::array<Entry, capacity> entries;
-    std::uint64_t clock = 0;
+    struct KeyHash final
+    {
+        std::size_t operator()(const Key& key) const;
+    };
+
+    std::unordered_map<Key, Text::Font, KeyHash> fonts;
 };
 
 // Singleton::get<FontCache>().fontFor(...).

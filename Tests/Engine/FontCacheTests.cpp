@@ -45,23 +45,3 @@ auto tFontGrid = test("FontCache/sizesLandOnTheGrid") = []
     check(cache.size() == 1);
     check(onFontGrid(0.1f) == fontSizeStep);
 };
-
-auto tFontEviction = test("FontCache/theLeastRecentlyUsedGoesFirst") = []
-{
-    auto cache = FontCache {};
-    auto sizeAt = [](int index) { return firstSize + fontSizeStep * (float) index; };
-
-    for (auto index = 0; index < FontCache::capacity; ++index)
-        cache.fontFor(family, sizeAt(index));
-
-    check(cache.size() == FontCache::capacity);
-
-    cache.fontFor(family, sizeAt(0));
-    cache.fontFor(family, sizeAt(FontCache::capacity));
-
-    check(cache.size() == FontCache::capacity);
-    check(cache.holds(family, sizeAt(0)));
-    check(!cache.holds(family, sizeAt(1)));
-    check(cache.holds(family, sizeAt(2)));
-    check(cache.holds(family, sizeAt(FontCache::capacity)));
-};

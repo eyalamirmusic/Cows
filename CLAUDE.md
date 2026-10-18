@@ -91,7 +91,10 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     (18 pt on a phone to 22 pt on a desktop), `largestShape` (the first of a
     list of shapes to fit, unless another fits text a quarter larger) and
     `menuFont`. `UI/FontCache` — every UI font, on the 0.5 pt `fontSizeStep`
-    grid, in an LRU behind `Singleton::get<FontCache>()` (`uiFont`)
+    grid (`Layout/FitToSize`'s, which `PointSizeRange::step` defaults to), in
+    an `unordered_map` behind `Singleton::get<FontCache>()` (`uiFont`); the
+    grid bounds it to a few hundred fonts, so nothing is evicted and a
+    reference it hands out stays good
   - `UI/Overlay` — `Footer` (the footer text, drawn through `Hud`), and
     `RootView` (q quits; Esc goes to `onEscape` first, quitting when it
     declines)
