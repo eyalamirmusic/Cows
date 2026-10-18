@@ -279,13 +279,16 @@ void renderScreens(const std::string& directory, const std::string& only)
             editor.topClearance = clearance;
 
             if (screen.screen == Screen::Dress)
-                editor.rows = dressRows(CowSkin {});
+            {
+                editor.setTitle(dressTitle);
+                editor.setRows(dressRows(CowSkin {}));
+            }
 
             if (screen.screen == Screen::Settings)
             {
-                editor.title = settingsTitle;
-                editor.rows.add(
-                    qualityRow(QualityChoice::Auto, Quality::High, false));
+                editor.setTitle(settingsTitle);
+                editor.setRows(
+                    {qualityRow(QualityChoice::Auto, Quality::High, false)});
             }
 
             footer.text = [&]

@@ -35,6 +35,16 @@
 
 namespace Cows
 {
+// How the camera frames the cow in a screen's area: how wide she is seen from
+// there in world units, the share of the area she fills, and the world units
+// kept clear above her head for a hat.
+struct CowFraming final
+{
+    float cowWidth = 0.f;
+    float shareOfArea = 0.f;
+    float clearanceAboveHead = 0.f;
+};
+
 struct CowsView final : GPUView
 {
     // Where the camera is swinging to: the menu from play, play from the menu,
@@ -78,6 +88,10 @@ struct CowsView final : GPUView
     float editorOpacity() const;
     CameraPose menuPose() const;
     CameraPose editorPose() const;
+    CameraPose framedCow(CameraPose pose,
+                         Graphics::Rect area,
+                         Graphics::Rect bounds,
+                         CowFraming framing) const;
     CameraPose playPose() const;
     bool menuKey(const Graphics::KeyEvent& event);
     bool editorKey(const Graphics::KeyEvent& event);

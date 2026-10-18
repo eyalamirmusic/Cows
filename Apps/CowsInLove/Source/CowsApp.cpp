@@ -120,7 +120,8 @@ CowsApp::CowsApp()
             showAbout();
     };
 
-    editor.rows = dressRows(saved.skin);
+    editor.setTitle(dressTitle);
+    editor.setRows(dressRows(saved.skin));
     editor.topClearance = titlebarClearance();
     menu.topClearance = editor.topClearance;
     editor.onStep = [this](int row, int by) { dress(stepped(saved.skin, row, by)); };
@@ -131,8 +132,7 @@ CowsApp::CowsApp()
         scene.control(event);
     };
 
-    settingsPanel.title = settingsTitle;
-    settingsPanel.rows.add(EditorRow {});
+    settingsPanel.setTitle(settingsTitle);
     settingsPanel.topClearance = editor.topClearance;
     settingsPanel.onStep = [this](int, int by)
     {
@@ -280,8 +280,16 @@ void CowsApp::save() const
 
 void CowsApp::showQuality()
 {
-    settingsPanel.rows[0] =
+    auto row =
         qualityRow(scene.qualityPreference.chosen, scene.quality, scene.measuring);
+
+    if (settingsPanel.rows.empty() || settingsPanel.rows[0].choices != row.choices)
+    {
+        settingsPanel.setRows({row});
+        return;
+    }
+
+    settingsPanel.rows[0].choice = row.choice;
 }
 
 void CowsApp::showSkin()

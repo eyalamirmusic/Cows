@@ -13,8 +13,6 @@ namespace Cows
 {
 struct EditorRow final
 {
-    bool operator==(const EditorRow& other) const = default;
-
     std::string name;
     Vector<std::string> choices;
     int choice = 0;
@@ -24,8 +22,10 @@ struct EditorRow final
 // several things per row: "Hat  <  Top Hat  >", then Done. They sit to the
 // right on a wide screen and at the bottom of a tall one, as a table: the
 // names in one column, the values in another as wide as the widest choice of
-// any row, at the largest size that fits. Laid out through Flex trees, again
-// only when the window, its safe area or the rows change. The arrows step a
+// any row, at the largest size that fits and never under the readable size:
+// when a row can't hold it, the cow's room gives way, then each name goes
+// over its value. Laid out through Flex trees, again only when the window, its
+// safe area, the title or the rows (setRows) change. The arrows step a
 // row back and on, the value steps it on; the mouse hovers and clicks, a
 // finger taps, and keys or a controller move a selection ring. A drag or a
 // wheel anywhere else is passed on through onControl as Look and Zoom, so the
@@ -53,12 +53,18 @@ struct Editor final : Graphics::View
 
     void draw(Hud& hud);
 
-    // The part of the screen the rows leave for the scene, in points.
-    Graphics::Rect sceneArea() const;
-    // Whether the rows sit beside the scene rather than below it: whichever
-    // shape (and rows inline or with each name over its arrows) lets the text
-    // be largest, wide on a tie when the window is.
+    // Where the cow is framed, in points: left of the panel when wide, above
+    // it when tall.
+    Graphics::Rect cowArea() const;
+    // Where the heading, the rows and Done sit.
+    Graphics::Rect panelArea() const;
+    // Whether the panel sits beside the cow rather than below her.
     bool wide() const;
+
+    // Replace the rows, or the heading, and lay them out again on the next
+    // draw. A row's choice alone changes nothing laid out.
+    void setRows(Vector<EditorRow> newRows);
+    void setTitle(std::string newTitle);
 
     void selectNext();
     void selectPrevious();
@@ -95,15 +101,15 @@ struct Editor final : Graphics::View
         Graphics::Rect row;
     };
 
-    // The scene's band and the panel the rows sit in, which depend on the
-    // window alone.
-    struct Bands final
+    // The cow's share of the content: of its width when wide, of its height
+    // when tall.
+    struct Shape final
     {
-        Graphics::Rect scene;
-        Graphics::Rect panel;
+        bool wide = true;
+        float cow = 0.f;
     };
 
-    const Bands& bands() const;
+    Shape shape() const;
     void layOut(Hud& hud);
     void drawRow(Hud& hud, int index);
     void drawDone(Hud& hud);
@@ -124,7 +130,7 @@ struct Editor final : Graphics::View
     std::function<void()> onDone = [] {};
     std::function<void(const ControlEvent&)> onControl = [](const ControlEvent&) {};
 
-    std::string title = "Dress Your Cow";
+    std::string title;
     std::string doneLabel = "Done";
     Vector<EditorRow> rows;
     Vector<Placed> placed;
@@ -146,20 +152,11 @@ struct Editor final : Graphics::View
     Graphics::Point lookedFrom;
 
 private:
-    // Everything the rows' layout depends on besides the window.
-    struct Content final
-    {
-        std::string title;
-        std::string doneLabel;
-        Vector<EditorRow> rows;
-    };
-
     bool showing = false;
-    mutable std::optional<ScreenFrame> bandsFrame;
-    mutable bool bandsWide = false;
-    mutable Bands bandsMade;
-    std::optional<bool> chosenWide;
-    std::optional<ScreenFrame> placedFrame;
-    Content placedContent;
+    bool contentChanged = true;
+    // The shape the last layOut chose, for the window it was laid out for;
+    // until then, or in another window, the window's aspect decides.
+    Shape chosen;
+    std::optional<ScreenFrame> laidOutFor;
 };
 } // namespace Cows

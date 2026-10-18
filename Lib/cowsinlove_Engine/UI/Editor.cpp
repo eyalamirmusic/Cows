@@ -2,7 +2,9 @@
 #include "Layout/FitToSize.h"
 
 #include <algorithm>
-#include <array>
+#include <cmath>
+#include <tuple>
+#include <utility>
 
 namespace Cows
 {
@@ -11,8 +13,12 @@ namespace
 using Graphics::Point;
 using Graphics::Rect;
 
-constexpr auto wideSceneShare = 0.55f;
-constexpr auto tallSceneShare = 0.55f;
+// The cow's share of the content, wide and tall, and the least it gives way
+// to, a step at a time, before the rows' text goes under the readable size.
+constexpr auto wideShape = Editor::Shape {true, 0.55f};
+constexpr auto tallShape = Editor::Shape {false, 0.55f};
+constexpr auto leastCowShare = 0.3f;
+constexpr auto squeezeSteps = 5;
 constexpr auto panelMargin = 0.04f;
 
 constexpr auto lineSpacing = 1.05f;
@@ -42,9 +48,9 @@ constexpr auto doneGap = 0.3f;
 constexpr auto targetWidthShare = 1.f / 6.f;
 // The largest the rows' text goes, as a share of the content's short side,
 // the same whatever shape is chosen so the cap never jumps between shapes.
-constexpr auto largestShare = 0.065f;
+constexpr auto largestShare = 0.08f;
 constexpr auto leastLargest = 22.f;
-constexpr auto mostLargest = 52.f;
+constexpr auto mostLargest = 72.f;
 // The title's share of the panel's height, in tap targets.
 constexpr auto titleLines = 1.5f;
 
@@ -56,29 +62,34 @@ constexpr auto valueColumn = 1;
 constexpr auto previousArrow = "<";
 constexpr auto nextArrow = ">";
 
-Flex::Node band(Flex::Size width, Flex::Size height)
+bool aspectWide(const Graphics::View& view)
 {
-    auto node = Flex::Node {};
-    node.width = width;
-    node.height = height;
-    return node;
+    auto bounds = view.getLocalBounds();
+    return bounds.w >= bounds.h;
 }
 
-// Wide: the scene's column, then the panel beside it. Tall: the scene's band
-// over the panel.
-Editor::Bands bandsFor(Rect content, bool wide)
+Rect cowIn(Rect content, Editor::Shape shape)
 {
-    using Flex::Size;
+    if (shape.wide)
+        return {content.x, content.y, std::round(content.w * shape.cow), content.h};
 
-    auto root = Flex::Node {};
-    root.direction = wide ? Flex::Direction::Across : Flex::Direction::Down;
-    auto tree = Flex::Tree {root};
-    auto scene = tree.add(Flex::Tree::root,
-                          wide ? band(Size::share(wideSceneShare), Size::grow())
-                               : band(Size::grow(), Size::share(tallSceneShare)));
-    auto panel = tree.add(Flex::Tree::root, band(Size::grow(), Size::grow()));
-    tree.resolve(content, {});
-    return {tree.rect(scene), tree.rect(panel)};
+    return {content.x, content.y, content.w, std::round(content.h * shape.cow)};
+}
+
+Rect panelIn(Rect content, Editor::Shape shape)
+{
+    auto cow = cowIn(content, shape);
+
+    if (shape.wide)
+        return {cow.x + cow.w, content.y, content.w - cow.w, content.h};
+
+    return {content.x, cow.y + cow.h, content.w, content.h - cow.h};
+}
+
+Editor::Shape squeezed(Editor::Shape from, int step)
+{
+    auto along = (float) step / (float) squeezeSteps;
+    return {from.wide, from.cow + (leastCowShare - from.cow) * along};
 }
 
 // A cell of a row, as tall as the row, with room above and below its text.
@@ -127,7 +138,7 @@ enum class RowShape
 
 struct PanelShape final
 {
-    bool wide = true;
+    Editor::Shape area;
     RowShape rows = RowShape::Inline;
 };
 
@@ -220,17 +231,6 @@ Flex::Tree panelTree(const std::string& title,
     return tree;
 }
 
-bool sameRows(const Vector<EditorRow>& a, const Vector<EditorRow>& b)
-{
-    if (a.size() != b.size())
-        return false;
-
-    for (auto index = 0; index < a.size(); ++index)
-        if (a[index].name != b[index].name || a[index].choices != b[index].choices)
-            return false;
-
-    return true;
-}
 } // namespace
 
 Editor::Editor()
@@ -238,35 +238,40 @@ Editor::Editor()
     setShowing(false);
 }
 
+Editor::Shape Editor::shape() const
+{
+    if (laidOutFor.has_value()
+        && sameFrame(*laidOutFor, frameOf(*this, topClearance)))
+        return chosen;
+
+    return aspectWide(*this) ? wideShape : tallShape;
+}
+
 bool Editor::wide() const
 {
-    if (chosenWide.has_value() && placedFrame.has_value()
-        && sameFrame(*placedFrame, frameOf(*this, topClearance)))
-        return *chosenWide;
-
-    auto bounds = getLocalBounds();
-    return bounds.w >= bounds.h;
+    return shape().wide;
 }
 
-const Editor::Bands& Editor::bands() const
+Rect Editor::cowArea() const
 {
-    auto frame = frameOf(*this, topClearance);
-    auto isWide = wide();
-
-    if (!bandsFrame.has_value() || !sameFrame(*bandsFrame, frame)
-        || bandsWide != isWide)
-    {
-        bandsMade = bandsFor(frame.contentArea(), isWide);
-        bandsFrame = frame;
-        bandsWide = isWide;
-    }
-
-    return bandsMade;
+    return cowIn(frameOf(*this, topClearance).contentArea(), shape());
 }
 
-Rect Editor::sceneArea() const
+Rect Editor::panelArea() const
 {
-    return bands().scene;
+    return panelIn(frameOf(*this, topClearance).contentArea(), shape());
+}
+
+void Editor::setRows(Vector<EditorRow> newRows)
+{
+    rows = std::move(newRows);
+    contentChanged = true;
+}
+
+void Editor::setTitle(std::string newTitle)
+{
+    title = std::move(newTitle);
+    contentChanged = true;
 }
 
 int Editor::doneIndex() const
@@ -278,70 +283,77 @@ void Editor::layOut(Hud& hud)
 {
     auto frame = frameOf(*this, topClearance);
 
-    if (placedFrame.has_value() && sameFrame(*placedFrame, frame)
-        && placedContent.title == title && placedContent.doneLabel == doneLabel
-        && sameRows(placedContent.rows, rows))
+    if (!contentChanged && laidOutFor.has_value() && sameFrame(*laidOutFor, frame))
         return;
 
-    placedFrame = frame;
-    placedContent = {title, doneLabel, rows};
+    contentChanged = false;
+    laidOutFor = frame;
 
     auto content = frame.contentArea();
     auto measure = menuMeasure(hud);
-    auto aspectWide = getLocalBounds().w >= getLocalBounds().h;
-    auto shapes = std::array {PanelShape {aspectWide, RowShape::Inline},
-                              PanelShape {aspectWide, RowShape::Stacked},
-                              PanelShape {!aspectWide, RowShape::Inline},
-                              PanelShape {!aspectWide, RowShape::Stacked}};
+    auto byAspect = aspectWide(*this);
 
-    auto panelFor = [&](const PanelShape& shape)
-    { return bandsFor(content, shape.wide).panel; };
     auto targetFor = [&](const PanelShape& shape)
     {
-        auto panel = panelFor(shape);
+        auto panel = panelIn(content, shape.area);
         return std::min({tapTarget(content),
                          panel.h / linesFor(shape.rows, rows.size()),
                          panel.w * targetWidthShare});
     };
 
-    auto candidates = Vector<LayoutShape> {};
-
-    for (const auto& shape: shapes)
-    {
-        auto panel = panelFor(shape);
-        auto target = targetFor(shape);
-        auto margin = panel.w * panelMargin;
-        candidates.add({[this, shape, target, margin](float pointSize)
-                        {
-                            return panelTree(title,
-                                             rows,
-                                             doneLabel,
-                                             shape.rows,
-                                             pointSize,
-                                             target,
-                                             margin,
-                                             nullptr);
-                        },
-                        panel});
-    }
-
+    auto readable = smallestReadableSize(content);
     auto largest = std::clamp(
         std::min(content.w, content.h) * largestShare, leastLargest, mostLargest);
-    // Names over their rows only when no shape fits them beside their rows
-    // at a readable size.
-    auto readable = smallestReadableSize(content);
-    auto inlineCandidates = Vector<LayoutShape> {candidates[0], candidates[2]};
-    auto inlineChosen = largestShape(inlineCandidates, measure, readable, largest);
-    auto chosen =
-        inlineChosen.readable
-            ? ChosenShape {inlineChosen.index * 2, inlineChosen.pointSize, true}
-            : largestShape(candidates, measure, readable, largest);
-    const auto& shape = shapes[chosen.index];
-    auto size = chosen.pointSize;
-    chosenWide = shape.wide;
-    stacked = shape.rows == RowShape::Stacked;
 
-    auto panel = panelFor(shape);
+    auto choose = [&](const Vector<PanelShape>& shapes)
+    {
+        auto candidates = Vector<LayoutShape> {};
+
+        for (const auto& each: shapes)
+        {
+            auto panel = panelIn(content, each.area);
+            auto target = targetFor(each);
+            auto margin = panel.w * panelMargin;
+            candidates.add({[this, each, target, margin](float pointSize)
+                            {
+                                return panelTree(title,
+                                                 rows,
+                                                 doneLabel,
+                                                 each.rows,
+                                                 pointSize,
+                                                 target,
+                                                 margin,
+                                                 nullptr);
+                            },
+                            panel});
+        }
+
+        auto best = largestShape(candidates, measure, readable, largest);
+        return std::pair {shapes[best.index], best};
+    };
+
+    // The first step at which a shape holds the rows at the readable size, the
+    // cow's room giving way a step at a time before the text shrinks. At each
+    // step the aspect's shape comes first, rows inline before names over
+    // their values, unless another makes the text a quarter larger.
+    auto shape = PanelShape {};
+    auto fitted = ChosenShape {};
+
+    for (auto step = 0; step <= squeezeSteps && !fitted.readable; ++step)
+    {
+        auto first = squeezed(byAspect ? wideShape : tallShape, step);
+        auto second = squeezed(byAspect ? tallShape : wideShape, step);
+        std::tie(shape, fitted) = choose({{first, RowShape::Inline},
+                                          {first, RowShape::Stacked},
+                                          {second, RowShape::Inline},
+                                          {second, RowShape::Stacked}});
+    }
+
+    chosen = shape.area;
+    stacked = shape.rows == RowShape::Stacked;
+    auto size = fitted.pointSize;
+
+    auto panel = panelIn(content, chosen);
     auto nodes = PanelNodes {};
     auto tree = panelTree(title,
                           rows,

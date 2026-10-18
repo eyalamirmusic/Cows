@@ -43,7 +43,7 @@ Graphics::Image
 
 void checkLayout(const Editor& editor, float width, float height)
 {
-    auto scene = editor.sceneArea();
+    auto scene = editor.cowArea();
 
     check(editor.placed.size() == editor.rows.size());
 
@@ -132,7 +132,7 @@ auto tEditorTargets = test("Editor/clicksStepAndFinish") = []
           == Editor::Target {1, Part::Next});
     check(editor.targetAt(editor.done.value.center())
           == Editor::Target {2, Part::Done});
-    check(editor.targetAt(editor.sceneArea().center()).part == Part::None);
+    check(editor.targetAt(editor.cowArea().center()).part == Part::None);
 
     editor.stepSelected(-1);
     editor.selectNext();

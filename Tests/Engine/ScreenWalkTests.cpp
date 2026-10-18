@@ -23,14 +23,6 @@ constexpr auto titleBar = 28.f;
 // (largestShape's preference), times what a 40 point step adds to it (up to
 // a tenth, 1.37 at worst for the editor from 1120x680 to 1120x720).
 constexpr auto maxStepRatio = 1.4f;
-// Below this width or height a window is too small for Dress Your Cow's
-// widest row ("Hat  <  Cow Bucket Hat  >") at the readable size in any shape;
-// there the editor falls back to smaller text rather than leave the window,
-// and its text is held to neither the readable size nor the step ratio. The
-// menu's smallest item, About, is held to the readable size everywhere.
-constexpr auto readableWidth = 400.f;
-constexpr auto readableHeight = 440.f;
-
 constexpr auto startScale = 1.3f;
 constexpr auto aboutScale = 0.75f;
 
@@ -52,9 +44,9 @@ bool smooth(float a, float b)
 } // namespace
 
 // From the smallest window to a large desktop one, a step at a time: the
-// menu's and the editor's text never go under the readable size where there
-// is room for it, and never jump between neighbouring windows, whichever
-// shape each takes.
+// menu's text (About, its smallest item, included) and the editor's never go
+// under the readable size, and never jump between neighbouring windows,
+// whichever shape each takes.
 auto tWalk = test("ScreenWalk/textStaysReadableAndChangesSmoothly") = []
 {
     if (!hasDevice())
@@ -100,20 +92,17 @@ auto tWalk = test("ScreenWalk/textStaysReadableAndChangesSmoothly") = []
 
             auto sizes = Sizes {menu.pointSize, editor.placed.front().pointSize};
             auto readable = smallestReadableSize(contentOf(menu));
-            auto roomy = width >= readableWidth && height >= readableHeight;
 
             check(sizes.menu * aboutScale >= readable);
+            check(sizes.editor >= readable);
 
-            if (roomy)
-                check(sizes.editor >= readable);
-
-            if (roomy && width - walkStep >= readableWidth)
+            if (column > 0)
             {
                 check(smooth(sizes.menu, row.back().menu));
                 check(smooth(sizes.editor, row.back().editor));
             }
 
-            if (roomy && height - walkStep >= readableHeight)
+            if (!previousRow.empty())
             {
                 check(smooth(sizes.menu, previousRow[column].menu));
                 check(smooth(sizes.editor, previousRow[column].editor));

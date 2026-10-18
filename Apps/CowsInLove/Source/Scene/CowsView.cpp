@@ -47,9 +47,9 @@ constexpr auto menuPitch = 0.1f;
 constexpr auto menuDistance = 9.5f;
 constexpr auto menuCowHeight = 2.2f;
 constexpr auto menuCowWidth = 2.f;
-constexpr auto wideMenuCowFill = 0.5f;
-constexpr auto tallMenuCowFill = 0.85f;
-constexpr auto menuHatRoom = 0.8f;
+constexpr auto wideMenuCowShare = 0.5f;
+constexpr auto tallMenuCowShare = 0.85f;
+constexpr auto hatClearance = 0.8f;
 constexpr auto nearestMenu = 4.f;
 constexpr auto farthestMenu = 14.f;
 constexpr auto menuStick = 0.5f;
@@ -58,8 +58,12 @@ constexpr auto dressLength = 0.6f;
 constexpr auto editorHeight = 1.4f;
 constexpr auto editorDistance = 7.5f;
 constexpr auto editorTurn = 0.3f;
-constexpr auto tallEditorHeight = 0.2f;
-constexpr auto tallEditorDistance = 8.f;
+// Seen from her side in the editor she is longer than she is from the front.
+constexpr auto editorCowWidth = 3.2f;
+constexpr auto tallEditorCowShare = 0.7f;
+// Upright, the cow's band is high on the screen, which lowers the camera
+// into the grass unless it looks down more.
+constexpr auto tallEditorPitch = 0.3f;
 
 constexpr auto fullScreenTriangle = std::to_array<CornerVertex>({
     {{-1.f, -1.f}},
@@ -428,7 +432,7 @@ void CowsView::update(Threads::FrameTime time)
         onStateChanged();
     }
 
-    steerCamera(delta, frozen ? 0.f : wallDelta);
+    steerCamera(delta, wallDelta);
 }
 
 void CowsView::steerCamera(float delta, float wallDelta)
@@ -489,36 +493,53 @@ CameraPose CowsView::menuPose() const
     if (menu == nullptr)
         return pose;
 
-    auto bounds = menu->getLocalBounds();
-    auto area = menu->cowArea();
-
-    if (bounds.w <= 0.f || bounds.h <= 0.f || area.w <= 0.f || area.h <= 0.f)
-        return pose;
-
-    auto fov = camera.verticalFieldOfView(viewAspect);
     auto wide = menu->wide();
-    auto fill = wide ? wideMenuCowFill : tallMenuCowFill;
-    auto hatRoom = wide ? 0.f : menuHatRoom;
-    pose.target.y += hatRoom * 0.5f;
-    auto heightShare = fill * area.h / bounds.h;
-    auto widthShare = fill * area.w / bounds.h;
-    auto fitted = std::max(distanceToFit(menuCowHeight + hatRoom, heightShare, fov),
-                           distanceToFit(menuCowWidth, widthShare, fov));
-    pose.distance = std::clamp(fitted, nearestMenu, farthestMenu);
-    return placeTargetOnScreen(pose, centreOnScreen(area, bounds), fov, viewAspect);
+    return framedCow(pose,
+                     menu->cowArea(),
+                     menu->getLocalBounds(),
+                     {menuCowWidth,
+                      wide ? wideMenuCowShare : tallMenuCowShare,
+                      wide ? 0.f : hatClearance});
 }
 
 CameraPose CowsView::editorPose() const
 {
-    auto tall = viewAspect < 1.f;
-
     auto pose = CameraPose {};
-    pose.target =
-        game.player + Vec3 {0.f, tall ? tallEditorHeight : editorHeight, 0.f};
+    pose.target = game.player + Vec3 {0.f, editorHeight, 0.f};
     pose.yaw = game.playerHeading + startYaw + pi + editorTurn;
-    pose.pitch = menuPitch;
-    pose.distance = tall ? tallEditorDistance : editorDistance;
-    return pose;
+    pose.pitch = editor != nullptr && !editor->wide() ? tallEditorPitch : menuPitch;
+    pose.distance = editorDistance;
+
+    if (editor == nullptr)
+        return pose;
+
+    return framedCow(pose,
+                     editor->cowArea(),
+                     editor->getLocalBounds(),
+                     {editorCowWidth,
+                      editor->wide() ? wideMenuCowShare : tallEditorCowShare,
+                      hatClearance});
+}
+
+// The pose moved back until the cow, with room for a hat above her, fills her
+// share of `area`, then slid so she stands at its centre.
+CameraPose CowsView::framedCow(CameraPose pose,
+                               Graphics::Rect area,
+                               Graphics::Rect bounds,
+                               CowFraming framing) const
+{
+    if (bounds.w <= 0.f || bounds.h <= 0.f || area.w <= 0.f || area.h <= 0.f)
+        return pose;
+
+    auto fov = camera.verticalFieldOfView(viewAspect);
+    auto above = framing.clearanceAboveHead;
+    pose.target.y += above * 0.5f;
+    auto heightShare = framing.shareOfArea * area.h / bounds.h;
+    auto widthShare = framing.shareOfArea * area.w / bounds.h;
+    auto fitted = std::max(distanceToFit(menuCowHeight + above, heightShare, fov),
+                           distanceToFit(framing.cowWidth, widthShare, fov));
+    pose.distance = std::clamp(fitted, nearestMenu, farthestMenu);
+    return placeTargetOnScreen(pose, centreOnScreen(area, bounds), fov, viewAspect);
 }
 
 CameraPose CowsView::playPose() const
