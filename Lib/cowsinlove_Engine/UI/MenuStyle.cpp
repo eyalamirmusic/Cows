@@ -28,9 +28,9 @@ Graphics::Color faded(Graphics::Color color, float opacity)
     return color;
 }
 
-Text::Font menuFont(float pointSize)
+const Text::Font& menuFont(float pointSize)
 {
-    return {menuFontFamily(), pointSize, Text::FontStyle::Bold};
+    return uiFont(menuFontFamily(), pointSize, Text::FontStyle::Bold);
 }
 
 void drawMenuText(Hud& hud,

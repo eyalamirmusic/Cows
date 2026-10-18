@@ -77,7 +77,8 @@ struct TouchControls final : Graphics::View
     Graphics::Point knob;
     Graphics::Point jumpCenter;
     Graphics::Point mooCenter;
-    Text::Font smallLabel {"Menlo", 14.f, Text::FontStyle::Bold};
-    Text::Font largeLabel {"Menlo", 17.f, Text::FontStyle::Bold};
+    static constexpr auto labelFamily = "Menlo";
+    static constexpr auto smallLabelSize = 14.f;
+    static constexpr auto largeLabelSize = 17.f;
 };
 } // namespace Cows

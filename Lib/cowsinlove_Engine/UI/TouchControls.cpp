@@ -1,4 +1,5 @@
 #include "UI/TouchControls.h"
+#include "UI/FontCache.h"
 
 #include <algorithm>
 #include <cmath>
@@ -226,7 +227,9 @@ void TouchControls::drawButton(
 
     strokeRing(hud, center, radius);
 
-    const auto& font = radius > mooRadius ? largeLabel : smallLabel;
+    const auto& font = uiFont(labelFamily,
+                              radius > mooRadius ? largeLabelSize : smallLabelSize,
+                              Text::FontStyle::Bold);
     auto width = hud.measure(label, font);
     auto baseline = center.y + hud.ascent(font) * 0.36f;
     auto position = Point {center.x - width * 0.5f, baseline};

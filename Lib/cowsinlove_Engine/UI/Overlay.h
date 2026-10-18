@@ -21,7 +21,8 @@ struct Footer final
     std::function<std::string()> text = [] { return std::string {}; };
     float bottomInset = 0.f;
 
-    Text::Font font {"Menlo", 13.f};
+    static constexpr auto fontFamily = "Menlo";
+    static constexpr auto fontSize = 13.f;
 };
 
 // Stacks its children over each other, quits on q, and on Escape unless

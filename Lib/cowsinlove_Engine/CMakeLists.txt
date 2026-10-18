@@ -9,6 +9,7 @@ add_library(cowsinlove_Engine STATIC
         Render/Shading.cpp
         Render/ShadowMap.cpp
         Render/ShapeMeshes.cpp
+        UI/FontCache.cpp
         UI/Hud.cpp
         UI/Menu.cpp
         UI/MenuStyle.cpp

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "UI/FontCache.h"
 #include "UI/Hud.h"
 
 #include <string_view>
@@ -15,7 +16,8 @@ constexpr Graphics::Color outlineColor {1.f, 1.f, 1.f, 1.f};
 // The hearts' pink, `brighten` of the way to white.
 Graphics::Color pink(float brighten = 0.f);
 Graphics::Color faded(Graphics::Color color, float opacity);
-Text::Font menuFont(float pointSize);
+// The menu's font at `pointSize` on the font grid, from the FontCache.
+const Text::Font& menuFont(float pointSize);
 
 // `text` ringed in white so it reads over grass and sky, with its shadow a
 // little below and to the right, as the menu draws every label.

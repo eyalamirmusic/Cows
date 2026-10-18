@@ -1,4 +1,5 @@
 #include "UI/Overlay.h"
+#include "UI/FontCache.h"
 
 #include <algorithm>
 #include <string>
@@ -49,6 +50,7 @@ Vector<std::string>
 
 void Footer::draw(Hud& hud) const
 {
+    const auto& font = uiFont(fontFamily, fontSize);
     auto measure = [&](std::string_view line) { return hud.measure(line, font); };
     auto wrapped = lines(text(), hud.size.x - 2.f * sideMargin, measure);
     auto baseline = hud.size.y - bottomInset - bottomMargin

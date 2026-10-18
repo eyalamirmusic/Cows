@@ -2,6 +2,7 @@ nano_add_executable(EngineTests
         NO_MAIN
         SOURCES
             EditorSnapshotTests.cpp
+            FontCacheTests.cpp
             FrustumTests.cpp
             HudSnapshotTests.cpp
             InstancesTests.cpp
