@@ -15,9 +15,10 @@
 #   S5 the ending (COWS_FOUND=1; it loops to the next level 4.5 s in, so its
 #      warm-up is 1 s and its window 3 s)
 #
-# PERF_BUILD picks the build directory (default build-release); PERF_WARMUP and
-# PERF_WINDOW override the seconds. Extra COWS_* settings in the environment
-# pass through, so `COWS_MSAA=1 tools/perf.sh S3 msaa1` varies one knob.
+# PERF_BUILD picks the build directory (default build-release), or PERF_APP an
+# app bundle anywhere (a copy kept from an earlier commit, named by
+# PERF_COMMIT); PERF_WARMUP and PERF_WINDOW override the seconds. Extra COWS_*
+# settings in the environment pass through, so `COWS_MSAA=1 tools/perf.sh S3 msaa1` varies one knob.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -25,7 +26,9 @@ scenario="${1:?scenario S1..S5}"
 label="${2:?label}"
 runs="${3:-10}"
 build="${PERF_BUILD:-build-release}"
-bin="$root/$build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/Cows In Love"
+[[ -n "${PERF_APP:-}" ]] && build="$(basename "$PERF_APP")"
+app="${PERF_APP:-$root/$build/Apps/CowsInLove/Cows In Love.app}"
+bin="$app/Contents/MacOS/Cows In Love"
 [[ -x "$bin" ]] || { echo "no binary at $bin" >&2; exit 1; }
 
 warmup=5
@@ -56,10 +59,10 @@ csv="$out/$scenario.csv"
 header="label,scenario,run,build,commit,pid,from,to,warmup_s,window_s,cpu_s_per_s,user_s_per_s,system_s_per_s,main_s_per_s,other_s_per_s,energy_w,ipc,wakeups_per_s,footprint_mb,top_cpu,top_power,gpu_util,fps,frame_ms,frame_p95_ms,cpu_update_ms,cpu_gather_ms,cpu_shadows_ms,cpu_scene_ms,cpu_hud_ms,gpu_ms,gpu_shadows_ms,gpu_scene_ms,env"
 [[ -f "$csv" ]] || echo "$header" > "$csv"
 
-commit="$(git -C "$root" rev-parse --short HEAD)$(git -C "$root" diff --quiet HEAD -- Apps Lib CMake || echo +)"
+commit="${PERF_COMMIT:-$(git -C "$root" rev-parse --short HEAD)$(git -C "$root" diff --quiet HEAD -- Apps Lib CMake || echo +)}"
 
 cows_running() {
-    pgrep -f "Cows In Love.app/Contents/MacOS/Cows In Love" | grep -vx "${1:-none}" || true
+    pgrep -f "Contents/MacOS/Cows In Love" | grep -vx "${1:-none}" || true
 }
 
 pid=""
