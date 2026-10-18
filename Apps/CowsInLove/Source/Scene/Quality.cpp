@@ -2,7 +2,6 @@
 
 #include <eacp/Core/Utils/Environment.h>
 
-#include <algorithm>
 #include <cctype>
 
 namespace Cows

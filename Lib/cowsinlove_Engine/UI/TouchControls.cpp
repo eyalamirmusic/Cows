@@ -1,7 +1,6 @@
 #include "UI/TouchControls.h"
 #include "UI/FontCache.h"
 
-#include <algorithm>
 #include <cmath>
 
 namespace Cows

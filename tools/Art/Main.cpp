@@ -5,8 +5,6 @@
 
 #include <eacp/Core/Core.h>
 
-#include <cmath>
-#include <functional>
 #include <string>
 
 using namespace Cows;

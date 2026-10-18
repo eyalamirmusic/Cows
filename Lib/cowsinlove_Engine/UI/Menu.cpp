@@ -1,6 +1,5 @@
 #include "UI/Menu.h"
 #include "Layout/FitToSize.h"
-#include "Render/Palette.h"
 
 #include <ResEmbed/ResEmbed.h>
 #include <eacp/Text/GlyphRasterizer.h>
