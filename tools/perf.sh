@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Usage: tools/perf.sh <scenario> <label> [runs]
 #
-# Runs the macOS app `runs` times (default 10), a fresh process each, in one
-# fixed scenario, and appends a row per run to $COWS_PERF_DIR/<label>/<scenario>.csv
+# Runs the macOS app `runs` more times (default 10), a fresh process each, in
+# one fixed scenario, and appends a row per run to $COWS_PERF_DIR/<label>/<scenario>.csv
 # (default /tmp/cows-perf). Each run waits out a warm-up, then measures a
 # window: CPU seconds per wall second (process and main thread), the energy the
 # kernel bills the process (rusage ri_energy_nj), top's %CPU and POWER, the
@@ -65,7 +65,10 @@ cows_running() {
 pid=""
 trap '[[ -n "$pid" ]] && kill "$pid" 2>/dev/null || true' EXIT
 
-for ((run = 1; run <= runs; run++)); do
+# Runs number on from the rows already in the CSV, so a second call tops it up
+# without overwriting the earlier runs' logs.
+first=$(($(cut -d, -f3 "$csv" | sort -n | tail -1 | sed "s/run/0/") + 1))
+for ((run = first; run < first + runs; run++)); do
     # Another Cows (someone else's) would share the CPU and GPU with this one.
     while [[ -n "$(cows_running)" ]]; do
         echo "  waiting for another Cows ($(cows_running | tr '\n' ' ')) to quit" >&2
@@ -115,6 +118,14 @@ for ((run = 1; run <= runs; run++)); do
     fi
 
     sed -n "$((linesBefore + 1)),${linesAfter}p" "$log" | grep "profile fps" >"$out/$scenario-$run.profile" || true
+
+    # A window that never drew (hidden behind another space, say) logs no
+    # profile lines and idles at ~0 CPU; it measures nothing.
+    if [[ ! -s "$out/$scenario-$run.profile" ]]; then
+        echo "  $scenario run $run drew no frames; running it again" >&2
+        ((run--)) || true
+        continue
+    fi
 
     python3 - "$before" "$after" "$out/$scenario-$run.profile" "$toplog" "$gpulog" \
         "$label,$scenario,$run,$build,$commit,$runpid,$started,$ended,$warmup,$window" \

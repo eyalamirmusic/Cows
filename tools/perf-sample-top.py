@@ -34,6 +34,10 @@ WAITS = {
     "semaphore_timedwait_signal_trap", "__psynch_cvwait", "__psynch_mutexwait",
     "kevent_id", "kevent", "kevent64", "__semwait_signal", "__ulock_wait",
     "__ulock_wait2", "__select", "poll", "__sigsuspend", "__wait4",
+    # _pthread_cond_wait reads the clock on its way into a timed wait; sample
+    # catches sleeping threads there (MakeASound's recovery thread: 2.5% of its
+    # samples, while proc_pidinfo bills it 0.03 ms of CPU a second).
+    "__gettimeofday",
 }
 
 
