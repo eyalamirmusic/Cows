@@ -117,6 +117,37 @@ jobs:
       - name: Build
         run: cmake --build build-ios --config Debug --target Cows -- -sdk iphonesimulator
 
+  # tools/dead-code.sh --check: builds build-dead-code and fails on code nothing
+  # uses, outside tools/dead-code-allow.txt. nm and c++filt are Xcode's; llvm is
+  # keg-only, found through brew --prefix on Intel and Apple silicon alike.
+  dead-code:
+    name: Dead code
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: CPM cache key
+        id: cpm
+        run: |
+          tag=$(sed -n 's/^set(COWS_EACP_TAG "\(.*\)" CACHE.*/\1/p' CMake/Findeacp.cmake)
+          if [[ "$tag" =~ ^[0-9a-f]{40}$ ]]; then eacp=${tag:0:12}
+          else eacp=$(git ls-remote https://github.com/eyalamirmusic/eacp "$tag" | cut -c1-12); fi
+          nanotest=$(git ls-remote https://github.com/eyalamirmusic/NanoTest main | cut -c1-12)
+          echo "key=$eacp-$nanotest" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: .cpm
+          key: cpm-${{ runner.os }}-${{ hashFiles('CMake/Find*.cmake') }}-${{ steps.cpm.outputs.key }}
+
+      - name: Install llvm and cppcheck
+        run: brew install llvm cppcheck
+
+      - name: Check
+        run: tools/dead-code.sh --check
+
   # The android preset's toolchain (CMake/AndroidToolchain.cmake) builds with
   # the NDK COWS_NDK names under $ANDROID_HOME, which the runner sets; the
   # runner's SDK just may not have that NDK yet.

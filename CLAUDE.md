@@ -343,3 +343,12 @@ matching every declaration to its references (`tools/dead-code-refs.py`), the
 link maps against our objects' symbols (`tools/dead-code-link.py`), and checks
 for files nothing builds, includes, calls or shows. "Test-only" lists what only
 `Tests/` uses: delete it with its tests or keep it as a test seam, on purpose.
+
+CI gates on it: the `dead-code` job in `.github/workflows/build.yml` runs
+`tools/dead-code.sh --check` on macOS, which fails (with inline PR
+annotations, through `tools/dead-code-check.py`) on any compiler or tidy
+warning, cppcheck finding, unused or test-only symbol, symbol no executable
+keeps, or file nothing builds, includes, embeds or calls; images no doc shows
+are only listed. Test-only code kept on purpose gets a line in
+`tools/dead-code-allow.txt`, the symbol and why; a line nothing matches fails
+too. Run `tools/dead-code.sh --check` locally before pushing.
