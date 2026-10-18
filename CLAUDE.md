@@ -246,7 +246,7 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
 `COWS_TIME=<seconds>` starts the clock there and `COWS_FREEZE=1` stops it (the
 camera's swing between screens still runs), for
 screenshots; `COWS_SEED=<n>` fixes the level, `COWS_STAGE=<n>` starts on
-stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her, skipping the menu; `COWS_MENU=0` skips
+stage n (1 is the ravine) and `COWS_FOUND=1` starts beside her, skipping the menu; `COWS_WALK=1` holds walk ahead from the start, for profiling; `COWS_MENU=0` skips
 the menu, `COWS_DRESS=1` opens the cow editor, `COWS_SETTINGS=1` opens
 Settings, `COWS_START=<seconds>` presses Start after that long and
 `COWS_WINDOW=<w>x<h>` opens the window at that size in points, as far as the screen allows (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).

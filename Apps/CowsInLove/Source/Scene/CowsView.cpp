@@ -283,6 +283,8 @@ CowsView::CowsView(const QualityPreference& preference,
     if (!getEnvValue("COWS_FOUND").empty())
         game.player = game.partner + Vec3 {Ending::foundStartGap, 0.f, 0.f};
 
+    input.walkingForward = getEnvValue("COWS_WALK") == "1";
+
     setHandlesMouseEvents(true);
     setContinuous(true);
 }
