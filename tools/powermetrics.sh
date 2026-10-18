@@ -44,7 +44,7 @@ for scenario in "${scenarios[@]}"; do
     esac
 
     file="$out/power-$scenario-$(date +%H%M%S).txt"
-    sudo -u "$user" env COWS_SEED=3 COWS_WINDOW=1280x800 COWS_QUALITY=high \
+    sudo -u "$user" env COWS_SEED=3 COWS_WINDOW=1280x800 COWS_QUALITY=high COWS_FPS="${COWS_FPS:-auto}" \
         ${scenario_env[@]+"${scenario_env[@]}"} "$bin" >/dev/null 2>&1 &
     app=$!
     sleep "$warmup"

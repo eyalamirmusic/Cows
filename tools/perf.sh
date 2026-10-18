@@ -9,7 +9,8 @@
 # system's GPU utilisation, and the averages of the COWS_PROFILE lines logged
 # in the window. Per-thread CPU goes to <scenario>-threads.jsonl beside it.
 #
-# Scenarios (all COWS_SEED=3, COWS_WINDOW=1280x800, COWS_QUALITY=high):
+# Scenarios (all COWS_SEED=3, COWS_WINDOW=1280x800, COWS_QUALITY=high, and
+# COWS_FPS=auto unless the environment names another rate):
 #   S1 menu idle          S2 editor open (COWS_DRESS=1)
 #   S3 play, standing     S4 play, walking ahead (COWS_WALK=1)
 #   S5 the ending (COWS_FOUND=1; it loops to the next level 4.5 s in, so its
@@ -48,7 +49,7 @@ window="${PERF_WINDOW:-$window}"
 passthrough=()
 while IFS='=' read -r name value; do
     case "$name" in
-        COWS_SEED | COWS_WINDOW | COWS_QUALITY | COWS_PROFILE | COWS_PERF_DIR) ;;
+        COWS_SEED | COWS_WINDOW | COWS_QUALITY | COWS_PROFILE | COWS_PERF_DIR | COWS_FPS) ;;
         COWS_*) passthrough+=("$name=$value") ;;
     esac
 done < <(env)
@@ -80,6 +81,7 @@ for ((run = first; run < first + runs; run++)); do
 
     log="$out/$scenario-$run.log"
     env COWS_SEED=3 COWS_WINDOW=1280x800 COWS_QUALITY=high COWS_PROFILE=1 \
+        COWS_FPS="${COWS_FPS:-auto}" \
         ${scenario_env[@]+"${scenario_env[@]}"} \
         ${passthrough[@]+"${passthrough[@]}"} \
         "$bin" >"$log" 2>&1 &
@@ -132,7 +134,7 @@ for ((run = first; run < first + runs; run++)); do
 
     python3 - "$before" "$after" "$out/$scenario-$run.profile" "$toplog" "$gpulog" \
         "$label,$scenario,$run,$build,$commit,$runpid,$started,$ended,$warmup,$window" \
-        "${scenario_env[*]+${scenario_env[*]}} ${passthrough[*]+${passthrough[*]}}" \
+        "COWS_FPS=${COWS_FPS:-auto} ${scenario_env[*]+${scenario_env[*]}} ${passthrough[*]+${passthrough[*]}}" \
         "$out/$scenario-threads.jsonl" >>"$csv" <<'PY'
 import json, re, sys
 

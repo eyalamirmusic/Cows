@@ -33,7 +33,7 @@ pid=""
 trap '[[ -n "$pid" ]] && kill "$pid" 2>/dev/null || true' EXIT
 
 for ((run = 1; run <= runs; run++)); do
-    env COWS_SEED=3 COWS_WINDOW=1280x800 COWS_QUALITY=high \
+    env COWS_SEED=3 COWS_WINDOW=1280x800 COWS_QUALITY=high COWS_FPS="${COWS_FPS:-auto}" \
         ${scenario_env[@]+"${scenario_env[@]}"} "$bin" >/dev/null 2>&1 &
     pid=$!
     sleep "$warmup"
