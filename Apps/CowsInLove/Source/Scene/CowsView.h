@@ -48,9 +48,11 @@ struct CowsView final : GPUView
     };
 
     // Starts at the tier `preference` names, else measures one (see
-    // QualityGovernor).
-    explicit CowsView(const QualityPreference& preference = {QualityChoice::High,
-                                                             {}});
+    // QualityGovernor), on `stagesToPlay`'s current stage with `firstSeed`;
+    // later rounds take their seeds from the clock.
+    CowsView(const QualityPreference& preference,
+             Stages stagesToPlay,
+             std::uint32_t firstSeed);
 
     void update(Threads::FrameTime time) override;
     void render(Frame& frame) override;

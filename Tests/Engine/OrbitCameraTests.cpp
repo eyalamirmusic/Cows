@@ -150,3 +150,52 @@ auto tSwingClockSurvivesRestart = test("OrbitCamera/swingClockSurvivesRestart") 
 
     check(std::abs(clock.step({.time = 0.0, .delta = 0.016}) - 0.016f) < 1e-6f);
 };
+
+auto tDistanceToFit = test("OrbitCamera/distanceToFitFillsTheShare") = []
+{
+    auto fov = radians(60.f);
+    auto distance = distanceToFit(2.f, 0.5f, fov);
+    auto viewHeight = 2.f * distance * std::tan(fov * 0.5f);
+
+    check(near(2.f / viewHeight, 0.5f));
+    check(near(distanceToFit(2.f, 0.25f, fov), 2.f * distance));
+};
+
+auto tCentreKeepsTarget = test("OrbitCamera/placeTargetOnScreenAtCentreKeepsTarget") = []
+{
+    auto pose = OrbitCamera {}.pose();
+    auto placed = placeTargetOnScreen(pose, {0.f, 0.f}, radians(42.f), 1.5f);
+
+    check(near(length(placed.target - pose.target), 0.f));
+};
+
+auto tRightEdgeSlidesLeft = test("OrbitCamera/placeTargetOnScreenAtRightEdgeSlidesLeft") = []
+{
+    auto camera = OrbitCamera {};
+    auto fov = radians(42.f);
+    auto aspect = 1.5f;
+    auto placed = placeTargetOnScreen(camera.pose(), {1.f, 0.f}, fov, aspect);
+
+    auto halfWidth = camera.distance * std::tan(fov * 0.5f) * aspect;
+    auto slid = placed.target - camera.target;
+    check(near(dot(slid, camera.right()), -halfWidth));
+    check(near(dot(slid, camera.up()), 0.f));
+    check(near(dot(slid, camera.forward()), 0.f));
+};
+
+auto tLandsOnScreen = test("OrbitCamera/placeTargetOnScreenPutsTheOldTargetThere") = []
+{
+    auto camera = OrbitCamera {};
+    camera.yaw = 0.7f;
+    auto aspect = 0.6f;
+    auto fov = camera.verticalFieldOfView(aspect);
+    auto wanted = Graphics::Point {0.3f, -0.4f};
+
+    auto point = camera.target;
+    camera.setPose(placeTargetOnScreen(camera.pose(), wanted, fov, aspect));
+
+    auto clip = camera.projection(aspect) * camera.view()
+                * Vec4 {point.x, point.y, point.z, 1.f};
+    check(near(clip.x / clip.w, wanted.x, 1e-3f));
+    check(near(clip.y / clip.w, wanted.y, 1e-3f));
+};

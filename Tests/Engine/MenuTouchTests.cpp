@@ -16,7 +16,7 @@ struct Screen final
 {
     Screen()
     {
-        menu.items.add({"Start", "", true});
+        menu.items.add({"Start"});
         menu.onChoose = [this](int index) { chosen = index; };
 
         root.addSubview(menu);

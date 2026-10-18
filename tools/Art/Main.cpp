@@ -4,7 +4,6 @@
 #include "Scene/CowsView.h"
 
 #include <eacp/Core/Core.h>
-#include <eacp/Core/Utils/Environment.h>
 
 #include <cmath>
 #include <functional>
@@ -83,7 +82,7 @@ void playEnding(CowsView& view, float sinceFound)
 
 void renderEnding(const std::string& name, int width, int height, Framing framing)
 {
-    auto view = CowsView {};
+    auto view = CowsView {{QualityChoice::High, {}}, Stages {}, openMeadowSeed()};
     view.setTitle(framing.title ? "cows in love" : "");
     playEnding(view, framing.sinceFound);
     clearAroundStage(view.game.level,
@@ -158,9 +157,6 @@ void saveLogo(const std::string& name, int width, int height)
 
 void renderAll()
 {
-    setEnv("COWS_SEED", std::to_string(openMeadowSeed()));
-    setEnv("COWS_STAGE", "");
-
     auto icon = Framing {};
     icon.sinceFound = 1.05f;
     icon.distance = 3.4f;
@@ -202,6 +198,7 @@ void renderAll()
 } // namespace
 
 // CowsArt              renders the key art, icon and logo
+// CowsArt menu <dir>     the start menu at a spread of window shapes
 // CowsArt steam <dir>    the Steam screenshots, 1920x1080
 // CowsArt mac <dir>      the Mac App Store screenshots, 2880x1800
 // CowsArt ios-6.9 <dir>  the App Store 6.9" iPhone screenshots, 1320x2868
@@ -219,6 +216,8 @@ int main(int argc, char* argv[])
         {
             if (mode == "art")
                 renderAll();
+            else if (mode == "menu")
+                renderMenus(directory);
             else if (mode == "steam")
                 renderScreenshots(directory, desktopScreen);
             else if (mode == "mac")

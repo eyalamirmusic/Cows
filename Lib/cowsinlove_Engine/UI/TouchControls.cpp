@@ -26,11 +26,6 @@ constexpr Graphics::Color shadowColor {0.f, 0.12f, 0.f, 0.3f};
 constexpr Graphics::Color pressedFill {1.f, 1.f, 1.f, 0.35f};
 constexpr Graphics::Color knobFill {1.f, 1.f, 1.f, 0.22f};
 
-float distance(Point a, Point b)
-{
-    return std::hypot(a.x - b.x, a.y - b.y);
-}
-
 void strokeRing(Hud& hud, Point center, float radius)
 {
     hud.strokeRing(center, radius, 5.f, shadowColor);
@@ -70,7 +65,7 @@ void TouchControls::resized()
 TouchControls::Role TouchControls::roleAt(Point position) const
 {
     auto bounds = getLocalBounds();
-    auto onJump = distance(position, jumpCenter) < jumpRadius + touchSlop;
+    auto onJump = position.distanceTo(jumpCenter) < jumpRadius + touchSlop;
 
     if (showAgain)
         return onJump ? Role::Again : Role::Look;
@@ -78,7 +73,7 @@ TouchControls::Role TouchControls::roleAt(Point position) const
     if (onJump)
         return Role::Jump;
 
-    if (distance(position, mooCenter) < mooRadius + touchSlop)
+    if (position.distanceTo(mooCenter) < mooRadius + touchSlop)
         return Role::Moo;
 
     if (!pressed(Role::Stick) && position.x < bounds.w * stickReach
@@ -154,8 +149,8 @@ void TouchControls::pointerMoved(int id, Point position)
     {
         if (auto* other = otherLooking(id))
         {
-            auto before = distance(pointer->position, other->position);
-            auto after = distance(position, other->position);
+            auto before = pointer->position.distanceTo(other->position);
+            auto after = position.distanceTo(other->position);
             if (before > 1.f && after > 1.f)
                 onControl({ControlEvent::Kind::Zoom, std::log(after / before)});
         }

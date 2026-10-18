@@ -1,4 +1,5 @@
 #include "CowsApp.h"
+#include "MainMenu.h"
 
 #include <eacp/Core/Utils/Environment.h>
 
@@ -36,6 +37,22 @@ bool opensSettings()
     return getEnvValue("COWS_SETTINGS") == "1";
 }
 
+int firstStage()
+{
+    auto stage = getEnvValue("COWS_STAGE");
+    if (stage.empty())
+        return 0;
+    return std::stoi(stage);
+}
+
+std::uint32_t firstSeed()
+{
+    auto seed = getEnvValue("COWS_SEED");
+    if (seed.empty())
+        return clockSeed();
+    return (std::uint32_t) std::stoul(seed);
+}
+
 float titlebarClearance()
 {
     return Platform::isMac() ? 28.f : 0.f;
@@ -48,7 +65,7 @@ std::string versionText()
 } // namespace
 
 CowsApp::CowsApp()
-    : scene {saved.quality}
+    : scene {saved.quality, Stages {firstStage()}, firstSeed()}
     , window {root, windowOptions()}
 {
     root.addSubview(scene);
@@ -204,11 +221,7 @@ CowsApp::CowsApp()
 void CowsApp::showMainMenu()
 {
     showingAbout = false;
-    menu.items.clear();
-    menu.items.add({"Start", "", true});
-    menu.items.add({"Dress Your Cow", "", true});
-    menu.items.add({"Settings", "", true});
-    menu.items.add({"About", "", true});
+    menu.items = mainMenuItems();
     menu.selected = 0;
     menu.hovered = -1;
     menu.pressed = -1;
@@ -218,7 +231,7 @@ void CowsApp::showAbout()
 {
     showingAbout = true;
     menu.items.clear();
-    menu.items.add({"Back", versionText(), true});
+    menu.items.add({"Back", versionText()});
     menu.selected = 0;
     menu.hovered = -1;
     menu.pressed = -1;

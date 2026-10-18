@@ -34,6 +34,18 @@ struct SwingClock final
     std::optional<double> last;
 };
 
+// How far back a camera with `verticalFov` stands for something `size` tall to
+// fill `share` of the view's height: half the size over the half-share's
+// tangent span, size / (2 tan(fov / 2) share).
+float distanceToFit(float size, float share, float verticalFov);
+
+// The pose with its target moved so what was at the target shows at `onScreen`
+// (NDC: x right, y up).
+CameraPose placeTargetOnScreen(CameraPose pose,
+                               Graphics::Point onScreen,
+                               float verticalFov,
+                               float aspect);
+
 // The idle sway drift() gives at `seconds`, as yaw and pitch.
 Maths::Vec2 driftAt(float seconds);
 

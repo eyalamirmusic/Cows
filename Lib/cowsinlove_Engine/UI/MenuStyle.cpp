@@ -33,11 +33,6 @@ Text::Font menuFont(float pointSize)
     return {menuFontFamily(), pointSize, Text::FontStyle::Bold};
 }
 
-Graphics::Rect grown(const Graphics::Rect& rect, float by)
-{
-    return {rect.x - by, rect.y - by, rect.w + 2.f * by, rect.h + 2.f * by};
-}
-
 void drawMenuText(Hud& hud,
                   std::string_view text,
                   Graphics::Point baselineLeft,

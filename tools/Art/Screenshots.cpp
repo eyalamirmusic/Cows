@@ -1,11 +1,10 @@
 #include "Screenshots.h"
 #include "Levels/LevelGenerator.h"
+#include "MainMenu.h"
 #include "Scene/CowsView.h"
 #include "Templates.h"
 #include "UI/Overlay.h"
 #include "UI/TouchControls.h"
-
-#include <eacp/Core/Utils/Environment.h>
 
 #include <cmath>
 #include <functional>
@@ -21,12 +20,14 @@ constexpr auto eyeHeight = 2.2f;
 constexpr auto behind = -halfPi;
 constexpr auto phoneTop = 62.f;
 constexpr auto phoneBottom = 34.f;
+constexpr auto menuStage = 0;
+constexpr auto menuSeed = 3u;
 
 struct Shot final
 {
     std::string name;
     int stage = 0;
-    int seed = 3;
+    std::uint32_t seed = 3;
     float seconds = 2.f;
     std::function<void(CowsView&)> setUp = [](CowsView&) {};
 };
@@ -122,7 +123,7 @@ Vector<Shot> shots()
 
     list.add({"6-found",
               0,
-              (int) openMeadowSeed(),
+              openMeadowSeed(),
               0.f,
               [](CowsView& view)
               {
@@ -140,19 +141,12 @@ Vector<Shot> shots()
     return list;
 }
 
-void setEnv(const char* name, int value)
-{
-    eacp::setEnv(name, std::to_string(value));
-}
-
 void render(const Shot& shot, const std::string& directory, const Screen& screen)
 {
-    setEnv("COWS_STAGE", shot.stage);
-    setEnv("COWS_SEED", shot.seed);
-
     auto phone = screen.phone;
     auto root = RootView {};
-    auto scene = CowsView {};
+    auto scene =
+        CowsView {{QualityChoice::High, {}}, Stages {shot.stage}, shot.seed};
     auto footer = Footer {};
     auto touch = TouchControls {};
 
@@ -204,6 +198,72 @@ std::uint32_t openMeadowSeed()
     for (auto seed = 1u;; ++seed)
         if (generate(meadowTemplate(), seed).hiding == Level::Hiding::Meadow)
             return seed;
+}
+
+void renderMenus(const std::string& directory)
+{
+    struct MenuShape final
+    {
+        std::string name;
+        float width = 0.f;
+        float height = 0.f;
+        Graphics::Insets safe;
+        Hints hints = Hints::Keys;
+    };
+
+    auto shapes = Vector<MenuShape> {
+        {"mac-16x10", 1280.f, 800.f, {}, Hints::Keys},
+        {"desktop-16x9", 1280.f, 720.f, {}, Hints::Keys},
+        {"ultrawide", 1720.f, 720.f, {}, Hints::Keys},
+        {"ipad-landscape", 1180.f, 820.f, {24.f, 0.f, 20.f, 0.f}, Hints::Touch},
+        {"square-ish", 900.f, 820.f, {}, Hints::Keys},
+        {"square", 800.f, 800.f, {}, Hints::Keys},
+        {"skinny", 700.f, 900.f, {}, Hints::Keys},
+        {"ipad-portrait", 820.f, 1180.f, {24.f, 0.f, 20.f, 0.f}, Hints::Touch},
+        {"iphone-landscape", 932.f, 430.f, {0.f, 59.f, 21.f, 59.f}, Hints::Touch},
+        {"iphone-portrait", 430.f, 932.f, {59.f, 0.f, 34.f, 0.f}, Hints::Touch},
+        {"very-skinny", 400.f, 1000.f, {}, Hints::Keys},
+    };
+
+    for (const auto& shape: shapes)
+    {
+        auto root = RootView {};
+        auto scene =
+            CowsView {{QualityChoice::High, {}}, Stages {menuStage}, menuSeed};
+        auto menu = Menu {};
+        auto footer = Footer {};
+
+        scene.frozen = true;
+        scene.menu = &menu;
+        scene.pointerHints = shape.hints;
+        scene.hints = scene.pointerHints;
+        menu.items = mainMenuItems();
+        footer.text = [&]
+        { return footerText(scene.game, scene.hint, scene.hints); };
+        root.addSubview(scene);
+        root.addSubview(menu);
+        root.setSafeAreaInsets(shape.safe);
+        footer.bottomInset = shape.safe.bottom;
+        root.setBounds({0.f, 0.f, shape.width, shape.height});
+        root.resized();
+        scene.viewAspect = shape.width / shape.height;
+        scene.openMenu(false);
+        settle(scene, 2.f);
+        scene.drawHud = [&](Hud& hud)
+        {
+            footer.draw(hud);
+            menu.opacity = scene.menuOpacity();
+            menu.draw(hud);
+        };
+
+        auto image = root.renderToImage(1.f);
+        auto path = directory + "/" + shape.name + ".png";
+
+        if (image.isValid())
+            image.save(FilePath {path});
+
+        LOG(path);
+    }
 }
 
 void renderScreenshots(const std::string& directory, const Screen& screen)

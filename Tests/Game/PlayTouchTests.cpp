@@ -19,7 +19,7 @@ struct Phone final
 {
     Phone()
     {
-        menu.items.add({"Start", "", true});
+        menu.items.add({"Start"});
         menu.onChoose = [this](int index) { chosen = index; };
         controls.onControl = [this](const ControlEvent& event)
         { events.add(event); };

@@ -16,11 +16,6 @@ constexpr auto deadZone = 0.15f;
 constexpr auto fullPush = 0.95f;
 constexpr auto curveExponent = 1.6f;
 
-float magnitude(Point stick)
-{
-    return std::hypot(stick.x, stick.y);
-}
-
 float rescaled(float amount)
 {
     return std::clamp((amount - deadZone) / (fullPush - deadZone), 0.f, 1.f);
@@ -28,7 +23,7 @@ float rescaled(float amount)
 
 Point outsideDeadZone(Point stick)
 {
-    auto size = magnitude(stick);
+    auto size = stick.length();
 
     if (size < deadZone)
         return {0.f, 0.f};
@@ -81,10 +76,10 @@ PadControls readPad(const Graphics::GameInputFrame& frame)
         auto left = outsideDeadZone(pad.leftStick());
         auto right = outsideDeadZone(pad.rightStick());
 
-        if (magnitude(left) > magnitude(walkStick))
+        if (left.length() > walkStick.length())
             walkStick = left;
 
-        if (magnitude(right) > magnitude(lookStick))
+        if (right.length() > lookStick.length())
             lookStick = right;
 
         dpadAhead += digital(pad, GamepadButton::DpadUp, GamepadButton::DpadDown);
@@ -103,7 +98,7 @@ PadControls readPad(const Graphics::GameInputFrame& frame)
         controls.startPressed |= pad.wasPressed(GamepadButton::Start);
         controls.backPressed |= pad.wasPressed(GamepadButton::East);
 
-        auto used = magnitude(left) > 0.f || magnitude(right) > 0.f || zoomIn > 0.f
+        auto used = left.length() > 0.f || right.length() > 0.f || zoomIn > 0.f
                     || zoomOut > 0.f || anyButton(pad);
 
         if (used)

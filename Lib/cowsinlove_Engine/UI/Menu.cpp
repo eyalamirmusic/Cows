@@ -23,21 +23,12 @@ constexpr auto padding = 14.f;
 constexpr auto leastTarget = 64.f;
 constexpr auto ringWidth = 4.f;
 
-constexpr auto gapShare = 0.8f;
 constexpr auto fitShare = 0.9f;
-constexpr auto stackTop = 0.42f;
-constexpr auto stackBottom = 0.95f;
-constexpr auto stackFirst = 1.1f;
-constexpr auto stackRest = 0.55f;
-constexpr auto stackStep = 1.2f;
-
-float stackOffset(int index, float first)
-{
-    if (index == 0)
-        return 0.f;
-
-    return first * stackFirst + first * stackRest * stackStep * (float) index;
-}
+constexpr auto wideAspect = 1.25f;
+constexpr auto columnShare = 0.45f;
+constexpr auto tallCowShare = 0.3f;
+constexpr auto bottomShare = 0.06f;
+constexpr auto rowStep = 1.35f;
 
 } // namespace
 
@@ -65,17 +56,55 @@ Menu::Menu()
 bool Menu::wide() const
 {
     auto bounds = getLocalBounds();
-    return bounds.w >= bounds.h;
+    return bounds.w >= bounds.h * wideAspect;
+}
+
+Rect Menu::safeArea() const
+{
+    auto bounds = getLocalBounds();
+    auto safe = getSafeAreaInsets();
+
+    return {safe.left,
+            safe.top,
+            bounds.w - safe.left - safe.right,
+            bounds.h - safe.top - safe.bottom};
 }
 
 Rect Menu::titleArea() const
 {
-    auto bounds = getLocalBounds();
-    auto safe = getSafeAreaInsets();
-    auto height = bounds.h - safe.top - safe.bottom;
+    auto area = safeArea();
+    return {area.x, area.y, area.w, area.h * titleShare};
+}
 
-    return {
-        safe.left, safe.top, bounds.w - safe.left - safe.right, height * titleShare};
+Rect Menu::belowTitle() const
+{
+    auto area = safeArea();
+    auto top = area.y + area.h * titleShare;
+    return {area.x, top, area.w, area.y + area.h * (1.f - bottomShare) - top};
+}
+
+Rect Menu::itemArea() const
+{
+    auto area = belowTitle();
+
+    if (wide())
+        return {area.x, area.y, area.w * columnShare, area.h};
+
+    auto cow = safeArea().h * tallCowShare;
+    return {area.x, area.y + cow, area.w, area.h - cow};
+}
+
+Rect Menu::cowArea() const
+{
+    auto area = belowTitle();
+
+    if (wide())
+    {
+        auto left = area.w * columnShare;
+        return {area.x + left, area.y, area.w - left, area.h};
+    }
+
+    return {area.x, area.y, area.w, safeArea().h * tallCowShare};
 }
 
 float Menu::labelWidth(Hud& hud, int index, float pointSize) const
@@ -93,9 +122,11 @@ float Menu::labelWidth(Hud& hud, int index, float pointSize) const
 Graphics::Rect Menu::targetFor(Point center, float labelWidth, float pointSize)
 {
     auto height = pointSize * lineSpacing;
-    auto area = grown(
-        {center.x - labelWidth * 0.5f, center.y - height * 0.5f, labelWidth, height},
-        padding);
+    auto area = Graphics::Rect {center.x - labelWidth * 0.5f,
+                                center.y - height * 0.5f,
+                                labelWidth,
+                                height}
+                    .inset(-padding);
 
     if (area.h < leastTarget)
         area = {area.x, center.y - leastTarget * 0.5f, area.w, leastTarget};
@@ -113,104 +144,74 @@ void Menu::layOut(Hud& hud)
     if (items.empty())
         return;
 
-    if (wide())
-        layOutInRow(hud);
-    else
-        layOutStacked(hud);
-}
-
-void Menu::layOutInRow(Hud& hud)
-{
-    auto bounds = getLocalBounds();
-    auto safe = getSafeAreaInsets();
-    auto width = bounds.w - safe.left - safe.right;
-    auto height = bounds.h - safe.top - safe.bottom;
+    auto area = itemArea();
     auto count = (int) items.size();
-    auto pointSize = std::clamp(height * 0.1f, 30.f, 120.f);
+    auto pointSize = std::clamp(safeArea().h * 0.09f, 24.f, 110.f);
 
-    auto rowWidth = [&](float size)
+    auto rowHeight = [&](int index, float size)
     {
-        auto total = size * gapShare * (float) (count - 1);
+        auto line = size * items[index].scale * lineSpacing;
+        return std::max({line * rowStep, line + 2.f * padding, leastTarget});
+    };
+
+    auto totalHeight = [&](float size)
+    {
+        auto total = 0.f;
 
         for (auto index = 0; index < count; ++index)
-            total +=
-                std::max(labelWidth(hud, index, size) * hoverScale + 2.f * padding,
-                         leastTarget);
+            total += rowHeight(index, size);
 
         return total;
     };
 
-    auto room = width * fitShare;
-    auto needed = rowWidth(pointSize);
-
-    if (needed > room)
-        pointSize *= room / needed;
-
-    auto gap = pointSize * gapShare;
-    auto x = safe.left + (width - rowWidth(pointSize)) * 0.5f;
-    auto y = safe.top + height * 0.56f;
-
     for (auto index = 0; index < count; ++index)
     {
-        auto label = labelWidth(hud, index, pointSize);
-        auto slot = std::max(label * hoverScale + 2.f * padding, leastTarget);
-        auto center = Point {x + slot * 0.5f, y};
-        placed.add({center, pointSize, targetFor(center, label, pointSize)});
-        x += slot + gap;
+        auto needed =
+            labelWidth(hud, index, pointSize * items[index].scale) * hoverScale
+            + 2.f * padding;
+
+        if (needed > area.w * fitShare)
+            pointSize *= area.w * fitShare / needed;
     }
-}
 
-void Menu::layOutStacked(Hud& hud)
-{
-    auto bounds = getLocalBounds();
-    auto safe = getSafeAreaInsets();
-    auto width = bounds.w - safe.left - safe.right;
-    auto height = bounds.h - safe.top - safe.bottom;
-    auto count = (int) items.size();
-    auto sizeOf = [](int index, float first)
-    { return index == 0 ? first : first * stackRest; };
-
-    auto first = std::clamp(width * 0.2f, 40.f, 130.f);
+    auto spaced = 0.f;
 
     for (auto index = 0; index < count; ++index)
+        spaced += pointSize * items[index].scale * lineSpacing * rowStep;
+
+    pointSize = std::min(pointSize, pointSize * area.h / spaced);
+
+    if (totalHeight(pointSize) > area.h && totalHeight(0.f) < area.h)
     {
-        auto room = width * fitShare;
-        auto needed = labelWidth(hud, index, sizeOf(index, first)) * hoverScale
-                      + 2.f * padding;
+        auto low = 0.f;
+        auto high = pointSize;
 
-        if (needed > room)
-            first *= room / needed;
-    }
-
-    auto x = safe.left + width * 0.5f;
-    auto bottom = safe.top + height * stackBottom;
-
-    for (auto attempt = 0; attempt < 20; ++attempt, first *= 0.9f)
-    {
-        placed.clear();
-        auto y = safe.top + height * stackTop;
-
-        for (auto index = 0; index < count; ++index)
+        for (auto attempt = 0; attempt < 20; ++attempt)
         {
-            auto pointSize = sizeOf(index, first);
-            auto label = labelWidth(hud, index, pointSize);
-            auto area = targetFor({x, y}, label, pointSize);
-
-            if (index > 0)
-            {
-                const auto& above = placed.back().area;
-                auto step =
-                    stackOffset(index, first) - stackOffset(index - 1, first);
-                y = std::max(placed.back().center.y + step,
-                             above.y + above.h + area.h * 0.5f);
-                area = targetFor({x, y}, label, pointSize);
-            }
-
-            placed.add({{x, y}, pointSize, area});
+            auto middle = (low + high) * 0.5f;
+            (totalHeight(middle) > area.h ? high : low) = middle;
         }
 
-        if (placed.back().area.y + placed.back().area.h <= bottom)
-            return;
+        pointSize = low;
+    }
+
+    auto total = totalHeight(pointSize);
+    auto squeeze = std::min(1.f, area.h / total);
+    total *= squeeze;
+
+    auto x = area.x + area.w * 0.5f;
+    auto y = area.y + (area.h - total) * 0.5f;
+
+    for (auto index = 0; index < count; ++index)
+    {
+        auto size = pointSize * items[index].scale;
+        auto step = rowHeight(index, pointSize) * squeeze;
+        auto center = Point {x, y + step * 0.5f};
+        auto target = targetFor(center, labelWidth(hud, index, size), size);
+        target.h = std::min(target.h, step);
+        target.y = center.y - target.h * 0.5f;
+        placed.add({center, size, target});
+        y += step;
     }
 }
 
@@ -229,11 +230,11 @@ void Menu::drawItem(Hud& hud, int index)
 {
     const auto& item = items[index];
     const auto& place = placed[index];
-    auto lit = item.enabled && (hovered == index || pressed == index);
+    auto lit = item.enabled == Enabled::Yes && (hovered == index || pressed == index);
     auto size = place.pointSize * (lit ? hoverScale : 1.f);
     auto font = menuFont(size);
     auto color =
-        faded(item.enabled ? pink(lit ? 0.2f : 0.f) : disabledColor, opacity);
+        faded(item.enabled == Enabled::Yes ? pink(lit ? 0.2f : 0.f) : disabledColor, opacity);
     auto top = place.center.y - size * lineSpacing * 0.5f;
     auto ascent = hud.ascent(font);
 
@@ -242,7 +243,7 @@ void Menu::drawItem(Hud& hud, int index)
             place.area,
             ringWidth,
             std::min(place.area.h * 0.5f, 28.f),
-            faded(item.enabled ? pink(0.1f) : disabledColor, opacity));
+            faded(item.enabled == Enabled::Yes ? pink(0.1f) : disabledColor, opacity));
 
     if (!item.note.empty())
     {
@@ -288,7 +289,7 @@ void Menu::chooseSelected()
 
 void Menu::choose(int index)
 {
-    if (index < 0 || index >= (int) items.size() || !items[index].enabled)
+    if (index < 0 || index >= (int) items.size() || items[index].enabled == Enabled::No)
         return;
 
     onChoose(index);
@@ -314,7 +315,7 @@ void Menu::mouseMoved(const Graphics::MouseEvent& event)
         showSelection = false;
 
     hovered = now;
-    setMouseCursor(now >= 0 && items[now].enabled
+    setMouseCursor(now >= 0 && items[now].enabled == Enabled::Yes
                        ? Graphics::MouseCursor::PointingHand
                        : Graphics::MouseCursor::Default);
 }

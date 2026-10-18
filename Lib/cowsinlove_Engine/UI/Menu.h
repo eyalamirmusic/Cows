@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Render/Common.h"
 #include "UI/Hud.h"
 
 #include <functional>
@@ -8,16 +7,23 @@
 
 namespace Cows
 {
+enum class Enabled
+{
+    No,
+    Yes
+};
+
 struct MenuItem final
 {
     std::string label;
-    std::string note;
-    bool enabled = true;
+    std::string note = {};
+    float scale = 1.f;
+    Enabled enabled = Enabled::Yes;
 };
 
 // The start menu over the scene: big pink choices in Comic Neue under room
-// left at the top for the title, side by side on a wide screen and stacked on
-// a tall one. A disabled choice is grey and never chosen. The mouse hovers and
+// left at the top for the title, in a column beside the cow on a wide screen
+// and below her on a tall one. A disabled choice is grey and never chosen. The mouse hovers and
 // clicks, a finger taps, and keys or a controller move a selection ring.
 struct Menu final : Graphics::View
 {
@@ -27,6 +33,10 @@ struct Menu final : Graphics::View
 
     // Where the title goes, in points: the top of the safe area.
     Graphics::Rect titleArea() const;
+    // Where the cow should stand on screen: right of the items when wide,
+    // between the title and the items when tall.
+    Graphics::Rect cowArea() const;
+    Graphics::Rect itemArea() const;
     bool wide() const;
 
     void selectNext();
@@ -56,11 +66,11 @@ struct Menu final : Graphics::View
         Graphics::Rect area;
     };
 
-    // Each label on one line, never wrapped: a row shrunk to fit the width
-    // when wide, a stack shrunk to fit when tall.
+    // A column of labels, each on one line, never wrapped, shrunk to fit
+    // itemArea.
     void layOut(Hud& hud);
-    void layOutInRow(Hud& hud);
-    void layOutStacked(Hud& hud);
+    Graphics::Rect safeArea() const;
+    Graphics::Rect belowTitle() const;
     float labelWidth(Hud& hud, int index, float pointSize) const;
     static Graphics::Rect
         targetFor(Graphics::Point center, float labelWidth, float pointSize);

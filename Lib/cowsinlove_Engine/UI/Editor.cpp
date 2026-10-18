@@ -22,15 +22,6 @@ constexpr auto tallSceneShare = 0.6f;
 constexpr auto previousArrow = "<";
 constexpr auto nextArrow = ">";
 
-float right(const Rect& rect)
-{
-    return rect.x + rect.w;
-}
-
-float bottom(const Rect& rect)
-{
-    return rect.y + rect.h;
-}
 } // namespace
 
 Editor::Editor()
@@ -75,14 +66,14 @@ void Editor::layOut(Hud& hud)
 {
     auto area = contentArea();
     auto scene = sceneArea();
-    auto panel = wide() ? Rect {right(scene),
+    auto panel = wide() ? Rect {scene.right(),
                                 area.y,
-                                right(area) - right(scene) - area.w * 0.03f,
+                                area.right() - scene.right() - area.w * 0.03f,
                                 area.h}
                         : Rect {area.x + area.w * 0.04f,
-                                bottom(scene),
+                                scene.bottom(),
                                 area.w * 0.92f,
-                                bottom(area) - bottom(scene)};
+                                area.bottom() - scene.bottom()};
 
     auto size = wide() ? std::clamp(area.h * 0.06f, 22.f, 52.f)
                        : std::clamp(area.w * 0.1f, 22.f, 48.f);
@@ -151,10 +142,10 @@ void Editor::layOut(Hud& hud)
         place.pointSize = size;
         place.baseline = baselineIn(rowTop);
         place.name = {left, rowTop, nameWidth, rowHeight};
-        place.previous = {right(place.name) + gap, rowTop, arrow, rowHeight};
-        place.value = {right(place.previous), rowTop, valueWidth, rowHeight};
-        place.next = {right(place.value), rowTop, arrow, rowHeight};
-        place.row = grown({left, rowTop, blockWidth, rowHeight}, padding * 0.5f);
+        place.previous = {place.name.right() + gap, rowTop, arrow, rowHeight};
+        place.value = {place.previous.right(), rowTop, valueWidth, rowHeight};
+        place.next = {place.value.right(), rowTop, arrow, rowHeight};
+        place.row = Rect {left, rowTop, blockWidth, rowHeight}.inset(-padding * 0.5f);
         placed.add(place);
     }
 

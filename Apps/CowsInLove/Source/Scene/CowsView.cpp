@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <utility>
 #include <limits>
 #include <optional>
 
@@ -41,12 +42,13 @@ constexpr auto portraitDistance = 6.5f;
 constexpr auto portraitPitch = 0.26f;
 
 constexpr auto menuTurn = 0.45f;
-constexpr auto menuHeight = 2.3f;
+constexpr auto menuHeight = 1.3f;
 constexpr auto menuPitch = 0.1f;
 constexpr auto menuDistance = 9.5f;
-constexpr auto tallMenuHeight = 4.2f;
-constexpr auto tallMenuPitch = 0.f;
-constexpr auto tallMenuDistance = 7.f;
+constexpr auto menuCowSize = 2.2f;
+constexpr auto menuCowFill = 0.5f;
+constexpr auto nearestMenu = 5.f;
+constexpr auto farthestMenu = 14.f;
 constexpr auto menuStick = 0.5f;
 constexpr auto swingLength = 1.1f;
 constexpr auto dressLength = 0.6f;
@@ -229,10 +231,20 @@ Graphics::Color displayColor(const Vec3& linear)
     auto encode = [](float channel) { return std::pow(channel, 1.f / 2.2f); };
     return {encode(linear.x), encode(linear.y), encode(linear.z)};
 }
+
+// The centre of `area`, -1 to 1 across `bounds`, y up.
+Graphics::Point centreOnScreen(Graphics::Rect area, Graphics::Rect bounds)
+{
+    return {2.f * (area.x + area.w * 0.5f) / bounds.w - 1.f,
+            1.f - 2.f * (area.y + area.h * 0.5f) / bounds.h};
+}
 } // namespace
 
-CowsView::CowsView(const QualityPreference& preference)
-    : qualityPreference(preference)
+CowsView::CowsView(const QualityPreference& preference,
+                   Stages stagesToPlay,
+                   std::uint32_t firstSeed)
+    : stages(std::move(stagesToPlay))
+    , qualityPreference(preference)
     , shapes(makeCowMesh)
     , ground(makePlane(groundSize))
     , cowParts(makeCowParts())
@@ -254,7 +266,7 @@ CowsView::CowsView(const QualityPreference& preference)
     applyQualityChoice();
 
     game.makeLevel = stages.level();
-    game.reset(stages.firstSeed());
+    game.reset(firstSeed);
     game.start();
     layTerrain();
 
@@ -461,17 +473,30 @@ void CowsView::steerCamera(float delta, float wallDelta)
 
 CameraPose CowsView::menuPose() const
 {
-    auto tall = viewAspect < 1.f;
     auto sway = driftAt(elapsed);
 
     auto pose = CameraPose {};
-    pose.target = game.player + Vec3 {0.f, tall ? tallMenuHeight : menuHeight, 0.f};
+    pose.target = game.player + Vec3 {0.f, menuHeight, 0.f};
     pose.yaw = game.playerHeading + startYaw + pi + menuTurn;
-    pose.pitch = tall ? tallMenuPitch : menuPitch;
-    pose.distance = tall ? tallMenuDistance : menuDistance;
+    pose.pitch = menuPitch;
+    pose.distance = menuDistance;
     pose.swayYaw = sway.x;
     pose.swayPitch = sway.y;
-    return pose;
+
+    if (menu == nullptr)
+        return pose;
+
+    auto bounds = menu->getLocalBounds();
+    auto area = menu->cowArea();
+
+    if (bounds.w <= 0.f || bounds.h <= 0.f || area.w <= 0.f || area.h <= 0.f)
+        return pose;
+
+    auto fov = camera.verticalFieldOfView(viewAspect);
+    auto share = menuCowFill * std::min(area.w, area.h) / bounds.h;
+    pose.distance = std::clamp(
+        distanceToFit(menuCowSize, share, fov), nearestMenu, farthestMenu);
+    return placeTargetOnScreen(pose, centreOnScreen(area, bounds), fov, viewAspect);
 }
 
 CameraPose CowsView::editorPose() const
@@ -981,7 +1006,7 @@ void CowsView::addAnswerFlare()
 
 void CowsView::restart()
 {
-    game.reset(stages.nextSeed());
+    game.reset(clockSeed());
     layTerrain();
     camera.yaw = startYaw + game.playerHeading;
     camera.target = game.player + Vec3 {0.f, searchHeight, 0.f};

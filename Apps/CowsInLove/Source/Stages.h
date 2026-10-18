@@ -6,21 +6,21 @@
 
 namespace Cows
 {
-// What Cows in Love plays: its levels in order, each a fresh seed each round,
-// back to the first after the last (nothing is saved yet).
+// A stage is a position in the ordered list of level templates; a level is one
+// generated from a template and a seed. After the last stage comes the first
+// again (nothing is saved yet).
 struct Stages final
 {
-    Stages();
-
-    // COWS_SEED when set, else the clock.
-    std::uint32_t firstSeed() const;
-    std::uint32_t nextSeed() const;
+    // Starts on `stage`, wrapped into range.
+    explicit Stages(int stage = 0);
 
     void advance();
     LevelMaker level() const;
 
     Vector<LevelTemplate> templates;
-    // COWS_STAGE when set, else the first.
     int current = 0;
 };
+
+// A seed from the clock, different each round.
+std::uint32_t clockSeed();
 } // namespace Cows

@@ -46,6 +46,29 @@ float SwingClock::step(Threads::FrameTime time)
     return (float) since;
 }
 
+float distanceToFit(float size, float share, float verticalFov)
+{
+    return size / (2.f * std::tan(verticalFov * 0.5f) * share);
+}
+
+CameraPose placeTargetOnScreen(CameraPose pose,
+                               Graphics::Point onScreen,
+                               float verticalFov,
+                               float aspect)
+{
+    auto still = OrbitCamera {};
+    still.yaw = pose.yaw;
+    still.pitch = pose.pitch;
+
+    auto halfHeight = pose.distance * std::tan(verticalFov * 0.5f);
+    auto halfWidth = halfHeight * aspect;
+
+    pose.target = pose.target
+                  - (still.right() * (onScreen.x * halfWidth)
+                     + still.up() * (onScreen.y * halfHeight));
+    return pose;
+}
+
 Vec2 driftAt(float seconds)
 {
     return {0.07f * std::sin(seconds * 0.11f),

@@ -24,16 +24,6 @@ bool inside(const Graphics::Rect& area, float width, float height)
            && area.y + area.h <= height;
 }
 
-bool overlaps(const Graphics::Rect& a, const Graphics::Rect& b)
-{
-    return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-}
-
-Graphics::Point middleOf(const Graphics::Rect& rect)
-{
-    return {rect.x + rect.w * 0.5f, rect.y + rect.h * 0.5f};
-}
-
 Graphics::Image
     editorShot(Editor& editor, float width, float height, const char* name)
 {
@@ -64,12 +54,12 @@ void checkLayout(const Editor& editor, float width, float height)
         for (const auto& area: {place.previous, place.value, place.next})
         {
             check(inside(area, width, height));
-            check(!overlaps(area, scene));
+            check(!area.intersects(scene));
             check(area.h >= 64.f && area.w >= 64.f);
         }
 
-        check(!overlaps(place.previous, place.value));
-        check(!overlaps(place.value, place.next));
+        check(!place.previous.intersects(place.value));
+        check(!place.value.intersects(place.next));
 
         if (index > 0)
             check(editor.placed[index - 1].row.y < place.row.y);
@@ -136,13 +126,13 @@ auto tEditorTargets = test("Editor/clicksStepAndFinish") = []
     editor.onStep = [&](int row, int by) { steps.add(row * 10 + by); };
     editor.onDone = [&] { ++finished; };
 
-    check(editor.targetAt(middleOf(editor.placed[0].previous))
+    check(editor.targetAt(editor.placed[0].previous.center())
           == Editor::Target {0, Part::Previous});
-    check(editor.targetAt(middleOf(editor.placed[1].next))
+    check(editor.targetAt(editor.placed[1].next.center())
           == Editor::Target {1, Part::Next});
-    check(editor.targetAt(middleOf(editor.done.value))
+    check(editor.targetAt(editor.done.value.center())
           == Editor::Target {2, Part::Done});
-    check(editor.targetAt(middleOf(editor.sceneArea())).part == Part::None);
+    check(editor.targetAt(editor.sceneArea().center()).part == Part::None);
 
     editor.stepSelected(-1);
     editor.selectNext();

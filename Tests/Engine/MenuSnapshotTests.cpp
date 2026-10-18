@@ -10,10 +10,12 @@ using namespace Cows::Testing;
 
 namespace
 {
+constexpr auto bigItemScale = 1.3f;
+
 void addItems(Menu& menu)
 {
-    menu.items.add({"Start", "", true});
-    menu.items.add({"Dress Your Cow", "Coming Soon!", false});
+    menu.items.add({"Start", "", bigItemScale});
+    menu.items.add({.label = "Dress Your Cow", .note = "Coming Soon!", .enabled = Enabled::No});
 }
 
 bool anyDrawnIn(const Graphics::Image& image, const Graphics::Rect& area)
@@ -25,11 +27,6 @@ bool anyDrawnIn(const Graphics::Image& image, const Graphics::Rect& area)
                 return true;
 
     return false;
-}
-
-bool overlaps(const Graphics::Rect& a, const Graphics::Rect& b)
-{
-    return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }
 
 bool inside(const Graphics::Rect& area, float width, float height)
@@ -55,9 +52,8 @@ Graphics::Image menuShot(Menu& menu, float width, float height, const char* name
 }
 } // namespace
 
-// The menu side by side on a wide window: Start on the left, the disabled
-// choice on the right, both below the title's room and apart, with the
-// selection ring round Start.
+// The menu in a column on the left of a wide window, the cow's room on the
+// right: Start above the disabled choice, a selection ring round Start.
 auto tMenuWide = test("MenuSnapshot/wide") = []
 {
     if (!hasDevice())
@@ -80,8 +76,11 @@ auto tMenuWide = test("MenuSnapshot/wide") = []
     const auto& dress = menu.placed[1].area;
     auto title = menu.titleArea();
 
-    check(start.x + start.w < dress.x);
-    check(!overlaps(start, dress));
+    auto cow = menu.cowArea();
+
+    check(start.y + start.h <= dress.y);
+    check(!start.intersects(dress));
+    check(!start.intersects(cow) && !dress.intersects(cow));
     check(start.y >= title.y + title.h && dress.y >= title.y + title.h);
     check(inside(start, 1280.f, 800.f) && inside(dress, 1280.f, 800.f));
     check(anyDrawnIn(image, start) && anyDrawnIn(image, dress));
@@ -89,8 +88,9 @@ auto tMenuWide = test("MenuSnapshot/wide") = []
     check(menu.itemAt({start.x + start.w * 0.5f, start.y + start.h * 0.5f}) == 0);
 };
 
-// A portrait phone stacks them: Start large and centred, the disabled choice
-// smaller below it, every tap target at least 64 points tall.
+// A portrait phone puts them below the cow's room: Start large and centred,
+// the disabled choice smaller below it, every tap target at least 64 points
+// tall.
 auto tMenuTall = test("MenuSnapshot/tall") = []
 {
     if (!hasDevice())
@@ -111,25 +111,28 @@ auto tMenuTall = test("MenuSnapshot/tall") = []
     const auto& start = menu.placed[0];
     const auto& dress = menu.placed[1];
 
+    auto cow = menu.cowArea();
+
     check(start.area.y + start.area.h <= dress.area.y);
+    check(start.area.y >= cow.y + cow.h);
     check(start.pointSize > dress.pointSize);
     check(start.area.h >= 64.f && start.area.w >= 64.f);
     check(inside(start.area, 390.f, 844.f) && inside(dress.area, 390.f, 844.f));
     check(anyDrawnIn(image, start.area) && anyDrawnIn(image, dress.area));
 };
 
-// The main menu's four choices never wrap or touch, side by side on a wide
-// window and stacked on a narrow one, every one inside the window and below
-// the title's room.
+// The main menu's four choices never wrap or touch, in one column beside the
+// cow's room on a wide window and below it on a narrow one, every one inside
+// the window and below the title's room.
 namespace
 {
 void checkMainMenu(float width, float height, const char* name)
 {
     auto menu = Menu {};
-    menu.items.add({"Start", "", true});
-    menu.items.add({"Dress Your Cow", "", true});
-    menu.items.add({"Settings", "", true});
-    menu.items.add({"About", "", true});
+    menu.items.add({"Start"});
+    menu.items.add({"Dress Your Cow"});
+    menu.items.add({"Settings"});
+    menu.items.add({"About"});
     menu.showSelection = true;
 
     auto image = menuShot(menu, width, height, name);
@@ -146,9 +149,10 @@ void checkMainMenu(float width, float height, const char* name)
         const auto& area = menu.placed[index].area;
         check(inside(area, width, height));
         check(area.y >= title.y + title.h);
+        check(!area.intersects(menu.cowArea()));
 
         for (auto other = index + 1; other < 4; ++other)
-            check(!overlaps(area, menu.placed[other].area));
+            check(!area.intersects(menu.placed[other].area));
     }
 }
 } // namespace

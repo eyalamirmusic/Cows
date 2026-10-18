@@ -16,7 +16,6 @@ constexpr Graphics::Color outlineColor {1.f, 1.f, 1.f, 1.f};
 Graphics::Color pink(float brighten = 0.f);
 Graphics::Color faded(Graphics::Color color, float opacity);
 Text::Font menuFont(float pointSize);
-Graphics::Rect grown(const Graphics::Rect& rect, float by);
 
 // `text` ringed in white so it reads over grass and sky, with its shadow a
 // little below and to the right, as the menu draws every label.

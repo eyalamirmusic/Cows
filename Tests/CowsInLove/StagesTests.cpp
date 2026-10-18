@@ -4,49 +4,25 @@
 
 #include <NanoTest/NanoTest.h>
 
-#include <eacp/Core/Utils/Environment.h>
-
 using namespace nano;
 using namespace Cows;
 
 namespace
 {
-void unsetEnv(const char* name)
-{
-    setEnv(name, "");
-}
+constexpr auto anySeed = 3u;
 
-Level levelOf(const Stages& stages, std::uint32_t seed = 3)
+Level levelOf(const Stages& stages)
 {
-    return stages.level()(seed);
+    return stages.level()(anySeed);
 }
 } // namespace
 
-auto tFixedSeed = test("Stages/firstSeedHonoursCOWS_SEED") = []
-{
-    setEnv("COWS_SEED", "42");
-    auto stages = Stages {};
-    check(stages.firstSeed() == 42u);
-    unsetEnv("COWS_SEED");
-};
-
-auto tClockSeeds = test("Stages/seedsChangeBetweenRounds") = []
-{
-    unsetEnv("COWS_SEED");
-    auto stages = Stages {};
-    auto first = stages.firstSeed();
-    auto next = stages.nextSeed();
-    check(first != 0u);
-    check(next != first || stages.nextSeed() != next);
-};
-
 auto tMeadow = test("Stages/levelIsAMeadow") = []
 {
-    unsetEnv("COWS_STAGE");
     auto stages = Stages {};
     auto game = Game {};
     game.makeLevel = stages.level();
-    game.reset(3);
+    game.reset(anySeed);
     check(!game.level.colliders.empty());
     check(!game.level.blocks.empty());
     check(game.level.gaps.empty());
@@ -55,7 +31,6 @@ auto tMeadow = test("Stages/levelIsAMeadow") = []
 
 auto tAdvance = test("Stages/advanceGoesMeadowRavineMeadow") = []
 {
-    unsetEnv("COWS_STAGE");
     auto stages = Stages {};
     check(stages.current == 0 && levelOf(stages).gaps.empty());
 
@@ -67,14 +42,8 @@ auto tAdvance = test("Stages/advanceGoesMeadowRavineMeadow") = []
     check(stages.current == 0 && levelOf(stages).gaps.empty());
 };
 
-auto tStageFromEnv = test("Stages/COWS_STAGEPicksTheStart") = []
+auto tStageWraps = test("Stages/stageWrapsIntoRange") = []
 {
-    setEnv("COWS_STAGE", "1");
-    auto stages = Stages {};
-    check(stages.current == 1);
-    check(!levelOf(stages).gaps.empty());
-
-    setEnv("COWS_STAGE", "5");
-    check(Stages {}.current == 1);
-    unsetEnv("COWS_STAGE");
+    check(Stages {5}.current == 1);
+    check(Stages {-1}.current == 1);
 };

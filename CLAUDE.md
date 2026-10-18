@@ -40,16 +40,23 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `Render/ShadowMap` — the key light's depth target
   - `Camera/OrbitCamera` — drag to orbit, scroll to zoom, idle drift;
     `CameraPose`, `blend` and `easeOut` for the menu's camera swing, `SwingClock`
-    (the swing's step on the clock, past eacp's 0.1 s delta clamp)
+    (the swing's step on the clock, past eacp's 0.1 s delta clamp);
+    `distanceToFit` (how far back something fills a share of the view) and
+    `placeTargetOnScreen` (a pose moved so what was at its target shows at a
+    point on screen), which frame the cow in the menu's `cowArea`
   - `UI/Hud` — draws the HUD at the end of the scene's own pass: discs and
     rings through eacp's `UI::ShapeBatch`, text through `Text::TextRenderer`
     (Menlo), on every platform; `CowsView` owns one and calls `drawHud`;
     `strokeRoundedRect` for the menu's selection ring
   - `UI/Menu` — the start menu: `MenuItem`s in Comic Neue Bold (embedded
     from `Resources/ComicNeue-Bold.ttf`, OFL, registered as a memory font
-    through `Text::registerMemoryFont`; see `Resources/CREDITS.md`), side by
-    side when wide, stacked when tall (by aspect, not platform), a
-    `titleArea` left at the top; hover and click, tap (targets at least
+    through `Text::registerMemoryFont`; see `Resources/CREDITS.md`), one
+    column shrunk to fit `itemArea`: on the left with `cowArea` on the right
+    when wide (`w >= 1.25 h`), below `cowArea` when tall (by aspect, not
+    platform); `menuPose` frames the cow in `cowArea`; a `MenuItem` is
+    `{label, note, scale, enabled}`, `scale` sizing one item against the rest
+    (Start biggest, About smallest, `mainMenuItems` in the app's `MainMenu.h`)
+    and `enabled` an `Enabled::Yes` / `No`, Yes by default; a `titleArea` left at the top; hover and click, tap (targets at least
     64 pt), and a selection ring for keys and controllers; a disabled item is
     grey and never chosen; `opacity` fades it
   - `UI/Editor` — the cow editor's rows ("Hat  <  Top Hat  >", then Done) in
@@ -153,11 +160,14 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   `--es` extras and the `debug.com.cowsinlove.play.env` property
 - `Apps/CowsInLove/Source/Templates` — the level templates (`meadowTemplate`,
   `meadowRavineTemplate`: the segment lists and lengths)
-- `Apps/CowsInLove/Source/Stages` — the content: the ordered level templates
-  (meadow, then meadow → ravine → meadow), `advance()` to the next after the
-  ending (wrapping; nothing is saved), `level()` as a `LevelMaker`, where the
-  seed comes from (`COWS_SEED`, else the clock) and the first stage
-  (`COWS_STAGE`, else 0). `r` retries the stage with a fresh seed
+- `Apps/CowsInLove/Source/Stages` — the content. A stage is a position in the
+  ordered list of level templates (meadow, then meadow → ravine → meadow); a
+  level is one generated from a template and a seed. `Stages {stage}` starts
+  there (wrapped into range), `advance()` goes to the next after the ending
+  (wrapping; nothing is saved), `level()` is the current one as a
+  `LevelMaker`; `clockSeed()` is a seed from the clock. `CowsApp` reads
+  `COWS_STAGE` (else 0) and `COWS_SEED` (else `clockSeed()`) and hands both to
+  `CowsView`; `CowsArt` passes its own. `r` retries the stage with a fresh seed
 - `Apps/CowsInLove/Source/Settings` — everything kept between runs, one Miro
   document, `settings.json` in `FilePath::appSupportDirectory()`: the
   `CowSkin` and the `QualityPreference`; anything unreadable or unnamed loads
@@ -172,7 +182,9 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   same on every platform and ends by attaching the platform (the app has no
   platform directories or branches). The footer names the last-used input's
   controls; the touch controls hide while a controller was used last
-- `Apps/CowsInLove/Source/Scene/CowsView` — the `GPUView`: gathers instances,
+- `Apps/CowsInLove/Source/Scene/CowsView` — the `GPUView`, made from a
+  `QualityPreference`, the `Stages` and the first round's seed (later rounds
+  take `clockSeed()`): gathers instances,
   shadow pass, main pass (ending with the `Hud`), camera steering, mouse;
   forwards keys to `Input`; polls `GameInput` each `update`, sends the
   controller's buttons through `control()` as touch does, orbits on the right
@@ -188,7 +200,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   stick, touch drag), and Done, Esc and the controller's East / Start swing
   back to the menu. `CowsApp` saves `Settings` on every change
 - `tools/Art` — `CowsArt`, a macOS tool that renders the icon, key art, logo
-  and store screenshots from the game's own views; `tools/store-art.sh` and
+  and store screenshots from the game's own views (`CowsArt menu <dir>`
+  renders the start menu at eleven window shapes, ultrawide to phone); `tools/store-art.sh` and
   `tools/screenshots.sh` drive it. `tools/release-*.sh`, `release-msix.ps1`
   and `steam-upload.sh` build and package each store; `Deploy/README.md` is
   the runbook

@@ -33,6 +33,10 @@ constexpr Screen playTablet10 {900.f, 1600.f, 2.4f, true};
 // and, on a phone, the touch controls) into `directory`.
 void renderScreenshots(const std::string& directory, const Screen& screen);
 
+// Renders the start menu over the scene at a spread of window shapes, from
+// ultrawide to a phone held upright, into `directory`.
+void renderMenus(const std::string& directory);
+
 // The first meadow seed where she hides in the open, so the pair stand on the
 // grass rather than on a crate or a roof.
 std::uint32_t openMeadowSeed();
