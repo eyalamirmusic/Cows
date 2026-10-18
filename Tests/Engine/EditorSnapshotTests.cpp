@@ -41,9 +41,54 @@ Graphics::Image
     return snapshot(view, width, height, name);
 }
 
+bool within(const Graphics::Rect& inner, const Graphics::Rect& outer)
+{
+    constexpr auto slack = 0.5f;
+    return inner.x >= outer.x - slack && inner.y >= outer.y - slack
+           && inner.x + inner.w <= outer.x + outer.w + slack
+           && inner.y + inner.h <= outer.y + outer.h + slack;
+}
+
+// The panel clear of the cow's area and inside the content: the heading
+// above the rows, the rows apart and in order, the names in one column and
+// the values in another, Done below them, and the text never under the
+// readable size.
+void checkPanel(const Editor& editor)
+{
+    auto content = frameOf(editor, editor.topClearance).contentArea();
+    auto panel = editor.panelArea();
+    auto readable = smallestReadableSize(content);
+
+    check(!panel.intersects(editor.cowArea()));
+    check(within(panel, content));
+    check(within(editor.titleBox, panel));
+    check(within(editor.done.value, panel));
+    check(editor.titleSize >= readable);
+
+    const auto& first = editor.placed.front();
+
+    for (auto index = 0; index < (int) editor.placed.size(); ++index)
+    {
+        const auto& place = editor.placed[index];
+        check(place.pointSize >= readable);
+        check(within(place.row, panel));
+        check(editor.titleBox.y + editor.titleBox.h <= place.row.y + 0.5f);
+        check(place.row.y + place.row.h <= editor.done.value.y + 0.5f);
+        check(place.name.x == first.name.x);
+        check(place.value.x == first.value.x && place.value.w == first.value.w);
+
+        if (index > 0)
+        {
+            const auto& above = editor.placed[index - 1].row;
+            check(above.y + above.h <= place.row.y + 0.5f);
+        }
+    }
+}
+
 void checkLayout(const Editor& editor, float width, float height)
 {
     auto scene = editor.cowArea();
+    checkPanel(editor);
 
     check(editor.placed.size() == editor.rows.size());
 
@@ -147,4 +192,58 @@ auto tEditorTargets = test("Editor/clicksStepAndFinish") = []
     check(steps[0] == -1);
     check(steps[1] == 11);
     check(finished == 1);
+};
+
+// Dress Your Cow's rows at the shapes CowsArt renders, from a phone to a large
+// desktop window and a small square one.
+auto tEditorShapes = test("EditorLayout/holdsAtEveryShape") = []
+{
+    if (!hasDevice())
+        return;
+
+    struct Shape final
+    {
+        float width = 0.f;
+        float height = 0.f;
+        Graphics::Insets safe;
+        float topClearance = 0.f;
+    };
+
+    constexpr auto titleBar = 28.f;
+    auto shapes = Vector<Shape> {
+        {430.f, 932.f, {.top = 59.f, .bottom = 34.f}},
+        {932.f, 430.f, {.left = 59.f, .bottom = 21.f, .right = 59.f}},
+        {360.f, 800.f, {.top = 24.f, .bottom = 24.f}},
+        {820.f, 1180.f, {.top = 24.f, .bottom = 20.f}},
+        {1180.f, 820.f, {.top = 24.f, .bottom = 20.f}},
+        {1280.f, 800.f, {}, titleBar},
+        {1920.f, 1080.f, {}, titleBar},
+        {1720.f, 720.f, {}, titleBar},
+        {650.f, 800.f, {}, titleBar},
+        {800.f, 800.f, {}, titleBar},
+        {500.f, 500.f, {}, titleBar},
+        {320.f, 320.f, {}, titleBar},
+    };
+
+    auto hud = Hud {};
+
+    for (const auto& shape: shapes)
+    {
+        auto root = Graphics::View {};
+        auto editor = Editor {};
+        editor.setTitle("Dress Your Cow");
+        editor.setRows({{"Hat", {"None", "Top Hat", "Cow Bucket Hat", "Wizard Hat"}},
+                        {"Pants", {"None", "Both Legs", "Back Legs"}}});
+        editor.topClearance = shape.topClearance;
+        root.addSubview(editor);
+        root.setSafeAreaInsets(shape.safe);
+        root.setBounds({0.f, 0.f, shape.width, shape.height});
+        editor.setBounds({0.f, 0.f, shape.width, shape.height});
+        editor.layOut(hud);
+
+        check(editor.placed.size() == 2);
+
+        if (editor.placed.size() == 2)
+            checkPanel(editor);
+    }
 };
