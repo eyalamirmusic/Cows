@@ -226,18 +226,18 @@ One-time: reserve the name in Partner Center, and fill in the listing from
 Each release, on a Windows machine with the Windows SDK (tamby-windows has
 10.0.26100):
 ```powershell
-$env:COWS_MSIX_IDENTITY = '<Package/Identity/Name>'
-$env:COWS_MSIX_PUBLISHER = '<Package/Identity/Publisher>'
-$env:COWS_MSIX_PUBLISHER_NAME = '<PublisherDisplayName>'
-powershell -ExecutionPolicy Bypass -File tools\release-msix.ps1
+just release-microsoft
 ```
-For x64 and arm64 (`-Arch x64` for one), it builds the Release exe if needed
-(`COWS_ARCH` on `build-windows.bat`), lays out the package, makes
+From macOS, the same command syncs the tree to `COWS_WINDOWS` (default
+`jamie@tamby-windows`), builds there, and copies both packages and raw exes
+back. The project's public Partner Center identity is the default; the three
+`COWS_MSIX_*` variables in **What to fill in** can override it. For x64 and
+arm64, the command builds the Release exe, lays out the package, makes
 `resources.pri` and packs `Deploy\Microsoft-Store\out\CowsInLove-<version>.0-<arch>.msix`.
 Upload both to the submission's Packages page: Partner Center signs them.
-The arm64 package builds on an Arm64 Windows machine; cross-compiling it on
-x64 stops at ResEmbed's generator, which comes out arm64 too
-(eyalamirmusic/ResEmbed#4).
+On an x64 host, the release wrapper supplies x64 copies of ResEmbed's resource
+generator and eacp's icon converter while cross-compiling arm64; those are
+build-time tools and are not shipped in the package.
 `-Certificate <pfx> -Password <pw>` signs it locally, only for sideload
 testing (the certificate subject must equal the publisher).
 

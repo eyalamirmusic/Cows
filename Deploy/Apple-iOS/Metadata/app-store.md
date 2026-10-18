@@ -57,7 +57,9 @@ cow,cows,love,romance,cute,cozy,casual,meadow,farm,explore,hide and seek,relax
 
 **What's New**
 
-First release.
+- Settings in the start menu: pick a graphics quality, or leave it on Auto to match your phone.
+- Smoother on older phones.
+- The version number is shown in the app.
 
 ## App Review
 

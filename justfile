@@ -105,6 +105,11 @@ deploy-android track="internal" status="completed" confirm="false":
 release-windows:
     tools/release-windows.sh
 
+# Microsoft Store x64 + arm64 MSIX packages, built on the Windows box and
+# copied back to Deploy/Microsoft-Store/out/.
+release-microsoft:
+    tools/release-microsoft.sh
+
 # Upload the staged Windows and macOS depots to Steam with steamcmd.
 steam-upload:
     tools/steam-upload.sh

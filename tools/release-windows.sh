@@ -26,19 +26,26 @@ esac
 
 host="${COWS_WINDOWS:-jamie@tamby-windows}"
 remote=projects/Cows-release
-eacp_rev="$(git -C build/_deps/eacp-src rev-parse HEAD 2>/dev/null || echo main)"
+eacp_ref="${COWS_EACP_REF:-$(sed -n 's/^set(COWS_EACP_TAG "\([^"]*\)".*/\1/p' CMake/Findeacp.cmake)}"
+: "${eacp_ref:=develop}"
 
+# $remote is deliberately expanded here; it is this script's fixed path.
+# shellcheck disable=SC2029
 git ls-files -z --cached --others --exclude-standard \
     | while IFS= read -r -d '' file; do [[ -e "$file" ]] && printf '%s\0' "$file"; done \
     | COPYFILE_DISABLE=1 tar --no-xattrs --null -T - -czf - \
     | ssh "$host" "mkdir -p ~/$remote && tar -xzf - -C ~/$remote"
 
-ssh "$host" bash -s -- "$remote" "$eacp_rev" <<'REMOTE'
+ssh "$host" bash -s -- "$remote" "$eacp_ref" <<'REMOTE'
 set -euo pipefail
 cd ~/projects
 [[ -d Cows-eacp ]] || git clone -q --filter=blob:none https://github.com/eyalamirmusic/eacp.git Cows-eacp
 git -C Cows-eacp fetch -q origin
-git -C Cows-eacp checkout -q "$2"
+eacp_ref="$2"
+if git -C Cows-eacp rev-parse --verify --quiet "origin/$eacp_ref^{commit}" >/dev/null; then
+    eacp_ref="origin/$eacp_ref"
+fi
+git -C Cows-eacp checkout -q --detach "$eacp_ref"
 export COWS_EACP="$(cygpath -m ~/projects/Cows-eacp)"
 cd ~/"$1"
 tools/release-windows.sh > release-windows.log 2>&1 || { tail -40 release-windows.log; exit 1; }
