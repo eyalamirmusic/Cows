@@ -1,5 +1,6 @@
 #include "Cow/Moo.h"
 #include "Ending.h"
+#include "Props/Barn.h"
 
 #include <NanoTest/NanoTest.h>
 
@@ -122,4 +123,47 @@ auto tGamepadHints = test("Ending/isGamepad") = []
     check(!isGamepad(Hints::Touch));
     check(isGamepad(Hints::Xbox) && isGamepad(Hints::PlayStation)
           && isGamepad(Hints::Nintendo) && isGamepad(Hints::Gamepad));
+};
+
+auto tFoundStart = test("Ending/foundStartIsFoundAlongTheStagesHeading") = []
+{
+    constexpr auto intoTheLoft = 2.f;
+    constexpr auto frame = 1.f / 60.f;
+
+    for (auto heading: {std::optional<float> {}, std::optional {intoTheLoft}})
+    {
+        auto game = Game {};
+        game.reset(3);
+        game.start();
+        game.level = Level {};
+        game.level.hideoutHeading = heading;
+        game.partner = {5.f, 0.f, 7.f};
+        game.player = Ending::foundStart(game);
+        game.update(frame, 0.f, 0.f, false);
+
+        check(game.state == Game::State::Found);
+        check(std::abs(std::remainder(
+                  game.stageHeading - heading.value_or(Ending::foundStartHeading),
+                  Maths::twoPi))
+              < 1e-4f);
+    }
+};
+
+// The loft's ending looks in at the pair from the meadow in front, through
+// the open hay door, with nothing of the barn between.
+auto tLoftFromOutside = test("Ending/loftEndingSeesThePairThroughTheHayDoor") = []
+{
+    auto level = Level {};
+    addBarn(level, {}, 0);
+    auto loft = barnSpots({}, 0).loft;
+    auto staging = Ending::stagingFor(Level::Hiding::Loft);
+
+    auto target = loft.at + Maths::Vec3 {0.f, staging.cameraHeight, 0.f};
+    auto out = Maths::Vec3 {std::sin(loft.heading) * std::cos(staging.cameraPitch),
+                            std::sin(staging.cameraPitch),
+                            std::cos(loft.heading) * std::cos(staging.cameraPitch)};
+    auto eye = target + out * staging.cameraDistance;
+
+    check(Maths::length(level.clearReach(target, eye, 0.f) - eye) < 1e-3f);
+    check(level.floorAt({eye.x, eye.z}, eye.y) == 0.f);
 };

@@ -12,8 +12,10 @@ struct Collider final
     float top = 100.f;
 };
 
-// A solid box standing on the ground, `half` its size on each axis; a ramp
-// when `rise` is set, its top climbing from the ground to `top` along it.
+// A solid box, `half` its size on each axis, standing on the ground or, with
+// `bottom` set, floating above it (a loft, a lintel, a roof): anything
+// whose feet are below `bottom` passes under it. A ramp when `rise` is set,
+// its top climbing from the ground to `top` along it.
 struct Block final
 {
     float heightAt(Maths::Vec2 point) const;
@@ -24,6 +26,7 @@ struct Block final
     Maths::Vec2 half;
     float top = 1.f;
     Maths::Vec2 rise;
+    float bottom = 0.f;
 };
 
 Maths::Vec2 absolute(Maths::Vec2 vector);

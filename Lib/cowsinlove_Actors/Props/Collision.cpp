@@ -19,7 +19,7 @@ float Block::heightAt(Vec2 point) const
 
     auto along = dot(absolute(rise), half);
     auto t = (dot(point - center, rise) / along + 1.f) * 0.5f;
-    return top * std::clamp(t, 0.f, 1.f);
+    return bottom + (top - bottom) * std::clamp(t, 0.f, 1.f);
 }
 
 Vec2 Block::closestTo(Vec2 point) const

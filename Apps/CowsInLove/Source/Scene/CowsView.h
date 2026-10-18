@@ -111,6 +111,9 @@ struct CowsView final : GPUView
     MooAnswer answerFrom() const;
     void addAnswerFlare();
     void steerCamera(float delta, float wallDelta);
+    // Pulls the eye in to just short of the first block between it and the
+    // target, and lets it back out once the way is clear.
+    void keepEyeClear(float delta);
     void framePortrait(float aspect);
 
     void chooseQuality(QualityChoice choice);

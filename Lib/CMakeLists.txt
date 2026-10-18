@@ -1,4 +1,5 @@
 add_subdirectory(cowsinlove_Layout)
+add_subdirectory(cowsinlove_MeshLoader)
 add_subdirectory(cowsinlove_Engine)
 add_subdirectory(cowsinlove_AudioEngine)
 add_subdirectory(cowsinlove_Actors)

@@ -67,9 +67,9 @@ int Layout::share(int count, const Region& region) const
     return (int) std::lround((float) count * region.area() / Region::arena().area());
 }
 
-void Layout::addHiding(Level::Hiding kind, Vec3 at)
+void Layout::addHiding(Level::Hiding kind, Vec3 at, std::optional<float> heading)
 {
-    hidings[(std::size_t) kind].add(at);
+    hidings[(std::size_t) kind].add({at, heading});
 }
 
 bool Layout::inClearing(Vec2 point) const
@@ -124,14 +124,15 @@ void chooseHideout(Level& level, Layout& layout, const Region& region)
     {
         auto& spots = layout.hidings[(std::size_t) kind];
         auto grove = kind == (int) Level::Hiding::Grove;
-        auto roof = kind == (int) Level::Hiding::Roof;
+        auto inBarn =
+            kind == (int) Level::Hiding::Roof || kind == (int) Level::Hiding::Loft;
 
-        auto unfit = [&](Vec3 spot)
+        auto unfit = [&](const HidingSpot& spot)
         {
-            return !region.contains({spot.x, spot.z})
-                   || (!roof
-                       && (!hasRoom(level, spot, hidingRoom)
-                           || (grove && !amongTrees(layout, spot))));
+            return !region.contains({spot.at.x, spot.at.z})
+                   || (!inBarn
+                       && (!hasRoom(level, spot.at, hidingRoom)
+                           || (grove && !amongTrees(layout, spot.at))));
         };
         spots.erase(std::remove_if(spots.begin(), spots.end(), unfit), spots.end());
 
@@ -144,6 +145,7 @@ void chooseHideout(Level& level, Layout& layout, const Region& region)
         auto center = region.center();
         level.hiding = Level::Hiding::Meadow;
         level.hideout = {center.x, level.floorAt(center, 0.f), center.y};
+        level.hideoutHeading.reset();
         return;
     }
 
@@ -151,6 +153,8 @@ void chooseHideout(Level& level, Layout& layout, const Region& region)
     auto& spots = layout.hidings[(std::size_t) kind];
 
     level.hiding = (Level::Hiding) kind;
-    level.hideout = spots[layout.index(spots.size())];
+    const auto& spot = spots[layout.index(spots.size())];
+    level.hideout = spot.at;
+    level.hideoutHeading = spot.heading;
 }
 } // namespace Cows
