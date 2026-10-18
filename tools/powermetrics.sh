@@ -5,7 +5,7 @@
 # package power and per-process energy with powermetrics, which is why it needs
 # root. The app itself runs as the invoking user. One file per scenario goes to
 # docs/perf/data/power-<scenario>-<HHMMSS>.txt. PERF_BUILD picks the build
-# directory (default build-release).
+# directory (default build-release), or PERF_APP an app bundle anywhere.
 set -euo pipefail
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -20,14 +20,15 @@ scenarios=("$@")
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 build="${PERF_BUILD:-build-release}"
-bin="$root/$build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/Cows In Love"
+app="${PERF_APP:-$root/$build/Apps/CowsInLove/Cows In Love.app}"
+bin="$app/Contents/MacOS/Cows In Love"
 out="$root/docs/perf/data"
 user="${SUDO_USER:?run through sudo so the app can run as you}"
 warmup=5
 mkdir -p "$out"
 chown "$user" "$out"
 
-if pgrep -f "Cows In Love.app/Contents/MacOS/Cows In Love" >/dev/null; then
+if pgrep -f "Contents/MacOS/Cows In Love" >/dev/null; then
     echo "a Cows In Love is already running; quit it first" >&2
     exit 1
 fi
@@ -49,7 +50,7 @@ for scenario in "${scenarios[@]}"; do
     sleep "$warmup"
 
     {
-        echo "# scenario $scenario ${scenario_env[*]+${scenario_env[*]}} build $build"
+        echo "# scenario $scenario ${scenario_env[*]+${scenario_env[*]}} app $app"
         echo "# commit $(git -C "$root" rev-parse --short HEAD)"
         powermetrics --samplers cpu_power,gpu_power,tasks --show-process-energy \
             -i 1000 -n "$seconds"
