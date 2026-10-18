@@ -447,6 +447,8 @@ void CowsView::steerCamera(float delta, float wallDelta)
     {
         if (!dressing)
             camera.setPose(menuPose());
+        else if (editorFramingChanged())
+            frameEditor();
 
         return;
     }
@@ -521,6 +523,29 @@ CameraPose CowsView::editorPose() const
                       hatClearance});
 }
 
+// Whether the window or the editor's shape changed since the camera last
+// framed the cow for it, which leaves her where the old cowArea was.
+bool CowsView::editorFramingChanged() const
+{
+    if (editor == nullptr)
+        return false;
+
+    auto area = editor->cowArea();
+    return area.x != editorFramedArea.x || area.y != editorFramedArea.y
+           || area.w != editorFramedArea.w || area.h != editorFramedArea.h
+           || viewAspect != editorFramedAspect;
+}
+
+void CowsView::frameEditor()
+{
+    camera.setPose(editorPose());
+
+    if (editor != nullptr)
+        editorFramedArea = editor->cowArea();
+
+    editorFramedAspect = viewAspect;
+}
+
 // The pose moved back until the cow, with room for a hat above her, fills her
 // share of `area`, then slid so she stands at its centre.
 CameraPose CowsView::framedCow(CameraPose pose,
@@ -579,6 +604,9 @@ void CowsView::swingCamera(float delta)
         return;
 
     swinging = false;
+
+    if (swingGoal == SwingGoal::Dress)
+        frameEditor();
 
     if (swingGoal == SwingGoal::Play)
     {

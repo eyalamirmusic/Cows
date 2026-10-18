@@ -88,6 +88,8 @@ struct CowsView final : GPUView
     float editorOpacity() const;
     CameraPose menuPose() const;
     CameraPose editorPose() const;
+    bool editorFramingChanged() const;
+    void frameEditor();
     CameraPose framedCow(CameraPose pose,
                          Graphics::Rect area,
                          Graphics::Rect bounds,
@@ -210,6 +212,10 @@ struct CowsView final : GPUView
     SwingGoal swingGoal = SwingGoal::Menu;
     bool dressing = false;
     float dressAmount = 0.f;
+    // The cowArea and aspect the editor's camera last framed the cow for; the
+    // player orbits freely from there until either changes.
+    Graphics::Rect editorFramedArea;
+    float editorFramedAspect = 0.f;
     float playPitch = OrbitCamera {}.pitch;
     float playDistance = OrbitCamera {}.distance;
 
