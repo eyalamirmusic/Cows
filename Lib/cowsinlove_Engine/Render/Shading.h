@@ -40,7 +40,6 @@ Float3
 // the gamma curve.
 Float3 toDisplay(const Float3& linear);
 
-Float hash(const Float3& cell);
 Float valueNoise(const Float3& position);
 
 // valueNoise's kind of noise, hashed by multiplies and fract instead of a sine

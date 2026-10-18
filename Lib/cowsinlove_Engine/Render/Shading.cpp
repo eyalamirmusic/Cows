@@ -172,11 +172,6 @@ Float3 toDisplay(const Float3& linear)
     return pow(min(linear, soft), 1.f / 2.2f);
 }
 
-Float hash(const Float3& cell)
-{
-    return hashOf(cell.x(), cell.y(), cell.z());
-}
-
 Float valueNoise(const Float3& position)
 {
     return valueNoiseHashed(position, hashOf);

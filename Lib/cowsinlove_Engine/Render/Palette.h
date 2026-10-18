@@ -9,12 +9,9 @@ namespace Cows::Palette
 {
 // The terminal original's colours, authored in display (sRGB) space. Lighting
 // runs in linear space, so every one of them goes through linear() first.
-constexpr std::uint32_t sky = 0x87d7ff;
 constexpr std::uint32_t title = 0xff00d7;
 constexpr std::uint32_t sun = 0xffff00;
 constexpr std::uint32_t cloud = 0xffffff;
-constexpr std::uint32_t ground = 0x005f00;
-constexpr std::uint32_t grass = 0x87ff87;
 constexpr std::uint32_t heart = 0xff005f;
 
 constexpr std::uint32_t hide = 0xfbf7ef;
