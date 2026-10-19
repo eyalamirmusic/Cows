@@ -5,11 +5,10 @@
 
 #include <NanoTest/NanoTest.h>
 
-#include <eacp/Core/Platform/Platform.h>
-
 #include <array>
-#include <bit>
+#include <cmath>
 #include <cstdint>
+#include <iostream>
 
 using namespace nano;
 using namespace Cows;
@@ -17,90 +16,76 @@ using namespace Maths;
 
 namespace
 {
-// MSVC's random distributions and maths differ in the low bits: own table.
-// TODO: the Windows and Linux tables predate the walk-in barn; retake them there.
-constexpr auto msvcMeadowGolden = std::to_array<std::uint64_t>({
-    11244291730218905906ull, 10343436613414068082ull, 11684292388551233939ull,
-    10329903429551420818ull, 16146641879865093557ull, 7326419559184624660ull,
-    4355824712913150694ull,  10898734205573658670ull, 8818754057994609395ull,
-    1616347605941072906ull,  16613073689392090795ull, 10584052646619483228ull,
-    17113113472130015665ull, 15291949470523204505ull, 3034540995451892651ull,
-    2044409613191734294ull,  4565468061624003720ull,  13613761503097584892ull,
-    2476776270068140728ull,  15730384985877249127ull, 1316048311950576528ull,
-    9871167729732207224ull,  7689513085613183989ull,  288985286394413559ull,
-    590907176555942712ull,   4324252589140702740ull,  8084594379953467524ull,
-    14261557273372356691ull, 315700554286914712ull,   15558760483485305734ull,
-    11436925280209628553ull, 6057135330542983343ull,  2782188834484876774ull,
-    12657607272428366434ull, 17213503771893865822ull, 8966284539395114966ull,
-    8864771927408114120ull,  3431518799143032867ull,  10065454127548761700ull,
-    13022393425606858233ull,
-});
+// Seeds 1 to 40. The draws are our own (randomUnit) and the targets build without
+// FP contraction, so every platform generates the same level; values are rounded
+// onto a grid before hashing so each libm's low bits in sin/cos do not change the
+// hashes.
+constexpr auto meadowGolden = std::to_array<std::uint64_t>(
+    {14480292058536490485ull, 8015345250225959874ull,  8789866100485915750ull,
+     16717649394203799234ull, 13763610983462542313ull, 9682631651030597886ull,
+     9886301906639225336ull,  6084571856542902450ull,  12386465339021268291ull,
+     15812591158408350634ull, 5591460055931223932ull,  12822614561260056047ull,
+     10437677151532268105ull, 10995095398919459436ull, 6330020660465075333ull,
+     8209104958805570139ull,  2751241026483976962ull,  11943908367227923581ull,
+     8826563698048817916ull,  7317692226698534714ull,  1049854683543062534ull,
+     12999828896507208182ull, 14692699536144887400ull, 9821701091982190698ull,
+     1045014426940583875ull,  10805239616681081618ull, 12292938942928540222ull,
+     9910400080323819483ull,  733317952517400094ull,   8129175193684434743ull,
+     13864586895288654721ull, 9511476432751772560ull,  15676434753219874503ull,
+     16977566862471103744ull, 4429653172043812491ull,  3908761681763050908ull,
+     12535060082850075443ull, 14459583813896351785ull, 13227326960405452264ull,
+     377148785936289669ull});
 
-constexpr auto otherMeadowGolden = std::to_array<std::uint64_t>({
-    14112113583356790394ull, 1481919100990031960ull,  15510525424667179390ull,
-    13882091570783030952ull, 8439620331227113412ull,  6011202345513355918ull,
-    9590462566729410351ull,  3152222717483920576ull,  13209638710992751951ull,
-    8539496060205310739ull,  5829320236243440316ull,  7682313643889438306ull,
-    4872088754831608164ull,  11813553115905524673ull, 7597797747519508247ull,
-    10540150789886459699ull, 14584379330041310122ull, 16825520651651555008ull,
-    4006945292960539798ull,  1999885711224093347ull,  2501532882865816813ull,
-    18439016006631799927ull, 16247987758779703980ull, 9130817479008141124ull,
-    6771092366953438225ull,  17805675185440079636ull, 17641684208341007692ull,
-    8958434850555123593ull,  8004262422235892175ull,  7901899726488430019ull,
-    5411507726274353468ull,  15260327932873312302ull, 13784747768663533082ull,
-    1180866589821781223ull,  4409991837204253972ull,  1207002357611925996ull,
-    13015272794409872890ull, 10572923251078180606ull, 12929954251016698175ull,
-    10416429798810184413ull,
-});
+constexpr auto hashGridStepsPerUnit = 256.f;
+constexpr auto fnvOffset = 1469598103934665603ull;
+constexpr auto fnvPrime = 1099511628211ull;
 
-// x86-64 Linux (CI's runner) differs again; arm64 Linux matches none of the three.
-constexpr auto linuxMeadowGolden = std::to_array<std::uint64_t>({
-    1151177960577254616ull,  13738730589382266549ull, 15197971795123286052ull,
-    2383273968527815807ull,  2428477535599350953ull,  12072876086045465495ull,
-    12574481065660919751ull, 13273426080093746865ull, 2784937808278090082ull,
-    12063927317693631913ull, 12430887636966795118ull, 3640544014187368960ull,
-    11061612428955070813ull, 5439260746834344065ull,  16289257021953624838ull,
-    10532436916426050197ull, 10350579454875552547ull, 14238544770294048238ull,
-    353906853697121291ull,   9491961147817210717ull,  7171937648199247643ull,
-    12022711299925237007ull, 2365108853393691589ull,  3183307993517245238ull,
-    14694277993699789234ull, 9164553411196599106ull,  14674563222518210054ull,
-    9300472995833050578ull,  5550271528308836203ull,  16661157769857622003ull,
-    3807964431777502747ull,  12774910309662990339ull, 2285899882437085956ull,
-    9282679620146109723ull,  5392606008903866686ull,  10959089563826635870ull,
-    2324174887429392242ull,  1276525791139328517ull,  3056490746189571217ull,
-    5678711752673766838ull,
-});
-
-constexpr auto& meadowGolden = Platform::isWindows() ? msvcMeadowGolden
-                               : Platform::isLinux() ? linuxMeadowGolden
-                                                     : otherMeadowGolden;
-
-std::uint64_t mixIn(std::uint64_t hash, float value)
+std::uint64_t mixRoundedValueIntoHash(std::uint64_t hash, float value)
 {
-    return (hash ^ std::bit_cast<std::uint32_t>(value)) * 1099511628211ull;
+    auto valueOnGrid =
+        static_cast<std::uint64_t>(std::llround(value * hashGridStepsPerUnit));
+    return (hash ^ valueOnGrid) * fnvPrime;
 }
 
-std::uint64_t levelHash(const Level& level)
+using MeadowHashes = std::array<std::uint64_t, meadowGolden.size()>;
+
+void printMeadowHashesAsTable(const MeadowHashes& hashes)
 {
-    auto hash = 1469598103934665603ull;
+    constexpr auto hashesPerLine = 3;
+    std::cout << "meadow golden hashes, seeds 1 to " << hashes.size() << ":\n";
+
+    for (auto index = 0u; index < hashes.size(); ++index)
+    {
+        const auto* separator = (index + 1) % hashesPerLine == 0 ? "\n" : " ";
+        std::cout << (index % hashesPerLine == 0 ? "    " : "") << hashes[index]
+                  << "ull," << separator;
+    }
+
+    std::cout << std::endl;
+}
+
+std::uint64_t hashLevelLayout(const Level& level)
+{
+    auto hash = fnvOffset;
 
     for (const auto& c: level.colliders)
         for (auto v: {c.center.x, c.center.y, c.radius, c.top})
-            hash = mixIn(hash, v);
+            hash = mixRoundedValueIntoHash(hash, v);
 
     for (const auto& b: level.blocks)
         for (auto v:
              {b.center.x, b.center.y, b.half.x, b.half.y, b.top, b.rise.x, b.rise.y})
-            hash = mixIn(hash, v);
+            hash = mixRoundedValueIntoHash(hash, v);
 
-    for (auto v:
-         {level.hideout.x, level.hideout.y, level.hideout.z, (float) level.hiding})
-        hash = mixIn(hash, v);
+    auto hidingPlace = static_cast<float>(level.hiding);
+
+    for (auto v: {level.hideout.x, level.hideout.y, level.hideout.z, hidingPlace})
+        hash = mixRoundedValueIntoHash(hash, v);
 
     for (const auto& list: level.batch.lists)
         for (const auto& i: list)
             for (auto v: {i.model3.x, i.model3.y, i.model3.z, i.model0.x, i.color.x})
-                hash = mixIn(hash, v);
+                hash = mixRoundedValueIntoHash(hash, v);
 
     return hash;
 }
@@ -134,8 +119,15 @@ bool touchesPath(const Region& path, const Cows::Block& block)
 
 auto tMeadowGolden = test("LevelGenerator/meadowTemplateIsTodaysMeadow") = []
 {
-    for (auto seed = 1u; seed <= 40u; ++seed)
-        check(levelHash(generate(meadowFixture(), seed)) == meadowGolden[seed - 1]);
+    auto hashes = MeadowHashes {};
+
+    for (auto seed = 1u; seed <= hashes.size(); ++seed)
+        hashes[seed - 1] = hashLevelLayout(generate(meadowFixture(), seed));
+
+    if (hashes != meadowGolden)
+        printMeadowHashesAsTable(hashes);
+
+    check(hashes == meadowGolden);
 };
 
 auto tMeadowStart = test("LevelGenerator/meadowStartsAtTheOrigin") = []

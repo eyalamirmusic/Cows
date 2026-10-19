@@ -50,6 +50,9 @@ endif ()
 
 option(COWS_BUILD_TESTS "Build the test suites" ON)
 
+# A seed must make the same level everywhere; FMA changes the low bits placement hinges on.
+add_compile_options($<$<CXX_COMPILER_ID:Clang,AppleClang,GNU>:-ffp-contract=off>)
+
 add_subdirectory(Lib)
 add_subdirectory(Apps)
 

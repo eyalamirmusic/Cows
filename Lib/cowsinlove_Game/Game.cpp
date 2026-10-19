@@ -1,6 +1,7 @@
 #include "Game.h"
 #include "Animation/Choreography.h"
 #include "Cow/Moo.h"
+#include "Props/Props.h"
 
 #include <algorithm>
 #include <cmath>
@@ -135,8 +136,7 @@ void Game::reset(std::uint32_t newSeed)
     sinceFound = 0.f;
     sinceMoo = 100.f;
     partner = level.hideout;
-    partnerHeading =
-        twoPi * std::uniform_real_distribution<float> {0.f, 1.f}(random);
+    partnerHeading = twoPi * randomUnit(random);
 }
 
 void Game::start()

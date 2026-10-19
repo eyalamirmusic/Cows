@@ -361,6 +361,11 @@ Studio's), as eacp's own toolchain does.
 
 Use `$HOME`, not `~`: CMake does not expand `~`.
 
+Every target builds with floating-point contraction off (`-ffp-contract=off` in
+the top `CMakeLists.txt`, for Clang and GCC; MSVC does not fuse): a seed must
+generate the same level on every platform, and FMA changes the low bits the level
+generator's placement hinges on. `LevelGeneratorTests` checks the hashes.
+
 iOS: `tools/ios.sh sim [shot.png]` builds `build-ios/` and runs it on the "Cows iPhone"
 simulator; `tools/ios.sh device` signs with `COWS_TEAM` (default: Jamie's Personal Team) and runs it on the phone.
 

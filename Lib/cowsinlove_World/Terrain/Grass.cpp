@@ -1,5 +1,6 @@
 #include "Terrain/Grass.h"
 
+#include "Props/Props.h"
 #include "Render/Frustum.h"
 
 #include <algorithm>
@@ -106,25 +107,24 @@ Vector<BladeInstance> makeGrassTile()
     blades.reserve(bladeCount);
 
     auto random = std::mt19937 {1994u};
-    auto unit = std::uniform_real_distribution<float> {0.f, 1.f};
 
     while (blades.size() < bladeCount)
     {
-        auto x = meadowTile * unit(random);
-        auto z = meadowTile * unit(random);
+        auto x = meadowTile * randomUnit(random);
+        auto z = meadowTile * randomUnit(random);
 
-        auto height = 0.2f + 0.2f * unit(random);
-        auto width = 0.018f + 0.012f * unit(random);
+        auto height = 0.2f + 0.2f * randomUnit(random);
+        auto width = 0.018f + 0.012f * randomUnit(random);
 
-        auto facing = twoPi * unit(random);
-        auto phase = twoPi * unit(random);
-        auto shade = unit(random);
-        auto lean = unit(random) - 0.5f;
+        auto facing = twoPi * randomUnit(random);
+        auto phase = twoPi * randomUnit(random);
+        auto shade = randomUnit(random);
+        auto lean = randomUnit(random) - 0.5f;
 
-        auto twist = 1.8f * (unit(random) - 0.5f);
-        auto fold = 0.35f + 0.65f * unit(random);
-        auto hue = unit(random);
-        auto seed = unit(random);
+        auto twist = 1.8f * (randomUnit(random) - 0.5f);
+        auto fold = 0.35f + 0.65f * randomUnit(random);
+        auto hue = randomUnit(random);
+        auto seed = randomUnit(random);
 
         blades.add(BladeInstance {{x, z, facing, height},
                                   {width, phase, shade, lean},

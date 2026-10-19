@@ -7,9 +7,18 @@ using namespace Maths;
 
 namespace Cows
 {
+namespace
+{
+constexpr auto bitsDroppedToFitFloatMantissa = 8u;
+constexpr auto oneOverTwoToTheTwentyFour = 0x1p-24f;
+} // namespace
+
+// Not std::uniform_real_distribution: each standard library gives other levels.
 float randomUnit(std::mt19937& random)
 {
-    return std::uniform_real_distribution<float> {0.f, 1.f}(random);
+    auto topTwentyFourBits = random() >> bitsDroppedToFitFloatMantissa;
+    auto bitsAsFloat = static_cast<float>(topTwentyFourBits);
+    return bitsAsFloat * oneOverTwoToTheTwentyFour;
 }
 
 float randomBetween(std::mt19937& random, float from, float to)
