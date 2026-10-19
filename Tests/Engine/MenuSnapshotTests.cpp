@@ -144,7 +144,7 @@ void checkMainMenu(float width, float height, const char* name)
         check(inside(area, width, height));
         check(area.y >= title.y + title.h);
 
-        if (menu.shape().cow > 0.f)
+        if (menu.shape().cowShare > 0.f)
             check(!area.intersects(menu.cowArea()));
 
         for (auto other = index + 1; other < 4; ++other)
