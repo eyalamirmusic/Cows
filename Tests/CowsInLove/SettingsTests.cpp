@@ -69,6 +69,14 @@ auto tSavedNames = test("Settings/savesEnumeratorNames") = []
     check(json.find("\"frameRate\": \"Max\"") != std::string::npos);
 };
 
+auto tThirty = test("Settings/thirtyRoundTrips") = []
+{
+    auto settings = Settings {};
+    settings.frameRate = FrameRate::Thirty;
+    check(toJSON(settings).find("\"frameRate\": \"Thirty\"") != std::string::npos);
+    check(settingsFromJSON(toJSON(settings)) == settings);
+};
+
 auto tUnmeasured = test("Settings/unmeasuredIsNull") = []
 {
     auto settings = Settings {};

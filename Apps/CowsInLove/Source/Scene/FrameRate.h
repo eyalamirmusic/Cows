@@ -10,6 +10,7 @@ namespace Cows
 enum class FrameRate
 {
     Auto,
+    Thirty,
     Sixty,
     Max
 };
@@ -22,10 +23,12 @@ struct FrameRateAndLabel final
 
 constexpr auto frameRatesAndLabels = std::array {
     FrameRateAndLabel {FrameRate::Auto, "Auto"},
+    FrameRateAndLabel {FrameRate::Thirty, "30"},
     FrameRateAndLabel {FrameRate::Sixty, "60"},
     FrameRateAndLabel {FrameRate::Max, "Max"},
 };
 
+constexpr auto thirtyFramesPerSecond = 30;
 constexpr auto menuFramesPerSecond = 60;
 constexpr auto noFrameRateCap = 0;
 

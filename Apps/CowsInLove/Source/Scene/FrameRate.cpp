@@ -51,6 +51,9 @@ std::optional<FrameRate> readFrameRateFromEnvironment()
 
 int getFrameRateCap(FrameRate rate, bool menusHaveInputAndCameraIsStill)
 {
+    if (rate == FrameRate::Thirty)
+        return thirtyFramesPerSecond;
+
     auto alwaysSixty = rate == FrameRate::Sixty;
     auto sixtyInTheMenus = rate == FrameRate::Auto && menusHaveInputAndCameraIsStill;
 

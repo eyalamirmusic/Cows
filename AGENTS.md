@@ -253,9 +253,9 @@ under `Apps/CowsInLove/`.
   mesh detail, grass tiles, density and blade segments, grass and ground noise,
   shadow map side and taps); `QualityChoice` (Auto or a tier) and
   `chooseQualityToUse` (COWS_QUALITY, else the choice, else the measured tier)
-- `Apps/CowsInLove/Source/Scene/FrameRate` — `FrameRate` (Auto, 60, Max) and
+- `Apps/CowsInLove/Source/Scene/FrameRate` — `FrameRate` (Auto, 30, 60, Max) and
   `getFrameRateCap`, the cap `CowsView::applyFrameRateCap` hands
-  `GPUView::setMaxFps` each update: Max every display refresh, 60 everywhere,
+  `GPUView::setMaxFps` each update: Max every display refresh, 30 or 60 everywhere,
   Auto every refresh in play and during a swing and 60 while the menu or the
   editor has the input
 - `Apps/CowsInLove/Source/CowsApp` — the window: scene, footer, touch controls,
@@ -325,7 +325,7 @@ shadows, left out of the frame) and compares.
 `COWS_QUALITY=low|medium|high` forces a quality tier at launch (`Scene/Quality`)
 until the player picks one in Settings (the start menu's third item, an
 `Editor` with two rows, Quality: Auto, Low, Medium, High and Frame rate: Auto,
-60, Max; each applies at once). `COWS_FPS=auto|60|max` forces the frame rate
+30, 60, Max; each applies at once). `COWS_FPS=auto|30|60|max` forces the frame rate
 for the run whatever Settings says (`Scene/FrameRate`); `tools/perf.sh` pins it. On Auto
 with nothing measured the run starts at high, `QualityGovernor`
 (`Render/QualityGovernor`) drops tiers while the GPU's frame time is over
