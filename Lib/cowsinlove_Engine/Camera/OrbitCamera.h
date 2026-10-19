@@ -51,6 +51,16 @@ CameraPose placeTargetOnScreen(CameraPose pose,
 Maths::Vec2 driftAt(float seconds);
 
 constexpr auto unlimitedReach = std::numeric_limits<float>::infinity();
+constexpr auto noLowestEye = -std::numeric_limits<float>::infinity();
+
+// The highest pitch orbit() allows.
+constexpr auto highestPitch = 1.3f;
+
+// The least tilt that keeps an eye `radius` from a target at `targetHeight` at
+// or above `lowestEye`, never past highestPitch; -halfPi when any tilt does.
+float findLowestTiltKeepingEyeAbove(float lowestEye,
+                                    float targetHeight,
+                                    float radius);
 
 struct OrbitCamera final
 {
@@ -87,6 +97,9 @@ struct OrbitCamera final
     // How far out the eye may stand, short of `distance` when something is in
     // the way; the pose keeps the distance wanted.
     float reach = unlimitedReach;
+    // How low the eye may go: when the pitch, sway included, would put it under,
+    // the eye tilts up just enough, and the pose keeps the pitch wanted.
+    float lowestEye = noLowestEye;
     float swayYaw = 0.f;
     float swayPitch = 0.f;
     float fieldOfView = Maths::radians(42.f);

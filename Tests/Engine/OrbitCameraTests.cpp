@@ -161,7 +161,8 @@ auto tDistanceToFit = test("OrbitCamera/distanceToFitFillsTheShare") = []
     check(near(distanceToFit(2.f, 0.25f, fov), 2.f * distance));
 };
 
-auto tCentreKeepsTarget = test("OrbitCamera/placeTargetOnScreenAtCentreKeepsTarget") = []
+auto tCentreKeepsTarget =
+    test("OrbitCamera/placeTargetOnScreenAtCentreKeepsTarget") = []
 {
     auto pose = OrbitCamera {}.pose();
     auto placed = placeTargetOnScreen(pose, {0.f, 0.f}, radians(42.f), 1.5f);
@@ -169,7 +170,8 @@ auto tCentreKeepsTarget = test("OrbitCamera/placeTargetOnScreenAtCentreKeepsTarg
     check(near(length(placed.target - pose.target), 0.f));
 };
 
-auto tRightEdgeSlidesLeft = test("OrbitCamera/placeTargetOnScreenAtRightEdgeSlidesLeft") = []
+auto tRightEdgeSlidesLeft =
+    test("OrbitCamera/placeTargetOnScreenAtRightEdgeSlidesLeft") = []
 {
     auto camera = OrbitCamera {};
     auto fov = radians(42.f);
@@ -183,7 +185,8 @@ auto tRightEdgeSlidesLeft = test("OrbitCamera/placeTargetOnScreenAtRightEdgeSlid
     check(near(dot(slid, camera.forward()), 0.f));
 };
 
-auto tLandsOnScreen = test("OrbitCamera/placeTargetOnScreenPutsTheOldTargetThere") = []
+auto tLandsOnScreen =
+    test("OrbitCamera/placeTargetOnScreenPutsTheOldTargetThere") = []
 {
     auto camera = OrbitCamera {};
     camera.yaw = 0.7f;
@@ -198,4 +201,76 @@ auto tLandsOnScreen = test("OrbitCamera/placeTargetOnScreenPutsTheOldTargetThere
                 * Vec4 {point.x, point.y, point.z, 1.f};
     check(near(clip.x / clip.w, wanted.x, 1e-3f));
     check(near(clip.y / clip.w, wanted.y, 1e-3f));
+};
+
+namespace
+{
+constexpr auto groundClearance = 0.8f;
+constexpr auto lowTargetHeight = 2.2f;
+constexpr auto farDistance = 40.f;
+constexpr auto pitchUnderGround = -0.08f;
+constexpr auto pitchAboveGround = 0.22f;
+constexpr auto swayUnderGround = -0.05f;
+
+OrbitCamera makeLowFarCamera(float pitch)
+{
+    auto camera = OrbitCamera {};
+    camera.target = {0.f, lowTargetHeight, 0.f};
+    camera.distance = farDistance;
+    camera.pitch = pitch;
+    camera.lowestEye = groundClearance;
+    return camera;
+}
+} // namespace
+
+auto tLowestEyeLiftsTheEyeToIt = test("OrbitCamera/lowestEyeLiftsTheEyeToIt") = []
+{
+    auto camera = makeLowFarCamera(pitchUnderGround);
+
+    check(near(camera.eye().y, groundClearance));
+    check(near(length(camera.eye() - camera.target), farDistance));
+    check(near(camera.pitch, pitchUnderGround));
+};
+
+auto tLowestEyeLeavesHigherEyes = test("OrbitCamera/lowestEyeLeavesHigherEyes") = []
+{
+    auto limited = makeLowFarCamera(pitchAboveGround);
+    auto free = limited;
+    free.lowestEye = noLowestEye;
+
+    check(limited.eye().y > groundClearance);
+    check(near(limited.eye().x, free.eye().x));
+    check(near(limited.eye().y, free.eye().y));
+    check(near(limited.eye().z, free.eye().z));
+};
+
+auto tLowestEyeCountsTheSway = test("OrbitCamera/lowestEyeCountsTheSway") = []
+{
+    auto camera = makeLowFarCamera(pitchAboveGround);
+    camera.pitch = std::asin((groundClearance - lowTargetHeight) / farDistance);
+    camera.swayPitch = swayUnderGround;
+
+    check(near(camera.eye().y, groundClearance));
+};
+
+auto tLowestEyeCountsTheReach = test("OrbitCamera/lowestEyeCountsTheReach") = []
+{
+    constexpr auto shortReach = 6.f;
+    auto camera = makeLowFarCamera(pitchUnderGround);
+    camera.reach = shortReach;
+    camera.lowestEye = lowTargetHeight + 1.f;
+
+    check(near(camera.eye().y, lowTargetHeight + 1.f));
+    check(near(length(camera.eye() - camera.target), shortReach));
+};
+
+auto tLowestTiltStopsAtHighestPitch =
+    test("OrbitCamera/lowestTiltStopsAtHighestPitch") = []
+{
+    constexpr auto unreachable = 100.f;
+
+    check(near(findLowestTiltKeepingEyeAbove(unreachable, 0.f, farDistance),
+               highestPitch));
+    check(
+        near(findLowestTiltKeepingEyeAbove(noLowestEye, 0.f, farDistance), -halfPi));
 };

@@ -10,7 +10,6 @@ namespace Cows
 namespace
 {
 constexpr auto minPitch = -0.08f;
-constexpr auto maxPitch = 1.3f;
 constexpr auto minDistance = 5.f;
 constexpr auto maxDistance = 40.f;
 constexpr Vec3 worldUp {0.f, 1.f, 0.f};
@@ -75,10 +74,25 @@ Vec2 driftAt(float seconds)
             0.015f * std::sin(seconds * 0.17f + 1.f)};
 }
 
+float findLowestTiltKeepingEyeAbove(float lowestEye,
+                                    float targetHeight,
+                                    float radius)
+{
+    if (radius <= 0.f || lowestEye == noLowestEye)
+        return -halfPi;
+
+    auto risePerRadius = (lowestEye - targetHeight) / radius;
+
+    if (risePerRadius <= -1.f)
+        return -halfPi;
+
+    return std::asin(std::min(risePerRadius, std::sin(highestPitch)));
+}
+
 void OrbitCamera::orbit(float horizontal, float vertical)
 {
     yaw -= horizontal;
-    pitch = std::clamp(pitch + vertical, minPitch, maxPitch);
+    pitch = std::clamp(pitch + vertical, minPitch, highestPitch);
 }
 
 void OrbitCamera::zoom(float amount)
@@ -120,13 +134,15 @@ void OrbitCamera::setPose(const CameraPose& to)
 
 Vec3 OrbitCamera::eye() const
 {
+    auto radius = std::min(distance, reach);
     auto turn = yaw + swayYaw;
-    auto tilt = pitch + swayPitch;
+    auto tilt = std::max(pitch + swayPitch,
+                         findLowestTiltKeepingEyeAbove(lowestEye, target.y, radius));
     auto offset = Vec3 {std::cos(tilt) * std::sin(turn),
                         std::sin(tilt),
                         std::cos(tilt) * std::cos(turn)};
 
-    return target + offset * std::min(distance, reach);
+    return target + offset * radius;
 }
 
 Vec3 OrbitCamera::forward() const
