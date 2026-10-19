@@ -20,17 +20,12 @@ struct EditorRow final
     int choice = 0;
 };
 
-// The choice a row lands on when stepping takes it to `index`, wrapping round
-// past either end of its `numChoices`.
 inline int wrapChoiceIndex(int index, int numChoices)
 {
     auto remainder = index % numChoices;
     return remainder < 0 ? remainder + numChoices : remainder;
 }
 
-// The entry `steps` along from the first one `isCurrent` picks, wrapping round
-// either end: a Settings row's < >. It goes by position in the table, so the
-// row's order is the table's, whatever the enum's is.
 template <typename Entry, std::size_t numEntries, typename IsCurrent>
 const Entry& stepThroughEntries(const std::array<Entry, numEntries>& entries,
                                 IsCurrent isCurrent,

@@ -104,13 +104,8 @@ enum class EscapeAction
 
 EscapeAction escapeAction(Game::State state, bool dressing, bool swinging);
 
-// Which screen gets touches, clicks, keys and the controller: the menu, the
-// editor, or play. Not a second state machine: getInputRecipient works it out
-// each time from Game::State, whether an editor is open and the camera swing,
-// since State is Menu for the menu and the editors alike, and stays Menu while
-// Start swings the camera down. Play takes the input from the moment that
-// swing starts, not when it lands, so a finger put on the stick mid-swing is
-// the stick's and not the fading menu's for as long as it stays down.
+// Derived from Game::State each time, which stays Menu while Start swings the
+// camera down although play already has the input.
 enum class InputRecipient
 {
     Menu,
