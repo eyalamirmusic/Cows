@@ -282,6 +282,11 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   stick, touch drag), and Done, Esc and the controller's East / Start swing
   back to the menu. `CowsApp` saves `Settings` on every change
 - `tools/blender` — Blender scripts for meshes (`barn.py`); see its README
+- `tools/perf.sh` (`just perf`) and `tools/perf-stats.py` (`just perf-compare`)
+  time the five scenarios and compare two builds; `tools/perf-sample.sh` takes
+  `sample` call graphs that `tools/perf-sample-top.py` reduces to on-CPU
+  frames; `tools/powermetrics.sh` captures power that `tools/perf-power.py`
+  reads. `docs/perf/2026-10-18-audit.md` is the audit they were built for
 - `tools/Art` — `CowsArt`, a macOS tool that renders the icon, key art, logo
   and store screenshots from the game's own views (`CowsArt screens <dir>
   [menu|dress|settings|about]` renders those screens at sixteen phone,
@@ -401,7 +406,7 @@ C++ files.
   and understand is wrong: `pullCameraInFrontOfBlockingProps`, not
   `keepEyeClear` (whose eye?); `onRowValueStepped`, not `onStep`.
 - Functions are verbs that say what they do: `makeFrameRateRow`,
-  `getFrameRateLabel`, `parseFrameRateName`, `readFrameRateFromEnvironment`,
+  `getQualityChoiceLabel`, `parseFrameRateName`, `readFrameRateFromEnvironment`,
   `replaceUnknownValuesWithDefaults`; not `frameRateRow`, `frameRateNamed`,
   `withKnownValue`.
 - Casts go in named temporaries (`auto choiceIndex = static_cast<int>(choice);`),
