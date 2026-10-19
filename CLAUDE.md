@@ -276,6 +276,9 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   stick, touch drag), and Done, Esc and the controller's East / Start swing
   back to the menu. `CowsApp` saves `Settings` on every change
 - `tools/blender` — Blender scripts for meshes (`barn.py`); see its README
+- `tools/rename-functions.py` — `inventory` lists every function through
+  libclang (`docs/naming/functions.csv`); `rename` renames the rows marked
+  rename by USR, comments and docs included (dry run without `--write`)
 - `tools/Art` — `CowsArt`, a macOS tool that renders the icon, key art, logo
   and store screenshots from the game's own views (`CowsArt screens <dir>
   [menu|dress|settings|about]` renders those screens at sixteen phone,

@@ -15,7 +15,8 @@ outside this repo). The decision, new_name and reason columns start empty.
 
 rename reads the rows of <names.csv> whose decision is "rename" and, without
 --write, prints how many edits each name would make and every token with the
-old spelling it could not resolve. --write rewrites the files. Identifiers in
+old spelling it could not resolve. --write rewrites the files and runs
+clang-format on the C++ ones. Identifiers in
 C++ comments and `backticked` names in CLAUDE.md, AGENTS.md and docs/ are
 rewritten too when the old spelling means one function only.
 """
@@ -26,6 +27,7 @@ import importlib.util
 import json
 import os
 import re
+import subprocess
 import sys
 from concurrent.futures import ProcessPoolExecutor
 
@@ -373,6 +375,9 @@ def rename(build, names_csv, write):
                     sys.exit(f"{path}:{off}: expected {old}")
                 data = data[:off] + new.encode() + data[off + len(old.encode()):]
             open(path, "wb").write(data)
+        # Longer names push lines past 85 columns.
+        cpp = sorted(p for p in edits if p.endswith((".h", ".cpp", ".mm")))
+        subprocess.run([os.path.join(refs.LLVM, "bin", "clang-format"), "-i", *cpp], check=True)
 
 
 def source_files():
