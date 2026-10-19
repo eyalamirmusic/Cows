@@ -9,7 +9,7 @@ if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
 endif ()
 
 # The fourth number is the build (versionCode, CFBundleVersion): raise it every upload.
-project(Cows VERSION 1.0.1.12 LANGUAGES C CXX)
+project(Cows VERSION 1.0.2.13 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
