@@ -9,13 +9,13 @@ using namespace Cows::Flex;
 
 namespace
 {
-constexpr auto characterShare = 0.5f;
+constexpr auto characterWidthPerPointSize = 0.5f;
 constexpr auto step = 0.5f;
 constexpr auto tapTarget = 64.f;
 
 float measureByCharacters(std::string_view text, float pointSize)
 {
-    return (float) text.size() * pointSize * characterShare;
+    return (float) text.size() * pointSize * characterWidthPerPointSize;
 }
 
 bool onTheGrid(float size)
@@ -23,8 +23,6 @@ bool onTheGrid(float size)
     return std::fmod(size, step) == 0.f;
 }
 
-// A column of labels, each in a row at least a tap target tall when
-// `targetFloor`, padded by a share of the size.
 TreeAtSize labels(eacp::Vector<std::string> texts, bool targetFloor)
 {
     return [texts, targetFloor](float pointSize)
@@ -68,8 +66,7 @@ auto tLinear = test("FitToSize/linearTreesTakeTheClosedForm") = []
     check(!fits(build, area, size + step));
 };
 
-// Three rows with a 64 point floor in 200 points tall: the floor holds until
-// the rows' text outgrows it, so the need is not a line in the size.
+// The 64 point floor holds until the text outgrows it, so the need is not linear.
 auto tFloor = test("FitToSize/aTapTargetFloorFallsBackToTheSearch") = []
 {
     auto build = labels({"ab", "ab", "ab"}, true);
@@ -96,5 +93,5 @@ auto tRange = test("FitToSize/staysInsideItsRangeOnTheGrid") = []
 
     check(roomyFit.pointSize == 33.f && roomyFit.fits);
     check(crampedFit.pointSize == 8.5f && !crampedFit.fits);
-    check(onGrid(13.74f, step) == 13.5f);
+    check(roundDownToGrid(13.74f, step) == 13.5f);
 };

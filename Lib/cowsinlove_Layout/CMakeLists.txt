@@ -1,5 +1,4 @@
-# Flexbox-lite layout: trees of boxes resolved to rects, shared columns and
-# fit-to-size. Knows nothing of fonts or the GPU, so eacp could take it.
+# Knows nothing of fonts or the GPU, so eacp could take it.
 add_library(cowsinlove_Layout STATIC
         Layout/FitToSize.cpp
         Layout/Tree.cpp)

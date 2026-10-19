@@ -11,13 +11,12 @@ using eacp::Graphics::Rect;
 
 namespace
 {
-// Every character half the point size wide, as a stand-in for a font.
-constexpr auto characterShare = 0.5f;
+constexpr auto characterWidthPerPointSize = 0.5f;
 constexpr auto closeEnough = 0.001f;
 
 float measureByCharacters(std::string_view text, float pointSize)
 {
-    return (float) text.size() * pointSize * characterShare;
+    return (float) text.size() * pointSize * characterWidthPerPointSize;
 }
 
 bool near(float a, float b)
