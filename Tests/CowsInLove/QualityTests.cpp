@@ -7,7 +7,7 @@ using namespace Cows;
 
 auto tHighIsTheGame = test("Quality/highIsTheGameAsDesigned") = []
 {
-    auto high = settingsFor(Quality::High);
+    auto high = getSettingsForQuality(Quality::High);
     auto design = GrassDensity {};
 
     check(high.samples == 4);
@@ -25,9 +25,9 @@ auto tHighIsTheGame = test("Quality/highIsTheGameAsDesigned") = []
 
 auto tLowerCostsLess = test("Quality/eachTierAsksNoMoreThanTheOneAbove") = []
 {
-    auto low = settingsFor(Quality::Low);
-    auto mid = settingsFor(Quality::Medium);
-    auto high = settingsFor(Quality::High);
+    auto low = getSettingsForQuality(Quality::Low);
+    auto mid = getSettingsForQuality(Quality::Medium);
+    auto high = getSettingsForQuality(Quality::High);
 
     check(low.samples <= mid.samples && mid.samples <= high.samples);
     check(low.shadowTaps <= mid.shadowTaps && mid.shadowTaps <= high.shadowTaps);
@@ -45,7 +45,7 @@ auto tLowerCostsLess = test("Quality/eachTierAsksNoMoreThanTheOneAbove") = []
 
 auto tLowIsCheap = test("Quality/lowDropsMsaaAndTheFarGrass") = []
 {
-    auto low = settingsFor(Quality::Low);
+    auto low = getSettingsForQuality(Quality::Low);
     check(low.samples == 1);
     check(low.cheapGroundNoise);
     check(low.shadowTaps == 4);
@@ -55,21 +55,21 @@ auto tLowIsCheap = test("Quality/lowDropsMsaaAndTheFarGrass") = []
 auto tNames = test("Quality/namesRoundTrip") = []
 {
     for (auto quality: {Quality::Low, Quality::Medium, Quality::High})
-        check(qualityNamed(qualityName(quality)) == quality);
+        check(parseQualityName(getQualityName(quality)) == quality);
 
-    check(qualityNamed(" LOW\n") == Quality::Low);
-    check(qualityNamed("mid") == Quality::Medium);
-    check(!qualityNamed("ultra").has_value());
-    check(!qualityNamed("").has_value());
+    check(parseQualityName(" LOW\n") == Quality::Low);
+    check(parseQualityName("mid") == Quality::Medium);
+    check(!parseQualityName("ultra").has_value());
+    check(!parseQualityName("").has_value());
 };
 
 auto tChoices = test("Quality/choicesPickTheirTier") = []
 {
-    check(!chosenQuality(QualityChoice::Auto).has_value());
-    check(chosenQuality(QualityChoice::Low) == Quality::Low);
-    check(chosenQuality(QualityChoice::Medium) == Quality::Medium);
-    check(chosenQuality(QualityChoice::High) == Quality::High);
-    check(choiceLabel(QualityChoice::Medium) == "Medium");
+    check(!getChosenQuality(QualityChoice::Auto).has_value());
+    check(getChosenQuality(QualityChoice::Low) == Quality::Low);
+    check(getChosenQuality(QualityChoice::Medium) == Quality::Medium);
+    check(getChosenQuality(QualityChoice::High) == Quality::High);
+    check(getQualityChoiceLabel(QualityChoice::Medium) == "Medium");
 };
 
 auto tToUse = test("Quality/forcedThenChosenThenMeasured") = []
@@ -77,8 +77,17 @@ auto tToUse = test("Quality/forcedThenChosenThenMeasured") = []
     auto low = std::optional<Quality> {Quality::Low};
     auto none = std::optional<Quality> {};
 
-    check(qualityToUse(Quality::High, QualityChoice::Low, low) == Quality::High);
-    check(qualityToUse(none, QualityChoice::Medium, low) == Quality::Medium);
-    check(qualityToUse(none, QualityChoice::Auto, low) == Quality::Low);
-    check(!qualityToUse(none, QualityChoice::Auto, none).has_value());
+    check(chooseQualityToUse(Quality::High, QualityChoice::Low, low)
+          == Quality::High);
+    check(chooseQualityToUse(none, QualityChoice::Medium, low) == Quality::Medium);
+    check(chooseQualityToUse(none, QualityChoice::Auto, low) == Quality::Low);
+    check(!chooseQualityToUse(none, QualityChoice::Auto, none).has_value());
+};
+
+auto tQualityStepping = test("Quality/steppingWrapsRoundBothEnds") = []
+{
+    check(stepQualityChoice(QualityChoice::Auto, 1) == QualityChoice::Low);
+    check(stepQualityChoice(QualityChoice::High, 1) == QualityChoice::Auto);
+    check(stepQualityChoice(QualityChoice::Auto, -1) == QualityChoice::High);
+    check(getQualityChoiceFor(Quality::Medium) == QualityChoice::Medium);
 };

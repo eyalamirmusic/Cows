@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""Every function, method, field, variable and type declared in this repo's
-sources, against every reference to it in every translation unit, through
-libclang. Prints the ones nothing references ("unused") and the ones only
-Tests/ references ("test-only").
-
-usage: dead-code-refs.py <build dir with compile_commands.json> [jobs]
-"""
+# Usage: tools/dead-code-refs.py <build dir with compile_commands.json> [jobs]
 
 import json
 import os
@@ -30,8 +24,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OURS = tuple(os.path.join(ROOT, d) + "/" for d in ("Lib", "Apps", "Tests", "tools"))
 K = cindex.CursorKind
 
-# Called from outside this repo's code: the entry points, and Miro's
-# serialisation, which finds reflect() by argument-dependent lookup.
+# Miro's serialisation finds reflect() by argument-dependent lookup.
 ROOTS = {"", "main", "reflect"}
 
 TRACKED = {
@@ -84,8 +77,7 @@ def scan(entry):
     if errors:
         sys.exit(f"{entry['file']}: {errors[0]}")
 
-    # Implicit nodes, such as a conversion operator's member call, have no
-    # file: they belong to the code around them.
+    # Implicit nodes have no file: they belong to the code around them.
     def visit(cursor, outer=None):
         for child in cursor.get_children():
             loc = child.location

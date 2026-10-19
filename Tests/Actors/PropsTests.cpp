@@ -47,7 +47,6 @@ struct Shot final
     float height = snapshotHeight;
 };
 
-// The shot from `eye` looking at `target`.
 Shot looking(Vec3 eye, Vec3 target)
 {
     auto away = eye - target;
@@ -85,13 +84,11 @@ void checkSnapshot(const Scenery& scenery,
     checkSnapshot(scenery, name, Shot {target, distance, yaw});
 }
 
-// The game's player: her height, how far she steps up and jumps.
 constexpr auto playerHeight = 1.5f;
 constexpr auto stepUp = 0.55f;
 constexpr auto jumpHeight = 2.4f;
 constexpr auto climbJump = 1.8f;
-// How far along the front wall from the doorway's middle is surely wall.
-constexpr auto alongTheWall = 4.f;
+constexpr auto distanceFromDoorwayMiddleThatIsSurelyWall = 4.f;
 constexpr auto vaneHeight = 1.2f;
 
 constexpr auto barnBlocks = 34;
@@ -103,7 +100,6 @@ constexpr std::uint32_t meadowColor = 0x86b04f;
 constexpr auto meadowSide = 80.f;
 constexpr auto meadowThickness = 0.02f;
 
-// A patch of meadow for the barn to stand on, its top at the ground.
 void addMeadow(Scenery& scenery)
 {
     scenery.batch.add(
@@ -133,7 +129,6 @@ bool ramps(const Cows::Block& block)
     return lengthSquared(block.rise) > 0.f;
 }
 
-// The blocks over `point`, floating or standing.
 Vector<Cows::Block> blocksAt(const Scenery& scenery, Vec2 point, bool floating)
 {
     auto found = Vector<Cows::Block> {};
@@ -155,9 +150,6 @@ float highestTop(const Scenery& scenery)
     return top;
 }
 
-// The roof's height where it first starts ahead of `spot`.
-// The top of the climb: the highest block standing outside the roof, and
-// which way the barn is from it, along its nearer axis.
 struct ClimbTop final
 {
     Cows::Block block;
@@ -186,7 +178,6 @@ ClimbTop climbTop(const Scenery& scenery)
     return top;
 }
 
-// The roof's height where it first starts from `from` along `toward`.
 float roofEdgeAhead(const Scenery& scenery, Vec2 from, Vec2 toward)
 {
     constexpr auto stride = 0.02f;
@@ -239,7 +230,9 @@ auto tBarnDoorway = test("Props/barnDoorwayIsOpenAndTheWallBesideItIsNot") = []
     check(lowest < std::numeric_limits<float>::max());
 
     auto forward = ahead(doorway.heading);
-    auto beside = at + Vec2 {forward.y, -forward.x} * alongTheWall;
+    auto beside =
+        at
+        + Vec2 {forward.y, -forward.x} * distanceFromDoorwayMiddleThatIsSurelyWall;
     check(!blocksAt(scenery, beside, false).empty());
 };
 
@@ -302,8 +295,6 @@ auto tBarnMesh = test("Props/barnMeshHasEveryMaterial") = []
     check(!isPropShape(Shape::Box));
 };
 
-// The climb outside: a ramp, then stacks a jump apart, the highest a step
-// below the roof's lowest edge beside it.
 auto tBarnClimb = test("Props/barnClimbIsAJumpAtATime") = []
 {
     auto scenery = barnScenery();
@@ -398,13 +389,11 @@ auto tBale = test("Props/bale") = []
     checkSnapshot(scenery, "bale", {0.f, 0.8f, 0.f}, 5.f, 2.2f);
 };
 
-// The bale's mesh stays in makeBarrel's frame, which every bale's and mover's
-// model is made for, and cheap enough to draw by the dozen.
 auto tBaleMesh = test("Props/baleMeshFitsTheDrumFrame") = []
 {
     constexpr auto mostTriangles = 1500;
     constexpr auto halfUnit = 0.5f;
-    // The loose straws lie a little proud of the drum.
+    // Loose straws stand a little proud of the drum.
     constexpr auto strawReach = 0.04f;
     auto triangles = 0;
 
@@ -451,7 +440,6 @@ auto tBaleShots = test("Props/baleShots") = []
     closeShot.height = baleShotHeight;
     checkSnapshot(close, "bale-close", closeShot);
 
-    // Two lying side by side and one in the hollow on top of them.
     auto stack = Scenery {};
     addMeadow(stack);
     auto across = baleRadius * 2.f;

@@ -5,6 +5,8 @@
 #include "UI/Hud.h"
 #include "UI/MenuStyle.h"
 
+#include <algorithm>
+#include <array>
 #include <functional>
 #include <optional>
 #include <string>
@@ -18,18 +20,23 @@ struct EditorRow final
     int choice = 0;
 };
 
-// Rows in the start menu's style over the live scene, for choosing one of
-// several things per row: "Hat  <  Top Hat  >", then Done. They sit to the
-// right on a wide screen and at the bottom of a tall one, as a table: the
-// names in one column, the values in another as wide as the widest choice of
-// any row, at the largest size that fits and never under the readable size:
-// when a row can't hold it, the cow's room gives way, then each name goes
-// over its value. Laid out through Flex trees, again only when the window, its
-// safe area, the title or the rows (setRows) change. The arrows step a
-// row back and on, the value steps it on; the mouse hovers and clicks, a
-// finger taps, and keys or a controller move a selection ring. A drag or a
-// wheel anywhere else is passed on through onControl as Look and Zoom, so the
-// camera can go round the scene underneath.
+inline int wrapChoiceIndex(int index, int numChoices)
+{
+    auto remainder = index % numChoices;
+    return remainder < 0 ? remainder + numChoices : remainder;
+}
+
+template <typename Entry, std::size_t numEntries, typename IsCurrent>
+const Entry& stepThroughEntries(const std::array<Entry, numEntries>& entries,
+                                IsCurrent isCurrent,
+                                int steps)
+{
+    auto current = std::ranges::find_if(entries, isCurrent);
+    auto currentIndex = static_cast<int>(current - entries.begin());
+    auto numChoices = static_cast<int>(numEntries);
+    return entries[wrapChoiceIndex(currentIndex + steps, numChoices)];
+}
+
 struct Editor final : Graphics::View
 {
     enum class Part
@@ -53,16 +60,10 @@ struct Editor final : Graphics::View
 
     void draw(Hud& hud);
 
-    // Where the cow is framed, in points: left of the panel when wide, above
-    // it when tall.
     Graphics::Rect cowArea() const;
-    // Where the heading, the rows and Done sit.
     Graphics::Rect panelArea() const;
-    // Whether the panel sits beside the cow rather than below her.
     bool wide() const;
 
-    // Replace the rows, or the heading, and lay them out again on the next
-    // draw. A row's choice alone changes nothing laid out.
     void setRows(Vector<EditorRow> newRows);
     void setTitle(std::string newTitle);
 
@@ -73,9 +74,7 @@ struct Editor final : Graphics::View
 
     Target targetAt(Graphics::Point position) const;
 
-    // Hidden, it takes no mouse or touch, so they reach the views under it.
-    // eacp finds a finger's view without calling hitTest, so this clears the
-    // handles flags rather than overriding hitTest.
+    // eacp routes touches without hitTest, so hiding clears the handles flags.
     void setShowing(bool shouldShow);
     bool isShowing() const;
 
@@ -101,12 +100,10 @@ struct Editor final : Graphics::View
         Graphics::Rect row;
     };
 
-    // The cow's share of the content: of its width when wide, of its height
-    // when tall.
     struct Shape final
     {
         bool wide = true;
-        float cow = 0.f;
+        float cowShare = 0.f;
     };
 
     Shape shape() const;
@@ -126,7 +123,7 @@ struct Editor final : Graphics::View
     void act(Target target);
     void returnKeyFocus();
 
-    std::function<void(int row, int by)> onStep = [](int, int) {};
+    std::function<void(int rowIndex, int steps)> onRowValueStepped = [](int, int) {};
     std::function<void()> onDone = [] {};
     std::function<void(const ControlEvent&)> onControl = [](const ControlEvent&) {};
 
@@ -137,11 +134,9 @@ struct Editor final : Graphics::View
     Placed done;
     Graphics::Rect titleBox;
     float titleSize = 0.f;
-    // Each name over its arrows and value, rather than beside them.
-    bool stacked = false;
+    bool namesAboveValues = false;
 
-    // Points at the top kept clear of anything clickable, for a title bar the
-    // safe area does not count (macTitleBarClearance on macOS).
+    // For a title bar the safe area does not count (macTitleBarClearance on macOS).
     float topClearance = 0.f;
     float opacity = 1.f;
     bool showSelection = false;
@@ -154,8 +149,7 @@ struct Editor final : Graphics::View
 private:
     bool showing = false;
     bool contentChanged = true;
-    // The shape the last layOut chose, for the window it was laid out for;
-    // until then, or in another window, the window's aspect decides.
+    // Until laid out, or in another window, the window's aspect decides.
     Shape chosen;
     std::optional<ScreenFrame> laidOutFor;
 };

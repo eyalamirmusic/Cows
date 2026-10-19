@@ -6,6 +6,7 @@
 #include "Stages.h"
 #include "Input.h"
 #include "Pad.h"
+#include "FrameRate.h"
 #include "Quality.h"
 #include "Terrain/Grass.h"
 #include "Terrain/Ground.h"
@@ -35,9 +36,6 @@
 
 namespace Cows
 {
-// How the camera frames the cow in a screen's area: how wide she is seen from
-// there in world units, the share of the area she fills, and the world units
-// kept clear above her head for a hat.
 struct CowFraming final
 {
     float cowWidth = 0.f;
@@ -47,8 +45,6 @@ struct CowFraming final
 
 struct CowsView final : GPUView
 {
-    // Where the camera is swinging to: the menu from play, play from the menu,
-    // round to the cow to dress her, and back to the menu from there.
     enum class SwingGoal
     {
         Menu,
@@ -57,9 +53,6 @@ struct CowsView final : GPUView
         Undress
     };
 
-    // Starts at the tier `preference` names, else measures one (see
-    // QualityGovernor), on `stagesToPlay`'s current stage with `firstSeed`;
-    // later rounds take their seeds from the clock.
     CowsView(const QualityPreference& preference,
              Stages stagesToPlay,
              std::uint32_t firstSeed);
@@ -77,7 +70,7 @@ struct CowsView final : GPUView
     void control(const ControlEvent& event);
     void openMenu(bool swing = true);
     void startGame();
-    InputOwner inputOwner() const;
+    InputRecipient getInputRecipient() const;
     void openEditor(Editor& which);
     void swingTo(SwingGoal goal);
     void closeEditor();
@@ -111,9 +104,9 @@ struct CowsView final : GPUView
     MooAnswer answerFrom() const;
     void addAnswerFlare();
     void steerCamera(float delta, float wallDelta);
-    // Pulls the eye in to just short of the first block between it and the
-    // target, and lets it back out once the way is clear.
-    void keepEyeClear(float delta);
+    void pullCameraInFrontOfBlockingProps(float delta);
+    void applyFrameRateCap();
+    void logInputRecipientWhenItChanges();
     void framePortrait(float aspect);
 
     void chooseQuality(QualityChoice choice);
@@ -156,6 +149,9 @@ struct CowsView final : GPUView
     Maths::Mat4 lightViewProjection;
 
     QualityPreference qualityPreference;
+    FrameRate chosenFrameRate = FrameRate::Auto;
+    std::optional<FrameRate> forcedFrameRate;
+    std::optional<InputRecipient> lastLoggedInputRecipient;
     ShapeMeshes shapes;
     Mesh ground;
     TitleMesh title;
@@ -198,14 +194,11 @@ struct CowsView final : GPUView
     std::array<Maths::Vec3, 2> contacts;
     Hud hud;
 
-    // Drawn last in the scene's pass: the footer and the touch controls.
     std::function<void(Hud&)> drawHud = [](Hud&) {};
     std::function<void()> onStateChanged = [] {};
-    // The player chose a tier, or Auto finished measuring one.
     std::function<void()> onQualityChanged = [] {};
     Graphics::GameInput* gameInput = nullptr;
     Menu* menu = nullptr;
-    // The editor open or last open: the cow's clothes, or the settings.
     Editor* editor = nullptr;
     std::optional<float> startAfter;
     CameraPose swingFrom;
@@ -215,8 +208,6 @@ struct CowsView final : GPUView
     SwingGoal swingGoal = SwingGoal::Menu;
     bool dressing = false;
     float dressAmount = 0.f;
-    // The cowArea and aspect the editor's camera last framed the cow for; the
-    // player orbits freely from there until either changes.
     Graphics::Rect editorFramedArea;
     float editorFramedAspect = 0.f;
     float playPitch = OrbitCamera {}.pitch;

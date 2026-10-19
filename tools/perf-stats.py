@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 # Usage: tools/perf-stats.py <a.csv> [b.csv] [--metrics m1,m2,...]
-#
-# One CSV (from tools/perf.sh): mean, SD and 95% CI of every metric.
-# Two: the same for each, then B - A, Welch's t-test p, Cohen's d and a
-# two-sided Mann-Whitney U p as the non-parametric check. Standard library only.
 import csv
 import math
 import sys
 
-SKIP = {"label", "scenario", "run", "build", "commit", "warmup_s", "window_s", "env"}
+SKIP = {"label", "scenario", "run", "build", "commit", "pid", "from", "to", "warmup_s", "window_s", "env"}
 
 
 def read(path):
@@ -132,8 +128,7 @@ def ranks(values):
     return result
 
 
-# Exact when there are no ties (the distribution of U counted by dynamic
-# programming), else the normal approximation with the tie correction.
+# Exact without ties, else the normal approximation with the tie correction.
 def mann_whitney(a, b):
     n1, n2 = len(a), len(b)
     together = a + b

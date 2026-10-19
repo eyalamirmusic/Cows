@@ -12,11 +12,9 @@ using eacp::Vector;
 using eacp::Graphics::Point;
 using eacp::Graphics::Rect;
 
-// Room a float rounding error may take before a node counts as overflowing.
-constexpr auto tolerance = 0.01f;
+constexpr auto overflowRoundingTolerance = 0.01f;
 
-// The rect with each edge rounded to a whole point: neighbours that share an
-// edge round the same number, so they meet exactly and never overlap.
+// Rounds each edge, not the size, so neighbours meet exactly and never overlap.
 Rect snapped(Rect exact)
 {
     auto left = std::round(exact.x);
@@ -47,9 +45,7 @@ const Size& crossSize(const Node& node, Direction direction)
     return direction == Direction::Across ? node.height : node.width;
 }
 
-// What a child asks of its parent along one axis before any room is shared
-// out: its fit, its fixed size, a Grow's least; a Share is unknown until the
-// parent is sized, so it asks nothing.
+// A Share is unknown until the parent is sized, so it asks nothing.
 float basis(const Size& size, float fit)
 {
     switch (size.kind)
@@ -67,8 +63,6 @@ float basis(const Size& size, float fit)
     return fit;
 }
 
-// Across its parent, a Grow child stretches to the parent but still asks room
-// for what it holds.
 float crossBasis(const Size& size, float fit)
 {
     if (size.kind == Size::Kind::Grow)
@@ -94,9 +88,7 @@ float offsetFor(Align align, float free)
     return 0.f;
 }
 
-// Shares `room` among Grow sizes as evenly as their least and most allow:
-// everyone's least first when there is room for it, else the room in
-// proportion to their leasts.
+// Everyone's least first when there is room, else in proportion to the leasts.
 void shareGrowth(const Vector<Size>& sizes, Vector<float>& shares, float room)
 {
     auto count = sizes.size();
@@ -247,9 +239,7 @@ void Tree::resolve(Rect available, const Measure& measure)
     place(root, snapped(available));
 }
 
-// Children always come after their parent, so walking the entries backwards
-// measures every child before the node that holds it. A second walk lets the
-// shared columns' widths reach the nodes that hold them.
+// Children come after their parent, so walking backwards measures children first.
 void Tree::measureAll(const Measure& measure)
 {
     columnWidths.clear();
@@ -336,27 +326,24 @@ Point Tree::fitOf(NodeId id, const Measure& measure) const
 void Tree::place(NodeId id, Rect area)
 {
     auto& entry = entries[id];
-    entry.exact = area;
+    entry.unsnappedRect = area;
     entry.resolved.rect = snapped(area);
     entry.resolved.overflow =
         entry.node.text.has_value()
-        && (entry.fit.x > area.w + tolerance || entry.fit.y > area.h + tolerance);
+        && (entry.fit.x > area.w + overflowRoundingTolerance
+            || entry.fit.y > area.h + overflowRoundingTolerance);
 
     if (entry.firstChild >= 0)
         placeChildren(id);
 }
 
-// Fixed, Share and Fit children take their sizes first, Grow children share
-// what is left; then all are set along the main axis in order, with the gap
-// between them and the free room placed by mainAlign, and each aligned across
-// by crossAlign. All of it is worked out in exact points from the parent's
-// exact rect; only the rects handed back are snapped.
+// Works in unsnapped points throughout; only the rects handed back are snapped.
 void Tree::placeChildren(NodeId id)
 {
     const auto& entry = entries[id];
     const auto& node = entry.node;
     auto direction = node.direction;
-    auto inner = entry.exact.inset(node.padding);
+    auto inner = entry.unsnappedRect.inset(node.padding);
     inner.w = std::max(inner.w, 0.f);
     inner.h = std::max(inner.h, 0.f);
 
@@ -380,10 +367,10 @@ void Tree::placeChildren(NodeId id)
             continue;
         }
 
-        held.main = size.kind == Size::Kind::Share
-                        ? size.value * mainRoom
-                        : basis(size, along(held.fit, direction));
-        used += held.main;
+        held.lengthAlongParent = size.kind == Size::Kind::Share
+                                     ? size.value * mainRoom
+                                     : basis(size, along(held.fit, direction));
+        used += held.lengthAlongParent;
     }
 
     used += node.gap * (float) std::max(count - 1, 0);
@@ -400,12 +387,12 @@ void Tree::placeChildren(NodeId id)
 
         if (mainSize(held.node, direction).kind == Size::Kind::Grow)
         {
-            held.main = grown[growIndex++];
-            used += held.main;
+            held.lengthAlongParent = grown[growIndex++];
+            used += held.lengthAlongParent;
         }
     }
 
-    if (used > mainRoom + tolerance)
+    if (used > mainRoom + overflowRoundingTolerance)
         entries[id].resolved.overflow = true;
 
     auto mainStart = direction == Direction::Across ? inner.x : inner.y;
@@ -436,10 +423,10 @@ void Tree::placeChildren(NodeId id)
                 break;
         }
 
-        if (cross > crossRoom + tolerance)
+        if (cross > crossRoom + overflowRoundingTolerance)
             entries[id].resolved.overflow = true;
 
-        auto main = held.main;
+        auto main = held.lengthAlongParent;
         auto crossAt = crossStart + offsetFor(node.crossAlign, crossRoom - cross);
 
         place(child,

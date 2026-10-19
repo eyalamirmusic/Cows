@@ -7,8 +7,7 @@
 
 namespace Cows::Palette
 {
-// The terminal original's colours, authored in display (sRGB) space. Lighting
-// runs in linear space, so every one of them goes through linear() first.
+// sRGB like the terminal original; lighting runs linear, so go through linear().
 constexpr std::uint32_t title = 0xff00d7;
 constexpr std::uint32_t sun = 0xffff00;
 constexpr std::uint32_t cloud = 0xffffff;
@@ -22,7 +21,6 @@ constexpr std::uint32_t hoof = 0x3a2f2c;
 constexpr std::uint32_t horn = 0xf3e2bd;
 constexpr std::uint32_t innerEar = 0xf2a0ac;
 
-// The cow's wardrobe, picked to sit beside the original's colours.
 constexpr std::uint32_t topHat = 0x26222c;
 constexpr std::uint32_t cowboyHat = 0xa8743f;
 constexpr std::uint32_t hatBand = 0x5a3a22;

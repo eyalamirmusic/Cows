@@ -4,9 +4,7 @@
 
 namespace Cows
 {
-// All in linear space. The key light is a warm late-afternoon sun from over
-// the viewer's right shoulder; the rim is the painted sun behind the cows,
-// catching their edges.
+// All linear.
 struct Lighting final
 {
     Maths::Vec3 keyDirection = Maths::normalize(Maths::Vec3 {0.8f, 0.95f, 0.3f});
@@ -60,8 +58,6 @@ struct LightingUniforms
     Uniform<Float3> horizonColor;
 };
 
-// The uniforms every shader that shades a surface in the scene carries: the
-// light, the camera, and the shadow map with the transform into it.
 struct SceneUniforms : LightingUniforms
 {
     void visitScene(ShaderVisitor& visitor)
@@ -82,10 +78,6 @@ struct SceneUniforms : LightingUniforms
     Uniform<Texture2D> shadowMap;
 };
 
-// A shader lit by the scene: its uniforms, the control flow the shared
-// shading functions branch with, and how many shadow-map taps soften its
-// shadows (16, or 4 where the GPU cannot spare the reads). Set before
-// compile().
 struct LitProgram
     : ShaderProgram
     , SceneUniforms
@@ -95,6 +87,7 @@ struct LitProgram
 
     static constexpr auto fullShadowTaps = 16;
 
+    // 4 where the GPU cannot spare the reads; set before compile().
     int shadowTaps = fullShadowTaps;
 };
 } // namespace Cows

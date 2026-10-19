@@ -1,7 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with
-code in this repository.
+This file guides coding agents (and people) working in this repository.
 
 ## Git Rules
 
@@ -19,14 +18,14 @@ Cows is a 3D GPU recreation of the "cows in love" terminal animation
 (`ssh ssh.cowsinlove.com`), built on [eacp](https://github.com/eyalamirmusic/eacp)
 and its shader EDSL. Game-independent code lives in static libraries under
 `Lib/`; each app under `Apps/` links them. Today there is one app target, `Cows`,
-under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
+under `Apps/CowsInLove/`.
 
 - `Lib/cowsinlove_Layout` — a flexbox-lite, GPU-free and game-free (for eacp
   to take): `Layout/Tree` (`Flex::Tree` of `Node`s — Across/Down, `Size::fit`,
   `grow`, `fixed`, `share`, padding, gap, alignment, text leaves measured
   through a caller's `Measure`, shared `column`s — resolved to whole-point
   rects with `overflow` per node) and `Layout/FitToSize` (`largestPointSize`
-  on a `fontSizeStep` grid). See `docs/structure.md`
+  on a `fontSizeStep` grid)
 - `Lib/cowsinlove_MeshLoader/MeshLoader/MeshBlob` — `readMeshBlob` reads
   the binary mesh blobs the Blender scripts write (format in
   `tools/blender/README.md`) into `MeshGroup`s, one per material;
@@ -71,8 +70,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     the cow stands behind the items. `titleArea`, `cowArea` and `itemArea` are
     worked out from the window on demand; `menuPose` frames the cow in
     `cowArea`. A `MenuItem` is `{label, note, scale, enabled}`, `scale` sizing
-    one item against the rest (Start biggest, About smallest; `mainMenuItems`
-    and `aboutItems` in the app's `MainMenu.h`, which names every string it
+    one item against the rest (Start biggest, About smallest; `makeMainMenuItems`
+    and `makeAboutItems` in the app's `MainMenu.h`, which names every string it
     shows); `setItems` replaces them. Hover and click, tap (targets at least
     64 pt), and a selection ring for keys and controllers; a disabled item is
     grey and never chosen; `opacity` fades it
@@ -84,8 +83,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     `panelArea`. Text is held to `smallestReadableSize`: the cow's room gives
     way first, then each name goes over its value (`stacked`). `setRows` and
     `setTitle` lay it out again; a row's `choice` alone doesn't. `editorPose`
-    frames the cow in `cowArea` (`framedCow`, `CowFraming`); `dressRows` and
-    `qualityRow` in `MainMenu.h` build the rows. Hover and click, tap, a
+    frames the cow in `cowArea` (`framedCow`, `CowFraming`); `makeDressRows` and
+    `makeQualityRow` in `MainMenu.h` build the rows. Hover and click, tap, a
     selection ring for keys and controllers; a drag or wheel off the rows
     goes out through `onControl` as Look / Zoom. `topClearance` keeps it
     under the macOS title bar, which the safe area does not count
@@ -123,7 +122,7 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     from `Resources/moo.f32` (see `Resources/CREDITS.md`)
   - `Cow/CowSkin` — what the player's cow wears: one enum per item class
     (`Hat`, `Pants`), saved through Miro as enumerator names in the app's
-    `Settings` (`withNamedChoices` puts anything unnamed back to the
+    `Settings` (`replaceUnknownValuesWithDefaults` puts anything unnamed back to the
     default). `itemClasses()` lists the
     classes for the editor, so a new class (Glasses, Trousers) is an enum, a
     `CowSkin` field and one line there. `Cow/Wardrobe` — each hat as parts
@@ -187,13 +186,13 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `Level` — a `Scenery` plus the hideout, `start` / `startHeading`, `gaps`
     (holes in the ground with a floor depth), `movers` (their `moving` batch
     rebuilt by `update(seconds)`), `killDepth` and `criticalPath`;
-    `pushedOut` / `floorAt` / `overGap` / `isFree`; `stepUp`.
+    `pushedOut` / `floorAt` / `overGap` / `isFree`; `maxStepUpHeight`.
     A floating block (`Block::bottom` set: a loft, a lintel, a roof's pitch)
     is passed under by feet below its bottom and more than a step under its
     top there; `ceilingAt` is the lowest bottom over the feet, which `Game`
     keeps her jump `playerHeight` short of; `clearReach` clips the camera's
     line (a floating ramp counts as a slab a step deep)
-  - `Levels/` — level generation (see `docs/structure.md`): `Region` (an xz
+  - `Levels/` — level generation: `Region` (an xz
     rectangle), `Layout` (the seeded draws, hiding places, `hasRoom`,
     `chooseHideout`), `Biome` (`meadowBiome`, `populate`), `Segments/`
     (`Segment` and `MeadowSegment`, `JumpLineSegment`, `RavineSegment`,
@@ -207,19 +206,20 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
 - `Lib/cowsinlove_Game` — the rules of this game; nothing that owns GPU passes.
   Links World.
   - `Game` — state machine (`Menu` first, then `Searching` and `Found`;
-    `start()` leaves the menu, `openMenu()` pauses into it, `playing()` is the
+    `start()` leaves the menu, `openMenu()` pauses into it, `getStateBehindMenu()` is the
     state behind it; a `reset` from play skips the menu), player movement, found test, moo cooldown, the moo
     hint, the level's clock (`seconds`, driving its movers), the checkpoint and
     respawn below `killDepth` (`sinceFell`), `footerText` (for a `Hints`), and
-    `inputOwner` (menu, editor or play takes touches; play from the moment Start
-    swings the camera down); `reset(seed)` builds the level through its
+    `getInputRecipient` (an `InputRecipient`, worked out from the state, an
+    open editor and the swing: menu, editor or play takes touches; play from
+    the moment Start swings the camera down); `reset(seed)` builds the level through its
     `makeLevel` hook, which the app sets (the library never names a level)
   - `Ending` — the ending's numbers (title rise, kiss point, camera settle,
     `leastWidth` so the title fits a phone held upright), `stagingFor(hiding)`
     (where the title stands and the camera settles: out in the open behind
     the pair; for the loft from the meadow in front, the pair framed in the
     hay door and the title over the ridge), `titlePlacement`, `foundStart`,
-    `loops` (start again after the title)
+    `hasEndingPlayedOut` (start again after the title)
   - `Input` — held keys (wasd / hjkl / arrows, space), the touch stick and the
     controller (`setPad`, kept apart so neither clears the other), summed and
     clamped into walk ahead / turn
@@ -246,13 +246,18 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   `CowsView`; `CowsArt` passes its own. `r` retries the stage with a fresh seed
 - `Apps/CowsInLove/Source/Settings` — everything kept between runs, one Miro
   document, `settings.json` in `FilePath::appSupportDirectory()`: the
-  `CowSkin` and the `QualityPreference`; anything unreadable or unnamed loads
-  as the default, and a new setting is one field. No other file is written
+  `CowSkin`, the `QualityPreference` and the `FrameRate`; anything unreadable
+  or unnamed loads as the default, and a new setting is one field. No other file is written
 - `Apps/CowsInLove/Source/Scene/Quality` — `Quality` (Low, Medium, High) and
-  `settingsFor`, the one place every tier's knobs are set (MSAA, render scale,
+  `getSettingsForQuality`, the one place every tier's knobs are set (MSAA, render scale,
   mesh detail, grass tiles, density and blade segments, grass and ground noise,
   shadow map side and taps); `QualityChoice` (Auto or a tier) and
-  `qualityToUse` (COWS_QUALITY, else the choice, else the measured tier)
+  `chooseQualityToUse` (COWS_QUALITY, else the choice, else the measured tier)
+- `Apps/CowsInLove/Source/Scene/FrameRate` — `FrameRate` (Auto, 30, 60, Max) and
+  `getFrameRateCap`, the cap `CowsView::applyFrameRateCap` hands
+  `GPUView::setMaxFps` each update: Max every display refresh, 30 or 60 everywhere,
+  Auto every refresh in play and during a swing and 60 while the menu or the
+  editor has the input
 - `Apps/CowsInLove/Source/CowsApp` — the window: scene, footer, touch controls,
   root view, and the `GameInput` the scene polls for controllers; wires them the
   same on every platform and ends by attaching the platform (the app has no
@@ -276,6 +281,11 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   stick, touch drag), and Done, Esc and the controller's East / Start swing
   back to the menu. `CowsApp` saves `Settings` on every change
 - `tools/blender` — Blender scripts for meshes (`barn.py`); see its README
+- `tools/perf.sh` (`just perf`) and `tools/perf-stats.py` (`just perf-compare`)
+  time the five scenarios and compare two builds; `tools/perf-sample.sh` takes
+  `sample` call graphs that `tools/perf-sample-top.py` reduces to on-CPU
+  frames; `tools/powermetrics.sh` captures power that `tools/perf-power.py`
+  reads
 - `tools/Art` — `CowsArt`, a macOS tool that renders the icon, key art, logo
   and store screenshots from the game's own views (`CowsArt screens <dir>
   [menu|dress|settings|about]` renders those screens at sixteen phone,
@@ -304,7 +314,9 @@ Settings, `COWS_START=<seconds>` presses Start after that long and
 `COWS_WINDOW=<w>x<h>` opens the window at that size in points, as far as the screen allows (run the binary in `build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/` directly).
 `COWS_PROFILE=1` logs, once a second, the frame interval, the CPU time of each
 part of a frame, the GPU time of the frame and of each pass (`shadows`,
-`scene`) and the instances and triangles each pass drew; a profiling run
+`scene`) and the instances and triangles each pass drew, and `input to
+<menu|editor|play>` whenever that changes (`tools/perf.sh` reruns a run that
+logs one in its window); a profiling run
 varies one of `COWS_BLADES=<n>` (blades drawn per grass tile), `COWS_MSAA=<n>`,
 `COWS_SHADOW=<texels>` (the shadow map's side), `COWS_RENDER_SCALE=<share>`,
 `COWS_DETAIL=<share>` (mesh detail, see `detailed` in `Render/Mesh`) or
@@ -312,7 +324,9 @@ varies one of `COWS_BLADES=<n>` (blades drawn per grass tile), `COWS_MSAA=<n>`,
 shadows, left out of the frame) and compares.
 `COWS_QUALITY=low|medium|high` forces a quality tier at launch (`Scene/Quality`)
 until the player picks one in Settings (the start menu's third item, an
-`Editor` with one row: Auto, Low, Medium, High; it applies at once). On Auto
+`Editor` with two rows, Quality: Auto, Low, Medium, High and Frame rate: Auto,
+30, 60, Max; each applies at once). `COWS_FPS=auto|30|60|max` forces the frame rate
+for the run whatever Settings says (`Scene/FrameRate`); `tools/perf.sh` pins it. On Auto
 with nothing measured the run starts at high, `QualityGovernor`
 (`Render/QualityGovernor`) drops tiers while the GPU's frame time is over
 budget, and the tier it settles on is saved in `settings.json` and used from
@@ -384,6 +398,22 @@ Follows eacp's style:
 Enforced via `.clang-format` (copied from eacp): Allman braces, 85 columns,
 4-space indentation, left pointer alignment. Always run clang-format on edited
 C++ files.
+
+## Naming
+
+- Long, verbose, English, JUCE-style names. A name a stranger can't read aloud
+  and understand is wrong: `pullCameraInFrontOfBlockingProps`, not
+  `keepEyeClear` (whose eye?); `onRowValueStepped`, not `onStep`.
+- Functions are verbs that say what they do: `makeFrameRateRow`,
+  `getQualityChoiceLabel`, `parseFrameRateName`, `readFrameRateFromEnvironment`,
+  `replaceUnknownValuesWithDefaults`; not `frameRateRow`, `frameRateNamed`,
+  `withKnownValue`.
+- Casts go in named temporaries (`auto numRows = static_cast<int>(rows.size());`),
+  never nested inline. An enum is never cast to an index: look it up in its
+  table (`frameRatesAndLabels`), whose order is the row's. Stepping an enum is
+  a helper next to it (`stepFrameRate(rate, steps)`, through
+  `stepThroughEntries`), not arithmetic at the call site.
+- No magic indices: dispatch on a row's or item's name, not `row == 1`.
 
 ## Dead code
 

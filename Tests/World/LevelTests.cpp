@@ -36,8 +36,7 @@ Vec2 ground(Vec3 point)
 // A barn turned a quarter, off the origin, so nothing passes by luck.
 constexpr auto barnCenter = Vec2 {12.f, -7.f};
 constexpr auto barnTurns = 1;
-// How far along the front wall from the doorway's middle is surely wall.
-constexpr auto alongTheWall = 4.f;
+constexpr auto distanceFromDoorwayMiddleThatIsSurelyWall = 4.f;
 
 Level withBarn()
 {
@@ -74,7 +73,9 @@ auto tBarnWalls = test("Level/barnWallsKeepHerOut") = []
     auto level = withBarn();
     auto doorway = barnSpots(barnCenter, barnTurns).doorway;
     auto forward = Vec2 {std::cos(doorway.heading), -std::sin(doorway.heading)};
-    auto wall = ground(doorway.at) + Vec2 {forward.y, -forward.x} * alongTheWall;
+    auto wall =
+        ground(doorway.at)
+        + Vec2 {forward.y, -forward.x} * distanceFromDoorwayMiddleThatIsSurelyWall;
 
     check(level.pushedOut(wall, 1.f, 0.f) != wall);
     check(!level.isFree(wall, 0.f));

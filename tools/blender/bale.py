@@ -1,7 +1,5 @@
-# Builds the round hay bale and writes it as a mesh blob grouped by material:
-#   blender -b --factory-startup --python tools/blender/bale.py -- <out.mesh>
-# The bale stands in makeBarrel's frame, so the game lays it down with the
-# same matrices: its axis along y from 0 to 1, half a unit in radius.
+# Usage: blender -b --factory-startup --python tools/blender/bale.py -- <out.mesh>
+# In makeBarrel's frame (axis along y from 0 to 1, radius 0.5), so the game reuses its matrices.
 
 import math
 import os
@@ -16,24 +14,18 @@ from meshkit import finish, solid  # noqa: E402
 MATERIALS = ["straw", "twine"]
 
 SEGMENTS = 20
-# The drum, under the twine, which reaches the frame's half unit.
 DRUM = 0.488
-# Each end: the coiled face out to CAP, domed DOME out from its rim, then a
-# rounded shoulder down onto the drum SHOULDER along the axis.
+# Each end: coiled face to radius CAP, domed DOME, shoulder SHOULDER long along the axis.
 CAP = 0.4
 DOME = 0.03
 SHOULDER = 0.11
 SHOULDER_STEPS = 2
-# The coil: TURNS turns of a ridge RIDGE proud of the grooves beside it.
 TURNS = 3.5
 RIDGE = 0.012
-# The twine: a cord of TWINE_WIDTH round the drum at each of BANDS, standing
-# out to the frame's radius from a little under the drum.
 BANDS = [0.25, 0.5, 0.75]
 TWINE_WIDTH = 0.035
 TWINE_OUT = 0.5
 TWINE_IN = DRUM - 0.006
-# Loose straws: TUFTS tufts of STRAWS spikes, lying along the surface.
 SEED = 11
 TUFTS = 5
 STRAWS = 3
@@ -51,15 +43,12 @@ def at(radius, angle, y):
 
 
 def coil_fade(radius):
-    """How much of the ridge shows at `radius`: none at the middle and at the
-    cap's rim, so the coil meets the centre point and the shoulder."""
+    """None at the middle and the cap's rim, so the coil meets the centre and the shoulder."""
     pitch = CAP / TURNS
     return max(0.0, min(1.0, radius / pitch, (CAP - radius) / pitch))
 
 
 def cap_depth(radius, ridge):
-    """How far in from the end the coiled face lies at `radius`: domed, the
-    ridges (`ridge` 1) on the dome and the grooves (-1) sunk below it."""
     return DOME * (radius / CAP) ** 2 + (1.0 - ridge) * RIDGE * coil_fade(radius)
 
 
@@ -68,10 +57,7 @@ def end_y(depth, end):
 
 
 def build_end(end, points, faces):
-    """One end's coiled face. Its rows are spirals: row k at angle j lies at
-    k / 2 + j / SEGMENTS turns of the coil out, so a row comes round onto the
-    row two beyond it, ridges on even rows and grooves on odd. Radii are held
-    between the middle and the cap's rim, where the merged points close it."""
+    """Rows are spirals: row k at angle j lies k / 2 + j / SEGMENTS turns out."""
     pitch = CAP / TURNS
     first, last = -2, int(2 * TURNS) + 2
     index = {}
@@ -94,8 +80,6 @@ def build_end(end, points, faces):
 
 
 def build_body():
-    """The drum, its two rounded shoulders and the coiled ends, one closed
-    solid once the coincident points merge."""
     points, faces = [], []
     build_end(0, points, faces)
     build_end(1, points, faces)
@@ -123,8 +107,6 @@ def build_body():
 
 
 def build_band(middle):
-    """A cord round the drum at `middle` along it: a low ridge of three faces,
-    its foot just under the drum's surface."""
     section = [(TWINE_IN, middle - TWINE_WIDTH / 2), (TWINE_OUT, middle),
                (TWINE_IN, middle + TWINE_WIDTH / 2)]
     points = [at(radius, around(step), y) for step in range(SEGMENTS)
@@ -141,8 +123,6 @@ def build_band(middle):
 
 
 def straw(base, along, out, length):
-    """A thin spike from `base`, lying along `along` and lifting off the
-    surface along `out`."""
     side = normalised(cross(along, out))
     half = STRAW_THICKNESS / 2
     tip = tuple(b + a * length + o * STRAW_LIFT for b, a, o in zip(base, along, out))
@@ -163,8 +143,6 @@ def normalised(vector):
 
 
 def build_tufts(rng):
-    """Tufts on the drum near the shoulders, straws fanned along the drum's
-    length and a little round it."""
     for tuft in range(TUFTS):
         angle = 2 * math.pi * (tuft + rng.uniform(0.2, 0.8)) / TUFTS
         end = tuft % 2

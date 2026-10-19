@@ -4,15 +4,13 @@
 
 #include <Miro/Reflect.h>
 
+#include <array>
 #include <optional>
 #include <string>
 #include <string_view>
 
 namespace Cows
 {
-// How much of the scene a GPU can afford. High is the game as designed; Medium
-// and Low draw the same world with cheaper meshes, grass, noise and shadows,
-// into fewer pixels than the panel has (renderScale), stretched over it.
 enum class Quality
 {
     Low,
@@ -20,36 +18,39 @@ enum class Quality
     High
 };
 
-constexpr auto qualityLevels = 3;
+struct QualityAndLabel final
+{
+    Quality quality;
+    std::string_view label;
+};
 
-// Every knob a tier turns, in one place.
+constexpr auto qualitiesAndLabels = std::array {
+    QualityAndLabel {Quality::Low, "low"},
+    QualityAndLabel {Quality::Medium, "medium"},
+    QualityAndLabel {Quality::High, "high"},
+};
+
 struct QualitySettings final
 {
     int samples = 4;
     float renderScale = 1.f;
 
-    // How finely the cows, props and hats are cut (see `detailed`).
     float meshDetail = 1.f;
 
     GrassDensity grass;
-    // Rows up each blade (see makeBlade).
     int bladeSegments = 5;
-    // The grass's noise hashed without sines (Shading::quickValueNoise).
     bool quickGrassNoise = false;
-    // The ground's noise read from a NoiseLattice.
     bool cheapGroundNoise = false;
 
     int shadowTaps = 16;
     int shadowResolution = 2048;
 };
 
-QualitySettings settingsFor(Quality quality);
+QualitySettings getSettingsForQuality(Quality quality);
 
-std::string qualityName(Quality quality);
-std::optional<Quality> qualityNamed(std::string_view name);
+std::string getQualityName(Quality quality);
+std::optional<Quality> parseQualityName(std::string_view name);
 
-// What the player picked in Settings: a tier, or Auto, which is the tier
-// measured on this device.
 enum class QualityChoice
 {
     Auto,
@@ -58,22 +59,34 @@ enum class QualityChoice
     High
 };
 
-constexpr auto qualityChoices = 4;
+struct QualityChoiceAndLabel final
+{
+    QualityChoice choice;
+    std::string_view label;
+    std::optional<Quality> quality;
+};
 
-std::string choiceLabel(QualityChoice choice);
-std::optional<Quality> chosenQuality(QualityChoice choice);
+constexpr auto qualityChoicesAndLabels = std::array {
+    QualityChoiceAndLabel {QualityChoice::Auto, "Auto", std::nullopt},
+    QualityChoiceAndLabel {QualityChoice::Low, "Low", Quality::Low},
+    QualityChoiceAndLabel {QualityChoice::Medium, "Medium", Quality::Medium},
+    QualityChoiceAndLabel {QualityChoice::High, "High", Quality::High},
+};
 
-// The tier to draw at: `forced` (COWS_QUALITY), else the player's choice, else
-// the measured tier; none means it is still to be measured.
-std::optional<Quality> qualityToUse(std::optional<Quality> forced,
-                                    QualityChoice chosen,
-                                    std::optional<Quality> measured);
+std::string getQualityChoiceLabel(QualityChoice choice);
 
-// COWS_QUALITY=low|medium|high: that tier, and no measuring.
-std::optional<Quality> qualityOverride();
+QualityChoice stepQualityChoice(QualityChoice choice, int steps);
 
-// The player's choice and, under Auto, the tier this device measured, as
-// settings.json keeps them.
+std::optional<Quality> getChosenQuality(QualityChoice choice);
+
+QualityChoice getQualityChoiceFor(Quality quality);
+
+std::optional<Quality> chooseQualityToUse(std::optional<Quality> forced,
+                                          QualityChoice chosen,
+                                          std::optional<Quality> measured);
+
+std::optional<Quality> readQualityFromEnvironment();
+
 struct QualityPreference final
 {
     bool operator==(const QualityPreference& other) const = default;
@@ -84,7 +97,5 @@ struct QualityPreference final
     MIRO_REFLECT(chosen, measured)
 };
 
-// `preference` with anything that names no choice or tier put back to Auto
-// and unmeasured.
-QualityPreference withKnownValues(QualityPreference preference);
+QualityPreference replaceUnknownValuesWithDefaults(QualityPreference preference);
 } // namespace Cows

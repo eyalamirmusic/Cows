@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
-# Usage: tools/release-windows.sh
-# Builds the Release x64 exe (static C runtime, so no redist to install) and
-# stages it as the Steam Windows depot in Deploy/Steam/content/windows/.
-#
-# On Windows (git-bash) it builds in place. Anywhere else it copies the working
-# tree to COWS_WINDOWS (default jamie@tamby-windows) over ssh, runs itself
-# there, and copies the depot back.
+# Usage: [COWS_WINDOWS=user@host] tools/release-windows.sh
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -29,7 +23,6 @@ remote=projects/Cows-release
 eacp_ref="${COWS_EACP_REF:-$(sed -n 's/^set(COWS_EACP_TAG "\([^"]*\)".*/\1/p' CMake/Findeacp.cmake)}"
 : "${eacp_ref:=develop}"
 
-# $remote is deliberately expanded here; it is this script's fixed path.
 # shellcheck disable=SC2029
 git ls-files -z --cached --others --exclude-standard \
     | while IFS= read -r -d '' file; do [[ -e "$file" ]] && printf '%s\0' "$file"; done \

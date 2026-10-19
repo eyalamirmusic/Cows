@@ -7,8 +7,6 @@
 
 namespace Cows
 {
-// Find the other cow: the player walks, jumps and climbs the meadow until the
-// two meet up where she hides, and the postcard's kiss plays as the ending.
 struct Game final
 {
     enum class State
@@ -18,45 +16,31 @@ struct Game final
         Found
     };
 
-    // Starts a new search on `makeLevel(newSeed)`, behind the menu when it is
-    // showing.
     void reset(std::uint32_t newSeed);
 
-    // Leaves the menu for the game behind it.
     void start();
 
-    // Shows the menu over the game, which waits where it is until start().
     void openMenu();
 
-    // The state the game is in, or waits in behind the menu.
-    State playing() const;
+    State getStateBehindMenu() const;
 
-    // `ahead` walks forward (1) or back (-1) along the cow's heading; `turn`
-    // turns it left (1) or right (-1); `jump` leaps if it is on its feet.
-    // Falling below the level's killDepth puts the cow back on its checkpoint:
-    // the last firm ground it stood on. In the menu the game waits, but the
-    // heartbeat in the eyes runs on and a hop in the air lands.
+    // ahead: 1 forward, -1 back; turn: 1 left, -1 right.
     void update(float delta, float ahead, float turn, bool jump);
 
-    // Moos, if she has not just mooed.
     void moo();
 
     float distance() const;
 
-    // 0 far away from her, 1 right beside her.
+    // 0 far from her, 1 right beside her.
     float warmth() const;
 
-    // The ending's clock, on the postcard's timeline.
     float endingSeconds() const;
 
-    // Where the ending plays: the pair's midpoint, turned so the player's cow
-    // faces +x.
+    // Turned so the player's cow faces +x.
     Maths::Mat4 stage() const;
 
-    // Her answer to the player's moo is on screen.
-    bool hintShowing() const;
+    bool isPartnersAnswerShowing() const;
 
-    // The player fell a moment ago and is back on the checkpoint.
     bool justFell() const;
 
     LevelMaker makeLevel = [](std::uint32_t) { return Level {}; };
@@ -91,9 +75,6 @@ private:
     void animate(float delta, bool walking);
 };
 
-// What Escape, or Android's Back, does: nothing mid-swing, back to the menu
-// from the editor, the menu from play, and on the menu itself nothing of the
-// game's, so the key goes on to quit or to leave the app.
 enum class EscapeAction
 {
     Swallow,
@@ -104,21 +85,17 @@ enum class EscapeAction
 
 EscapeAction escapeAction(Game::State state, bool dressing, bool swinging);
 
-// Which screen takes touches and clicks: the menu, the editor, or play. Play
-// takes them from the moment Start swings the camera down, not when the swing
-// lands, so a finger put on the stick mid-swing is the stick's and not the
-// fading menu's for as long as it stays down.
-enum class InputOwner
+// Not Game::State: that stays Menu while Start swings the camera down into play.
+enum class InputRecipient
 {
     Menu,
     Editor,
     Play
 };
 
-InputOwner inputOwner(Game::State state, bool dressing, bool startingPlay);
+InputRecipient
+    getInputRecipient(Game::State state, bool dressing, bool startingPlay);
 
-// Whose controls the footer names: the keys, the touch controls, or a
-// controller by the labels it wears.
 enum class Hints
 {
     Keys,
@@ -134,10 +111,7 @@ constexpr bool isGamepad(Hints hints)
     return hints != Hints::Keys && hints != Hints::Touch;
 }
 
-// The footer: how to start in the menu, the controls while searching, `hint` while her answer shows, a
-// word after a fall.
 std::string footerText(const Game& game, const std::string& hint, Hints hints);
 
-// The footer while the cow is being dressed.
 std::string editorText(Hints hints);
 } // namespace Cows

@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# Usage: tools/release-microsoft.sh
-# Builds x64 and arm64 Microsoft Store packages on Windows. From another host,
-# syncs the working tree to COWS_WINDOWS (default jamie@tamby-windows), builds
-# there, and copies both raw executables and both MSIX packages back.
+# Usage: [COWS_WINDOWS=user@host] tools/release-microsoft.sh
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -14,8 +11,7 @@ artifact="CowsInLove-$version.0"
 
 case "$(uname -s)" in
     MINGW* | MSYS* | CYGWIN*)
-        # These Partner Center identifiers are public package metadata, not
-        # credentials. Environment variables can still override them.
+        # Public package metadata, not credentials.
         export COWS_MSIX_IDENTITY="${COWS_MSIX_IDENTITY:-BarnSoftware.CowsInLove}"
         export COWS_MSIX_PUBLISHER="${COWS_MSIX_PUBLISHER:-CN=AB75CE1F-98E3-40BA-869D-0645B2F844EA}"
         export COWS_MSIX_PUBLISHER_NAME="${COWS_MSIX_PUBLISHER_NAME:-Barn Software}"
@@ -35,11 +31,7 @@ case "$(uname -s)" in
             exit 1
         fi
 
-        # ResEmbed and eacp each build a tool the build then runs, for the
-        # target architecture. During an x64-to-arm64 cross-build either one
-        # may fail first, in any order, and again whenever its sources change;
-        # each time, put the x64 host copies in their place and build again.
-        # cp gives the copies a fresh mtime, so ninja does not relink them.
+        # Cross-building, ResEmbed and eacp build arm64 tools they then run; swap in x64 ones.
         host_tools=(
             _deps/resembed-build/Generator/_host/ResourceGenerator.exe
             _deps/eacp-build/Lib/eacp/Graphics/IconTool/eacp-icon-tool.exe
@@ -76,7 +68,6 @@ remote=projects/Cows-release
 eacp_ref="${COWS_EACP_REF:-$(sed -n 's/^set(COWS_EACP_TAG "\([^"]*\)".*/\1/p' CMake/Findeacp.cmake)}"
 : "${eacp_ref:=develop}"
 
-# $remote is deliberately expanded here; it is this script's fixed path.
 # shellcheck disable=SC2029
 git ls-files -z --cached --others --exclude-standard \
     | while IFS= read -r -d '' file; do [[ -e "$file" ]] && printf '%s\0' "$file"; done \

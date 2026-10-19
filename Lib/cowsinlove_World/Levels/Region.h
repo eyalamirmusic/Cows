@@ -6,7 +6,6 @@ namespace Cows
 {
 constexpr auto arenaSize = 200.f;
 
-// An axis-aligned rectangle of the ground, x and z.
 struct Region final
 {
     static Region arena();

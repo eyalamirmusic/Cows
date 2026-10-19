@@ -1,5 +1,3 @@
-# Reads the mesh blobs the Blender scripts write (tools/blender/README.md):
-# indexed triangles, one group per material. Knows nothing of the GPU.
 add_library(cowsinlove_MeshLoader STATIC
         MeshLoader/MeshBlob.cpp)
 

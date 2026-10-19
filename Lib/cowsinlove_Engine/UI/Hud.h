@@ -12,9 +12,7 @@
 
 namespace Cows
 {
-// The footer and the touch controls, drawn over the scene inside its own pass:
-// discs and rings through eacp's shape batch, text through its glyph atlas.
-// Everything is in points, y down; every disc and ring lands under every label.
+// Points, y down; every disc and ring lands under every label.
 struct Hud final
 {
     void begin(Frame& frame, RenderPass& pass, int samples);

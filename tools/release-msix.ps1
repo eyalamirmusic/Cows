@@ -1,16 +1,5 @@
-# Usage (PowerShell, on Windows, from the repo root):
-#   $env:COWS_MSIX_IDENTITY  = '<Package/Identity/Name from Partner Center>'
-#   $env:COWS_MSIX_PUBLISHER = '<Package/Identity/Publisher, e.g. CN=...>'
-#   $env:COWS_MSIX_PUBLISHER_NAME = '<Package/Properties/PublisherDisplayName>'
-#   powershell -ExecutionPolicy Bypass -File tools\release-msix.ps1 [-Arch x64,arm64] [-Certificate cert.pfx -Password pw]
-#
-# For each architecture (both by default: the Store submission ships x64 and
-# arm64), builds the Release exe if it is not built yet (tools\build-windows.bat
-# with COWS_ARCH), lays out the package (exe, AppxManifest.xml filled in,
-# Assets) and packs Deploy\Microsoft-Store\out\CowsInLove-<version>-<arch>.msix
-# with makeappx. Upload those .msix to Partner Center, which signs them for the
-# Store. A certificate is only for sideloading a test build; its subject must
-# equal COWS_MSIX_PUBLISHER.
+# Usage: $env:COWS_MSIX_IDENTITY, COWS_MSIX_PUBLISHER, COWS_MSIX_PUBLISHER_NAME set; powershell -ExecutionPolicy Bypass -File tools\release-msix.ps1 [-Arch x64,arm64] [-Certificate cert.pfx -Password pw]
+# Partner Center signs Store uploads; a certificate is only for sideloading and its subject must equal COWS_MSIX_PUBLISHER.
 param(
     [ValidateSet('x64', 'arm64')] [string[]]$Arch = @('x64', 'arm64'),
     [string]$Certificate = '',
@@ -71,12 +60,10 @@ function Pack([string]$arch) {
         -replace '@ARCH@', $arch |
         Set-Content -Encoding UTF8 (Join-Path $layout 'AppxManifest.xml')
 
-    # resources.pri maps Assets\X.png to its scale-100/200 and targetsize files.
     $config = Join-Path $out "priconfig-$arch.xml"
     & $makepri createconfig /cf $config /dq en-US /pv 10.0.0 /o | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'makepri createconfig failed' }
-    # One .msix per architecture, not a bundle: keep every scale in
-    # resources.pri rather than splitting resource packs that nothing installs.
+    # Not a bundle, so keep every scale rather than split packs nothing installs.
     (Get-Content $config -Raw) -replace '(?s)\s*<packaging>.*?</packaging>', '' |
         Set-Content -Encoding UTF8 $config
     & $makepri new /pr $layout /cf $config /mn (Join-Path $layout 'AppxManifest.xml') `

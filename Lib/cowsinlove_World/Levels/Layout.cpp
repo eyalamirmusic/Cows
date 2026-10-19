@@ -85,7 +85,7 @@ bool Layout::onPath(Vec2 point, float margin) const
 bool hasRoom(const Level& level, Vec3 spot, float margin)
 {
     auto at = Vec2 {spot.x, spot.z};
-    auto overhead = spot.y + stepUp;
+    auto overhead = spot.y + maxStepUpHeight;
 
     if (distance(at, {level.start.x, level.start.z}) < nearestHiding
         || std::abs(at.x) > arenaReach || std::abs(at.y) > arenaReach

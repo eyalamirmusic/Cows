@@ -49,10 +49,6 @@ bool within(const Graphics::Rect& inner, const Graphics::Rect& outer)
            && inner.y + inner.h <= outer.y + outer.h + slack;
 }
 
-// The panel clear of the cow's area and inside the content: the heading
-// above the rows, the rows apart and in order, the names in one column and
-// the values in another, Done below them, and the text never under the
-// readable size.
 void checkPanel(const Editor& editor)
 {
     auto content = frameOf(editor, editor.topClearance).contentArea();
@@ -116,8 +112,6 @@ void checkLayout(const Editor& editor, float width, float height)
 }
 } // namespace
 
-// Beside the cow on a wide window: every row and Done right of the scene's
-// share, inside the window, each target a comfortable size.
 auto tEditorWide = test("EditorSnapshot/wide") = []
 {
     if (!hasDevice())
@@ -138,7 +132,6 @@ auto tEditorWide = test("EditorSnapshot/wide") = []
     checkLayout(editor, 1280.f, 800.f);
 };
 
-// Below her on a portrait phone.
 auto tEditorTall = test("EditorSnapshot/tall") = []
 {
     if (!hasDevice())
@@ -168,7 +161,7 @@ auto tEditorTargets = test("Editor/clicksStepAndFinish") = []
 
     auto steps = Vector<int> {};
     auto finished = 0;
-    editor.onStep = [&](int row, int by) { steps.add(row * 10 + by); };
+    editor.onRowValueStepped = [&](int row, int by) { steps.add(row * 10 + by); };
     editor.onDone = [&] { ++finished; };
 
     check(editor.targetAt(editor.placed[0].previous.center())
@@ -194,13 +187,10 @@ auto tEditorTargets = test("Editor/clicksStepAndFinish") = []
     check(finished == 1);
 };
 
-// Dress Your Cow's rows at the shapes CowsArt renders, from a phone to a large
-// desktop window and a small square one.
-auto tEditorShapes = test("EditorLayout/holdsAtEveryShape") = []
+namespace
 {
-    if (!hasDevice())
-        return;
-
+void checkEveryShape(const std::string& title, const Vector<EditorRow>& rows)
+{
     struct Shape final
     {
         float width = 0.f;
@@ -231,9 +221,8 @@ auto tEditorShapes = test("EditorLayout/holdsAtEveryShape") = []
     {
         auto root = Graphics::View {};
         auto editor = Editor {};
-        editor.setTitle("Dress Your Cow");
-        editor.setRows({{"Hat", {"None", "Top Hat", "Cow Bucket Hat", "Wizard Hat"}},
-                        {"Pants", {"None", "Both Legs", "Back Legs"}}});
+        editor.setTitle(title);
+        editor.setRows(rows);
         editor.topClearance = shape.topClearance;
         root.addSubview(editor);
         root.setSafeAreaInsets(shape.safe);
@@ -241,9 +230,56 @@ auto tEditorShapes = test("EditorLayout/holdsAtEveryShape") = []
         editor.setBounds({0.f, 0.f, shape.width, shape.height});
         editor.layOut(hud);
 
-        check(editor.placed.size() == 2);
+        check(editor.placed.size() == rows.size());
 
-        if (editor.placed.size() == 2)
+        if (editor.placed.size() == rows.size())
             checkPanel(editor);
     }
+}
+
+Vector<EditorRow> makeExampleSettingsRows()
+{
+    auto rows = Vector<EditorRow> {};
+    rows.add({"Quality", {"Auto: High", "Low", "Medium", "High"}});
+    rows.add({"Frame rate", {"Auto", "60", "Max"}});
+    return rows;
+}
+} // namespace
+
+auto tEditorShapes = test("EditorLayout/holdsAtEveryShape") = []
+{
+    if (!hasDevice())
+        return;
+
+    auto rows = Vector<EditorRow> {};
+    rows.add({"Hat", {"None", "Top Hat", "Cow Bucket Hat", "Wizard Hat"}});
+    rows.add({"Pants", {"None", "Both Legs", "Back Legs"}});
+    checkEveryShape("Dress Your Cow", rows);
+};
+
+auto tSettingsShapes = test("EditorLayout/settingsHoldAtEveryShape") = []
+{
+    if (!hasDevice())
+        return;
+
+    checkEveryShape("Settings", makeExampleSettingsRows());
+};
+
+auto tSettingsShot = test("EditorSnapshot/settings") = []
+{
+    if (!hasDevice())
+        return;
+
+    auto editor = Editor {};
+    editor.setTitle("Settings");
+    editor.setRows(makeExampleSettingsRows());
+    editor.topClearance = macTitleBarClearance;
+
+    auto image = editorShot(editor, 1280.f, 800.f, "engine-editor-settings");
+    check(image.isValid());
+
+    if (!image.isValid())
+        return;
+
+    checkLayout(editor, 1280.f, 800.f);
 };

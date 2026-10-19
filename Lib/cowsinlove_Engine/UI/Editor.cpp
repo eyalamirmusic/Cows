@@ -12,8 +12,6 @@ namespace
 using Graphics::Point;
 using Graphics::Rect;
 
-// The cow's share of the content, wide and tall, and the least it gives way
-// to, a step at a time, before the rows' text goes under the readable size.
 constexpr auto wideShape = Editor::Shape {true, 0.55f};
 constexpr auto tallShape = Editor::Shape {false, 0.55f};
 constexpr auto leastCowShare = 0.3f;
@@ -22,8 +20,7 @@ constexpr auto panelMargin = 0.04f;
 
 constexpr auto lineSpacing = 1.05f;
 constexpr auto hoverScale = 1.08f;
-// Room either side of a button's label, and of a row, as shares of the tap
-// target, so a small window's targets shrink with their padding.
+// Shares of the tap target, so a small window's padding shrinks with it.
 constexpr auto buttonPadding = 14.f / leastTarget;
 constexpr auto rowSidePadding = 7.f / leastTarget;
 constexpr auto ringWidth = 4.f;
@@ -35,22 +32,19 @@ constexpr auto hoverDrop = 0.3f;
 constexpr auto litBrighten = 0.2f;
 constexpr auto ringBrighten = 0.1f;
 
-// Shares of the point size: the space after a name, a cell's padding top and
-// bottom, the gap between rows and before Done.
+// Shares of the point size.
 constexpr auto nameGap = 0.4f;
 constexpr auto rowPadding = 0.25f;
 constexpr auto rowGap = 0.1f;
 constexpr auto doneGap = 0.3f;
 
-// A row is a name and three targets, so none is wider than this share of the
-// panel.
+// A name and three targets per row.
 constexpr auto targetWidthShare = 1.f / 6.f;
-// The largest the rows' text goes, as a share of the content's short side,
-// the same whatever shape is chosen so the cap never jumps between shapes.
+// Of the content's short side, the same for every shape so the cap never jumps.
 constexpr auto largestShare = 0.08f;
 constexpr auto leastLargest = 22.f;
 constexpr auto mostLargest = 72.f;
-// The title's share of the panel's height, in tap targets.
+// In tap targets.
 constexpr auto titleLines = 1.5f;
 
 constexpr auto stackedRowLines = 1.5f;
@@ -70,9 +64,10 @@ bool aspectWide(const Graphics::View& view)
 Rect cowIn(Rect content, Editor::Shape shape)
 {
     if (shape.wide)
-        return {content.x, content.y, std::round(content.w * shape.cow), content.h};
+        return {
+            content.x, content.y, std::round(content.w * shape.cowShare), content.h};
 
-    return {content.x, content.y, content.w, std::round(content.h * shape.cow)};
+    return {content.x, content.y, content.w, std::round(content.h * shape.cowShare)};
 }
 
 Rect panelIn(Rect content, Editor::Shape shape)
@@ -88,10 +83,9 @@ Rect panelIn(Rect content, Editor::Shape shape)
 Editor::Shape squeezed(Editor::Shape from, int step)
 {
     auto along = (float) step / (float) squeezeSteps;
-    return {from.wide, from.cow + (leastCowShare - from.cow) * along};
+    return {from.wide, from.cowShare + (leastCowShare - from.cowShare) * along};
 }
 
-// A cell of a row, as tall as the row, with room above and below its text.
 Flex::Node label(std::string text, float pointSize)
 {
     auto node = Flex::Node {};
@@ -101,7 +95,6 @@ Flex::Node label(std::string text, float pointSize)
     return node;
 }
 
-// An arrow or Done: its label centred in at least a tap target.
 Flex::Node button(std::string text, float pointSize, float target)
 {
     auto node = label(std::move(text), pointSize);
@@ -127,8 +120,6 @@ struct PanelNodes final
     Flex::NodeId done = 0;
 };
 
-// How a row sits: its name beside its arrows and value, or over them when
-// the panel is too narrow for both at a readable size.
 enum class RowShape
 {
     Inline,
@@ -141,17 +132,12 @@ struct PanelShape final
     RowShape rows = RowShape::Inline;
 };
 
-// What the rows and Done need of the panel's height, in tap targets: a row
-// each (and half again for a name over its row, a line of text rather than a
-// target), Done, and the title.
 float linesFor(RowShape shape, int rows)
 {
     auto perRow = shape == RowShape::Stacked ? stackedRowLines : 1.f;
     return perRow * (float) rows + 1.f + titleLines;
 }
 
-// A centred block in the panel: the title, a table of rows (name, <, value,
-// >), and Done under it.
 Flex::Tree panelTree(const std::string& title,
                      const Vector<EditorRow>& rows,
                      const std::string& doneLabel,
@@ -332,10 +318,6 @@ void Editor::layOut(Hud& hud)
         return std::pair {shapes[best.index], best};
     };
 
-    // The first step at which a shape holds the rows at the readable size, the
-    // cow's room giving way a step at a time before the text shrinks, the
-    // aspect's shape first. Names go over their values only when no step
-    // holds them beside their values.
     auto shape = PanelShape {};
     auto fitted = ChosenShape {};
 
@@ -349,7 +331,7 @@ void Editor::layOut(Hud& hud)
         }
 
     chosen = shape.area;
-    stacked = shape.rows == RowShape::Stacked;
+    namesAboveValues = shape.rows == RowShape::Stacked;
     auto size = fitted.pointSize;
 
     auto panel = panelIn(content, chosen);
@@ -381,8 +363,10 @@ void Editor::layOut(Hud& hud)
         place.pointSize = size;
         place.row = tree.rect(row.row);
         place.name = tree.rect(row.name);
-        place.baseline = baselineIn(stacked ? tree.rect(row.value) : place.row);
-        place.nameBaseline = stacked ? baselineIn(place.name) : place.baseline;
+        place.baseline =
+            baselineIn(namesAboveValues ? tree.rect(row.value) : place.row);
+        place.nameBaseline =
+            namesAboveValues ? baselineIn(place.name) : place.baseline;
         place.previous = tree.rect(row.previous);
         place.value = tree.rect(row.value);
         place.next = tree.rect(row.next);
@@ -437,7 +421,7 @@ void Editor::drawRow(Hud& hud, int index)
               place.nameBaseline,
               place.pointSize,
               false,
-              stacked);
+              namesAboveValues);
     drawLabel(hud,
               previousArrow,
               place.previous,
@@ -549,7 +533,7 @@ void Editor::stepSelected(int by)
     showSelection = true;
 
     if (selected < doneIndex())
-        onStep(selected, by);
+        onRowValueStepped(selected, by);
 }
 
 void Editor::chooseSelected()
@@ -570,11 +554,11 @@ void Editor::act(Target target)
     switch (target.part)
     {
         case Part::Previous:
-            onStep(target.row, -1);
+            onRowValueStepped(target.row, -1);
             break;
         case Part::Value:
         case Part::Next:
-            onStep(target.row, 1);
+            onRowValueStepped(target.row, 1);
             break;
         case Part::Done:
             onDone();

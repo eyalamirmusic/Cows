@@ -7,11 +7,8 @@
 
 namespace Cows
 {
-// The meshes ShapeMeshes leaves to the game: the cow's (Cow/Wardrobe) and the
-// props' Blender meshes (Props/PropMeshes).
 MeshData makeContentMesh(Shape shape);
 
-// makeContentMesh with the cow's steps coarsened by `detail` (see `detailed`);
-// the props' meshes have one detail.
+// `detail` coarsens only the cow's meshes; the props' have one detail.
 std::function<MeshData(Shape)> contentMeshes(float detail);
 } // namespace Cows

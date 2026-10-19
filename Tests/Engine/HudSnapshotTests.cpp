@@ -26,9 +26,6 @@ bool anyDrawn(const Graphics::Image& image, Graphics::Point center, float radius
 }
 } // namespace
 
-// The touch controls and the footer, drawn through the HUD pass over an empty
-// scene: the rings and the labels land where TouchControls laid them out, and
-// the corners stay clear.
 auto tHudDrawsControlsAndFooter = test("HudSnapshot/controlsAndFooter") = []
 {
     if (!hasDevice())
@@ -77,8 +74,6 @@ auto tHudDrawsControlsAndFooter = test("HudSnapshot/controlsAndFooter") = []
     check(isClearColor(image.at(image.width() - 2, image.height() - 2)));
 };
 
-// The footer with a controller's words, at the window's size and at its
-// smallest, where it must still fit between the margins.
 auto tHudPadHints = test("HudSnapshot/footerWithPadHints") = []
 {
     if (!hasDevice())

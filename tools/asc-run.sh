@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-# Usage: tools/asc-run.sh <command...>
-# Runs the command under `op run` with Deploy/asc.env, from the "Cows In Love"
-# vault of the personal 1Password account: through the desktop app, or through
-# a service account token in COWS_OP_TOKEN (never the Tamber service account
-# the shell may carry).
+# Usage: [COWS_OP_TOKEN=token] tools/asc-run.sh <command...>
+# Drops the shell's OP_SERVICE_ACCOUNT_TOKEN: that is Tamber's account, not the personal one.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

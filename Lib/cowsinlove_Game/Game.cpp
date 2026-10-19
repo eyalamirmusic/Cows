@@ -18,8 +18,6 @@ constexpr auto turnSpeed = 2.4f;
 constexpr auto backSpeed = 0.5f;
 constexpr auto bounceRate = 8.f;
 constexpr auto playerRadius = 1.f;
-// How tall she stands: a jump under a loft or a roof stops this far short of
-// its underside.
 constexpr auto playerHeight = 1.5f;
 constexpr auto foundDistance = 4.5f;
 constexpr auto foundClimb = 1.5f;
@@ -151,7 +149,7 @@ void Game::openMenu()
     state = State::Menu;
 }
 
-Game::State Game::playing() const
+Game::State Game::getStateBehindMenu() const
 {
     return state == State::Menu ? behindMenu : state;
 }
@@ -205,8 +203,7 @@ void Game::update(float delta, float ahead, float turn, bool jump)
         verticalSpeed = 0.f;
     }
 
-    // A fall lands on whatever the feet were above at the start of the step,
-    // however far the step carried them.
+    // Land on what the feet were above when the step began, however far it went.
     auto floor = level.floorAt(ground(player), std::max(feetBefore, player.y));
     grounded = player.y <= floor;
 
@@ -280,7 +277,7 @@ Mat4 Game::stage() const
     return Mat4::translation(stageCenter) * Mat4::rotationY(stageHeading);
 }
 
-bool Game::hintShowing() const
+bool Game::isPartnersAnswerShowing() const
 {
     return state == State::Searching && sinceMoo >= mooAnswerDelay
            && sinceMoo < mooAnswerDelay + hintTime;
@@ -305,12 +302,13 @@ EscapeAction escapeAction(Game::State state, bool dressing, bool swinging)
     return EscapeAction::OpenMenu;
 }
 
-InputOwner inputOwner(Game::State state, bool dressing, bool startingPlay)
+InputRecipient
+    getInputRecipient(Game::State state, bool editorOpen, bool swingingIntoPlay)
 {
-    if (state != Game::State::Menu || startingPlay)
-        return InputOwner::Play;
+    if (state != Game::State::Menu || swingingIntoPlay)
+        return InputRecipient::Play;
 
-    return dressing ? InputOwner::Editor : InputOwner::Menu;
+    return editorOpen ? InputRecipient::Editor : InputRecipient::Menu;
 }
 
 std::string editorText(Hints hints)
@@ -329,7 +327,7 @@ std::string footerText(const Game& game, const std::string& hint, Hints hints)
     if (game.state == Game::State::Found)
         return foundText(hints);
 
-    if (game.hintShowing())
+    if (game.isPartnersAnswerShowing())
         return hint;
 
     if (game.justFell())

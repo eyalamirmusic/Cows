@@ -11,9 +11,6 @@ struct CornerVertex final
     Maths::Vec2 position;
 };
 
-// A full-screen triangle that turns each pixel back into the view ray through
-// it, so the gradient and the sun's glow sit still in the world as the camera
-// turns.
 struct SkyShader final
     : ShaderProgram
     , LightingUniforms
@@ -36,10 +33,7 @@ struct SkyShader final
     Uniform<Float3> towardSun;
 };
 
-// Every mesh in the scene but the grass and the title, drawn instanced: each
-// instance brings its own transform and material. Without `spotted` it draws
-// no cow patchwork, whatever the material's spots say, and so spares the
-// noise behind it on everything that has none.
+// Without spotted it skips the patchwork noise, whatever the material says.
 struct SurfaceShader final : LitProgram
 {
     explicit SurfaceShader(int shadowTapsToUse = fullShadowTaps,
@@ -52,7 +46,6 @@ struct SurfaceShader final : LitProgram
     bool spotted = true;
 };
 
-// Writes the key light's depth for everything that casts a shadow.
 struct ShadowCasterShader final : ShaderProgram
 {
     ShadowCasterShader();
@@ -64,8 +57,6 @@ struct ShadowCasterShader final : ShaderProgram
     EACP_SHADER(lightViewProjection)
 };
 
-// Soft additive light around bright things: the sun, the eyes, the hearts.
-// It fades into the mist as the surfaces do, by each glow's `mist`.
 struct GlowShader final : ShaderProgram
 {
     GlowShader();

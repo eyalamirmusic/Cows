@@ -7,8 +7,6 @@
 
 namespace Cows
 {
-// The title, each letter riding its own little loop, a wave travelling
-// through the word.
 struct TitleShader final
     : ShaderProgram
     , SceneUniforms

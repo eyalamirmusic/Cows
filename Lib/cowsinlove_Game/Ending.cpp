@@ -16,9 +16,10 @@ float easeInOut(float amount)
 }
 } // namespace
 
-float titleRise(float sinceFound)
+float titleRise(float secondsSinceFound)
 {
-    return std::max(easeInOut((sinceFound - titleDelay) / titleRiseTime), 0.01f);
+    return std::max(easeInOut((secondsSinceFound - titleDelay) / titleRiseTime),
+                    0.01f);
 }
 
 Vec3 foundStart(const Game& game)
@@ -56,7 +57,7 @@ Mat4 titlePlacement(const Game& game)
            * Mat4::rotationX(-0.08f) * Mat4::scale(staging.titleScale * rise);
 }
 
-bool loops(const Game& game)
+bool hasEndingPlayedOut(const Game& game)
 {
     return game.state == Game::State::Found && game.sinceFound > loopTime;
 }

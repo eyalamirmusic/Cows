@@ -273,22 +273,25 @@ void renderScreens(const std::string& directory, const std::string& only)
             scene.menu = &menu;
             scene.pointerHints = shape.hints;
             scene.hints = scene.pointerHints;
-            menu.setItems(screen.screen == Screen::About ? aboutItems()
-                                                         : mainMenuItems());
+            menu.setItems(screen.screen == Screen::About ? makeAboutItems()
+                                                         : makeMainMenuItems());
             menu.topClearance = clearance;
             editor.topClearance = clearance;
 
             if (screen.screen == Screen::Dress)
             {
                 editor.setTitle(dressTitle);
-                editor.setRows(dressRows(CowSkin {}));
+                editor.setRows(makeDressRows(CowSkin {}));
             }
 
             if (screen.screen == Screen::Settings)
             {
                 editor.setTitle(settingsTitle);
-                editor.setRows(
-                    {qualityRow(QualityChoice::Auto, Quality::High, false)});
+                constexpr auto stillMeasuring = false;
+                editor.setRows(makeSettingsRows(QualityChoice::Auto,
+                                                Quality::High,
+                                                stillMeasuring,
+                                                FrameRate::Auto));
             }
 
             footer.text = [&]
@@ -328,9 +331,7 @@ void renderScreens(const std::string& directory, const std::string& only)
                 }
             };
 
-            // The first render lays the screen out, which picks its shape;
-            // the camera frames the cow for that shape before the second, as
-            // the app's swing does over the frames it draws.
+            // The first render picks the layout's shape the camera then frames.
             root.renderToImage(1.f);
             settle(scene, step);
 

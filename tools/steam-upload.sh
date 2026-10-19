@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
-# Usage: COWS_STEAM_APP_ID=<app> COWS_STEAM_DEPOT_WINDOWS=<depot>
-#        COWS_STEAM_DEPOT_MACOS=<depot> COWS_STEAM_USER=<steam login>
-#        [COWS_STEAM_BRANCH=<beta branch>] tools/steam-upload.sh
-# Uploads Deploy/Steam/content/{windows,macos} (from tools/release-windows.sh
-# and tools/release-macos.sh) as one Steam build, with steamcmd
-# (brew install steamcmd, or the Steamworks SDK's tools/ContentBuilder).
-# Without COWS_STEAM_BRANCH the build is uploaded but not set live; setting the
-# default branch live is done in Steamworks.
+# Usage: COWS_STEAM_APP_ID=<app> COWS_STEAM_DEPOT_WINDOWS=<depot> COWS_STEAM_DEPOT_MACOS=<depot> COWS_STEAM_USER=<login> [COWS_STEAM_BRANCH=<beta>] tools/steam-upload.sh
+# Without COWS_STEAM_BRANCH the build is uploaded but not set live.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"

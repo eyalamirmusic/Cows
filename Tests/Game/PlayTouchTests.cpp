@@ -13,8 +13,6 @@ namespace
 {
 using Graphics::TouchPhase;
 
-// The app's stack on a phone: the touch controls, then the menu and the editor
-// over them, all the root's size, shown as CowsApp shows them.
 struct Phone final
 {
     Phone()
@@ -34,10 +32,10 @@ struct Phone final
         controls.resized();
     }
 
-    void show(InputOwner owner)
+    void show(InputRecipient recipient)
     {
-        menu.setShowing(owner == InputOwner::Menu);
-        editor.setShowing(owner == InputOwner::Editor);
+        menu.setShowing(recipient == InputRecipient::Menu);
+        editor.setShowing(recipient == InputRecipient::Editor);
     }
 
     void touch(TouchPhase phase, Graphics::Point position, int id = 1)
@@ -73,21 +71,18 @@ void pushStick(Phone& phone)
 auto tStickWalksInPlay = test("PlayTouch/stickWalksInPlay") = []
 {
     auto phone = Phone {};
-    phone.show(inputOwner(Game::State::Searching, false, false));
+    phone.show(getInputRecipient(Game::State::Searching, false, false));
     pushStick(phone);
 
     check(phone.steered());
     check(phone.chosen == -1);
 };
 
-// Start swings the camera down for over a second at 60 fps, and at the few
-// frames a second of a slow phone for several, and the menu used to keep every
-// touch until it landed: a thumb put on the stick in that time stayed the
-// faded menu's, and the cow never walked however it was pushed.
+// The menu used to keep every touch until the camera swing landed.
 auto tStickWalksWhileStartSwings = test("PlayTouch/stickWalksWhileStartSwings") = []
 {
     auto phone = Phone {};
-    phone.show(inputOwner(Game::State::Menu, false, true));
+    phone.show(getInputRecipient(Game::State::Menu, false, true));
     pushStick(phone);
 
     check(phone.steered());
@@ -97,7 +92,7 @@ auto tMenuTakesTouchesBeforeStart =
     test("PlayTouch/menuTakesTouchesBeforeStart") = []
 {
     auto phone = Phone {};
-    phone.show(inputOwner(Game::State::Menu, false, false));
+    phone.show(getInputRecipient(Game::State::Menu, false, false));
     pushStick(phone);
 
     check(!phone.steered());
@@ -106,9 +101,13 @@ auto tMenuTakesTouchesBeforeStart =
 
 auto tOwnerFollowsTheGame = test("PlayTouch/ownerFollowsTheGame") = []
 {
-    check(inputOwner(Game::State::Menu, false, false) == InputOwner::Menu);
-    check(inputOwner(Game::State::Menu, true, false) == InputOwner::Editor);
-    check(inputOwner(Game::State::Menu, false, true) == InputOwner::Play);
-    check(inputOwner(Game::State::Searching, false, false) == InputOwner::Play);
-    check(inputOwner(Game::State::Found, false, false) == InputOwner::Play);
+    check(getInputRecipient(Game::State::Menu, false, false)
+          == InputRecipient::Menu);
+    check(getInputRecipient(Game::State::Menu, true, false)
+          == InputRecipient::Editor);
+    check(getInputRecipient(Game::State::Menu, false, true) == InputRecipient::Play);
+    check(getInputRecipient(Game::State::Searching, false, false)
+          == InputRecipient::Play);
+    check(getInputRecipient(Game::State::Found, false, false)
+          == InputRecipient::Play);
 };

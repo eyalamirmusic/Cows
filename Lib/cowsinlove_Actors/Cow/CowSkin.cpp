@@ -19,7 +19,7 @@ ItemClass itemClass(std::string key, std::string name, Item CowSkin::* member)
     item.name = std::move(name);
 
     for (auto enumerator: names)
-        item.choices.add(spelledOut(enumerator));
+        item.choices.add(spellOutEnumeratorName(enumerator));
 
     item.choice = [member, names](const CowSkin& skin)
     {
@@ -60,7 +60,7 @@ const Vector<ItemClass>& itemClasses()
     return classes;
 }
 
-CowSkin stepped(CowSkin skin, int itemClass, int by)
+CowSkin stepSkinItemChoice(CowSkin skin, int itemClass, int by)
 {
     const auto& classes = itemClasses();
 
@@ -78,7 +78,7 @@ CowSkin stepped(CowSkin skin, int itemClass, int by)
     return skin;
 }
 
-std::string spelledOut(std::string_view enumeratorName)
+std::string spellOutEnumeratorName(std::string_view enumeratorName)
 {
     auto text = std::string {};
 
@@ -102,10 +102,11 @@ std::string toJSON(const CowSkin& skin)
 
 CowSkin cowSkinFromJSON(std::string_view text)
 {
-    return withNamedChoices(Miro::createFromJSONString<CowSkin>(text));
+    return replaceUnknownValuesWithDefaults(
+        Miro::createFromJSONString<CowSkin>(text));
 }
 
-CowSkin withNamedChoices(CowSkin skin)
+CowSkin replaceUnknownValuesWithDefaults(CowSkin skin)
 {
     const auto defaults = CowSkin {};
 

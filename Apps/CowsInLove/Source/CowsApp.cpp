@@ -20,7 +20,7 @@ struct WindowSize final
     int height = defaultHeight;
 };
 
-// COWS_WINDOW=<width>x<height> in points, else the default.
+// COWS_WINDOW=<width>x<height>, in points.
 WindowSize firstWindowSize()
 {
     auto value = getEnvValue("COWS_WINDOW");
@@ -91,10 +91,25 @@ float titlebarClearance()
 {
     return Platform::isMac() ? macTitleBarClearance : 0.f;
 }
+
+bool rowsOfferTheSameChoices(const Vector<EditorRow>& shownRows,
+                             const Vector<EditorRow>& wantedRows)
+{
+    if (shownRows.size() != wantedRows.size())
+        return false;
+
+    auto numRows = static_cast<int>(wantedRows.size());
+
+    for (auto index = 0; index < numRows; ++index)
+        if (shownRows[index].choices != wantedRows[index].choices)
+            return false;
+
+    return true;
+}
 } // namespace
 
 CowsApp::CowsApp()
-    : scene {saved.quality, Stages {firstStage()}, firstSeed()}
+    : scene {savedSettings.quality, Stages {firstStage()}, firstSeed()}
     , window {root, windowOptions()}
 {
     root.addSubview(scene);
@@ -102,7 +117,7 @@ CowsApp::CowsApp()
     scene.menu = &menu;
 
     showMainMenu();
-    menu.onChoose = [this](int index)
+    menu.onChoose = [this](int itemIndex)
     {
         if (showingAbout)
         {
@@ -110,44 +125,52 @@ CowsApp::CowsApp()
             return;
         }
 
-        if (index == 0)
+        const auto& chosenLabel = menu.items[itemIndex].label;
+
+        if (chosenLabel == startLabel)
             scene.startGame();
-        else if (index == 1)
-            scene.openEditor(editor);
-        else if (index == 2)
+        else if (chosenLabel == dressLabel)
+            scene.openEditor(dressEditor);
+        else if (chosenLabel == settingsLabel)
             scene.openEditor(settingsPanel);
-        else
+        else if (chosenLabel == aboutLabel)
             showAbout();
     };
 
-    editor.setTitle(dressTitle);
-    editor.setRows(dressRows(saved.skin));
-    editor.topClearance = titlebarClearance();
-    menu.topClearance = editor.topClearance;
-    editor.onStep = [this](int row, int by) { dress(stepped(saved.skin, row, by)); };
-    editor.onDone = [this] { scene.closeEditor(); };
-    editor.onControl = [this](const ControlEvent& event)
+    dressEditor.setTitle(dressTitle);
+    dressEditor.setRows(makeDressRows(savedSettings.skin));
+    dressEditor.topClearance = titlebarClearance();
+    menu.topClearance = dressEditor.topClearance;
+    dressEditor.onRowValueStepped = [this](int rowIndex, int steps)
+    { dressCow(stepSkinItemChoice(savedSettings.skin, rowIndex, steps)); };
+    dressEditor.onDone = [this] { scene.closeEditor(); };
+    dressEditor.onControl = [this](const ControlEvent& event)
     {
         scene.useHints(scene.pointerHints);
         scene.control(event);
     };
 
     settingsPanel.setTitle(settingsTitle);
-    settingsPanel.topClearance = editor.topClearance;
-    settingsPanel.onStep = [this](int, int by)
+    settingsPanel.topClearance = dressEditor.topClearance;
+    settingsPanel.onRowValueStepped = [this](int rowIndex, int steps)
     {
-        auto next = ((int) scene.qualityPreference.chosen + by + qualityChoices)
-                    % qualityChoices;
-        scene.chooseQuality((QualityChoice) next);
+        const auto& steppedRowName = settingsPanel.rows[rowIndex].name;
+
+        if (steppedRowName == frameRateRowName)
+            chooseFrameRate(stepFrameRate(savedSettings.frameRate, steps));
+        else if (steppedRowName == qualityRowName)
+            scene.chooseQuality(
+                stepQualityChoice(scene.qualityPreference.chosen, steps));
     };
     settingsPanel.onDone = [this] { scene.closeEditor(); };
-    settingsPanel.onControl = editor.onControl;
-    showQuality();
-    scene.wear(saved.skin);
+    settingsPanel.onControl = dressEditor.onControl;
+    scene.chosenFrameRate = savedSettings.frameRate;
+    showSettings();
+    scene.wear(savedSettings.skin);
     scene.onQualityChanged = [this]
     {
-        saved.quality = scene.qualityPreference;
-        save();
+        savedSettings.quality = scene.qualityPreference;
+        writeSettingsFile();
     };
 
     root.onKeyDown = [this](const Graphics::KeyEvent& event)
@@ -178,14 +201,15 @@ CowsApp::CowsApp()
     };
     scene.onStateChanged = [this]
     {
-        auto owner = scene.inputOwner();
+        auto recipient = scene.getInputRecipient();
         touchControls.showAgain = scene.game.state == Game::State::Found;
-        menu.setShowing(owner == InputOwner::Menu);
+        menu.setShowing(recipient == InputRecipient::Menu);
         menu.hovered = -1;
         menu.pressed = -1;
-        for (auto* each: {&editor, &settingsPanel})
+        for (auto* each: {&dressEditor, &settingsPanel})
         {
-            each->setShowing(owner == InputOwner::Editor && scene.editor == each);
+            each->setShowing(recipient == InputRecipient::Editor
+                             && scene.editor == each);
             each->hovered = {};
             each->pressed = {};
         }
@@ -193,7 +217,7 @@ CowsApp::CowsApp()
         if (menu.isShowing())
             menu.showSelection = isGamepad(scene.hints);
 
-        for (auto* each: {&editor, &settingsPanel})
+        for (auto* each: {&dressEditor, &settingsPanel})
             if (each->isShowing())
                 each->showSelection = isGamepad(scene.hints);
     };
@@ -215,13 +239,13 @@ CowsApp::CowsApp()
             menu.draw(hud);
             if (scene.editor != nullptr)
             {
-                showQuality();
+                showSettings();
                 scene.editor->opacity = scene.editorOpacity();
                 scene.editor->draw(hud);
             }
         }
 
-        if (scene.inputOwner() != InputOwner::Play)
+        if (scene.getInputRecipient() != InputRecipient::Play)
             return;
 
         if (touchScreen && !isGamepad(scene.hints))
@@ -232,7 +256,7 @@ CowsApp::CowsApp()
         root.addSubview(touchControls);
 
     root.addSubview(menu);
-    root.addSubview(editor);
+    root.addSubview(dressEditor);
     root.addSubview(settingsPanel);
 
     if (opensOnMenu())
@@ -241,7 +265,7 @@ CowsApp::CowsApp()
         menu.setShowing(false);
 
     if (opensOnMenu() && opensDressing())
-        scene.openEditor(editor);
+        scene.openEditor(dressEditor);
     else if (opensOnMenu() && opensSettings())
         scene.openEditor(settingsPanel);
 }
@@ -249,7 +273,7 @@ CowsApp::CowsApp()
 void CowsApp::showMainMenu()
 {
     showingAbout = false;
-    menu.setItems(mainMenuItems());
+    menu.setItems(makeMainMenuItems());
     menu.selected = 0;
     menu.hovered = -1;
     menu.pressed = -1;
@@ -258,45 +282,59 @@ void CowsApp::showMainMenu()
 void CowsApp::showAbout()
 {
     showingAbout = true;
-    menu.setItems(aboutItems());
+    menu.setItems(makeAboutItems());
     menu.selected = 0;
     menu.hovered = -1;
     menu.pressed = -1;
 }
 
-void CowsApp::dress(const CowSkin& next)
+void CowsApp::dressCow(const CowSkin& next)
 {
-    saved.skin = next;
-    scene.wear(saved.skin);
-    showSkin();
-    save();
+    savedSettings.skin = next;
+    scene.wear(savedSettings.skin);
+    showSkinInDressEditor();
+    writeSettingsFile();
 }
 
-void CowsApp::save() const
+void CowsApp::writeSettingsFile() const
 {
-    if (!saveSettings(saved, savedFile))
-        LOG("Cows: could not save ", savedFile.str());
+    if (!saveSettings(savedSettings, settingsFilePath))
+        LOG("Cows: could not save ", settingsFilePath.str());
 }
 
-void CowsApp::showQuality()
+void CowsApp::chooseFrameRate(FrameRate rate)
 {
-    auto row =
-        qualityRow(scene.qualityPreference.chosen, scene.quality, scene.measuring);
+    savedSettings.frameRate = rate;
+    scene.chosenFrameRate = rate;
+    showSettings();
+    writeSettingsFile();
+}
 
-    if (settingsPanel.rows.empty() || settingsPanel.rows[0].choices != row.choices)
+void CowsApp::showSettings()
+{
+    auto rows = makeSettingsRows(scene.qualityPreference.chosen,
+                                 scene.quality,
+                                 scene.measuring,
+                                 scene.chosenFrameRate);
+    auto& shownRows = settingsPanel.rows;
+
+    if (!rowsOfferTheSameChoices(shownRows, rows))
     {
-        settingsPanel.setRows({row});
+        settingsPanel.setRows(rows);
         return;
     }
 
-    settingsPanel.rows[0].choice = row.choice;
+    auto numRows = static_cast<int>(rows.size());
+
+    for (auto index = 0; index < numRows; ++index)
+        shownRows[index].choice = rows[index].choice;
 }
 
-void CowsApp::showSkin()
+void CowsApp::showSkinInDressEditor()
 {
     const auto& classes = itemClasses();
 
     for (auto index = 0; index < (int) classes.size(); ++index)
-        editor.rows[index].choice = classes[index].choice(saved.skin);
+        dressEditor.rows[index].choice = classes[index].choice(savedSettings.skin);
 }
 } // namespace Cows

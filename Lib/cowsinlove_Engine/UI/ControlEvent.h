@@ -4,8 +4,7 @@
 
 namespace Cows
 {
-// What the on-screen controls ask of the game. Steer: x ahead, y turn. Look: x
-// and y are the drag. Zoom: x is the amount.
+// Steer: x ahead, y turn. Look: x and y the drag. Zoom: x the amount.
 struct ControlEvent final
 {
     enum class Kind

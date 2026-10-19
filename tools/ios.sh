@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Usage: tools/ios.sh sim [shot.png]   build, run on the "Cows iPhone" simulator
-#        [COWS_TEAM=id] [COWS_DEVICE=udid] tools/ios.sh device
-#                                      build, sign, install and run on a phone
+# Usage: [COWS_TEAM=id] [COWS_DEVICE=udid] tools/ios.sh sim [shot.png] | device
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"

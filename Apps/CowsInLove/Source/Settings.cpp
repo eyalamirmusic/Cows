@@ -20,8 +20,9 @@ std::string toJSON(const Settings& settings)
 Settings settingsFromJSON(std::string_view text)
 {
     auto settings = Miro::createFromJSONString<Settings>(text);
-    settings.skin = withNamedChoices(settings.skin);
-    settings.quality = withKnownValues(settings.quality);
+    settings.skin = replaceUnknownValuesWithDefaults(settings.skin);
+    settings.quality = replaceUnknownValuesWithDefaults(settings.quality);
+    settings.frameRate = replaceUnknownValuesWithDefaults(settings.frameRate);
     return settings;
 }
 

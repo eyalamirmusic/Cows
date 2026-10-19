@@ -1,7 +1,4 @@
-# Android has no ALSA, but MakeASound's RtMidi find module asks for it on every
-# UNIX. This answers with an empty target, and cowsinlove_AudioEngine takes
-# RtMidi's ALSA backend back out (RtMidi then builds its dummy API). The real
-# fix is an Android branch in MakeASound's CMake/FindRTMidi.cmake.
+# Workaround: MakeASound's RtMidi asks for ALSA on every UNIX, Android included.
 if (NOT TARGET ALSA::ALSA)
     add_library(ALSA::ALSA INTERFACE IMPORTED)
 endif ()

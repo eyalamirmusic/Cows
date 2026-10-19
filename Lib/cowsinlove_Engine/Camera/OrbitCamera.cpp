@@ -52,7 +52,7 @@ float distanceToFit(float size, float share, float verticalFov)
 }
 
 CameraPose placeTargetOnScreen(CameraPose pose,
-                               Graphics::Point onScreen,
+                               Graphics::Point onScreenNdc,
                                float verticalFov,
                                float aspect)
 {
@@ -64,8 +64,8 @@ CameraPose placeTargetOnScreen(CameraPose pose,
     auto halfWidth = halfHeight * aspect;
 
     pose.target = pose.target
-                  - (still.right() * (onScreen.x * halfWidth)
-                     + still.up() * (onScreen.y * halfHeight));
+                  - (still.right() * (onScreenNdc.x * halfWidth)
+                     + still.up() * (onScreenNdc.y * halfHeight));
     return pose;
 }
 

@@ -7,10 +7,7 @@
 
 namespace Cows
 {
-// A mesh for every Shape. The Engine makes the plain solids; `content` makes the
-// rest (the heart, the pants, the barn), which belong to the game, and is never asked for
-// a solid. `detail` coarsens the solids' steps (see `detailed`); the content
-// is asked for its own at whatever detail it was made for.
+// detail coarsens the solids only; content meshes keep the detail they were made at.
 struct ShapeMeshes final
 {
     explicit ShapeMeshes(const std::function<MeshData(Shape)>& content,

@@ -1,23 +1,7 @@
 #!/usr/bin/env bash
-# Usage: tools/perf.sh <scenario> <label> [runs]
-#
-# Runs the macOS app `runs` times (default 10), a fresh process each, in one
-# fixed scenario, and appends a row per run to $COWS_PERF_DIR/<label>/<scenario>.csv
-# (default /tmp/cows-perf). Each run waits out a warm-up, then measures a
-# window: CPU seconds per wall second (process and main thread), the energy the
-# kernel bills the process (rusage ri_energy_nj), top's %CPU and POWER, the
-# system's GPU utilisation, and the averages of the COWS_PROFILE lines logged
-# in the window. Per-thread CPU goes to <scenario>-threads.jsonl beside it.
-#
-# Scenarios (all COWS_SEED=3, COWS_WINDOW=1280x800, COWS_QUALITY=high):
-#   S1 menu idle          S2 editor open (COWS_DRESS=1)
-#   S3 play, standing     S4 play, walking ahead (COWS_WALK=1)
-#   S5 the ending (COWS_FOUND=1; it loops to the next level 4.5 s in, so its
-#      warm-up is 1 s and its window 3 s)
-#
-# PERF_BUILD picks the build directory (default build-release); PERF_WARMUP and
-# PERF_WINDOW override the seconds. Extra COWS_* settings in the environment
-# pass through, so `COWS_MSAA=1 tools/perf.sh S3 msaa1` varies one knob.
+# Usage: [PERF_BUILD=dir | PERF_APP=bundle PERF_COMMIT=sha] [PERF_WARMUP=s] [PERF_WINDOW=s] [COWS_*=...] tools/perf.sh <scenario> <label> [runs]
+#   S1 menu idle, S2 editor (COWS_DRESS=1), S3 play standing, S4 walking (COWS_WALK=1)
+#   S5 ending (COWS_FOUND=1; loops 4.5 s in, so 1 s warm-up and 3 s window)
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -25,7 +9,9 @@ scenario="${1:?scenario S1..S5}"
 label="${2:?label}"
 runs="${3:-10}"
 build="${PERF_BUILD:-build-release}"
-bin="$root/$build/Apps/CowsInLove/Cows In Love.app/Contents/MacOS/Cows In Love"
+[[ -n "${PERF_APP:-}" ]] && build="$(basename "$PERF_APP")"
+app="${PERF_APP:-$root/$build/Apps/CowsInLove/Cows In Love.app}"
+bin="$app/Contents/MacOS/Cows In Love"
 [[ -x "$bin" ]] || { echo "no binary at $bin" >&2; exit 1; }
 
 warmup=5
@@ -45,7 +31,7 @@ window="${PERF_WINDOW:-$window}"
 passthrough=()
 while IFS='=' read -r name value; do
     case "$name" in
-        COWS_SEED | COWS_WINDOW | COWS_QUALITY | COWS_PROFILE | COWS_PERF_DIR) ;;
+        COWS_SEED | COWS_WINDOW | COWS_QUALITY | COWS_PROFILE | COWS_PERF_DIR | COWS_FPS) ;;
         COWS_*) passthrough+=("$name=$value") ;;
     esac
 done < <(env)
@@ -53,21 +39,28 @@ done < <(env)
 out="${COWS_PERF_DIR:-/tmp/cows-perf}/$label"
 mkdir -p "$out"
 csv="$out/$scenario.csv"
-header="label,scenario,run,build,commit,warmup_s,window_s,cpu_s_per_s,user_s_per_s,system_s_per_s,main_s_per_s,other_s_per_s,energy_w,ipc,wakeups_per_s,footprint_mb,top_cpu,top_power,gpu_util,fps,frame_ms,frame_p95_ms,cpu_update_ms,cpu_gather_ms,cpu_shadows_ms,cpu_scene_ms,cpu_hud_ms,gpu_ms,gpu_shadows_ms,gpu_scene_ms,env"
+header="label,scenario,run,build,commit,pid,from,to,warmup_s,window_s,cpu_s_per_s,user_s_per_s,system_s_per_s,main_s_per_s,other_s_per_s,energy_w,ipc,wakeups_per_s,footprint_mb,top_cpu,top_power,gpu_util,fps,frame_ms,frame_p95_ms,cpu_update_ms,cpu_gather_ms,cpu_shadows_ms,cpu_scene_ms,cpu_hud_ms,gpu_ms,gpu_shadows_ms,gpu_scene_ms,env"
 [[ -f "$csv" ]] || echo "$header" > "$csv"
 
-commit="$(git -C "$root" rev-parse --short HEAD)$(git -C "$root" diff --quiet HEAD -- Apps Lib CMake || echo +)"
+commit="${PERF_COMMIT:-$(git -C "$root" rev-parse --short HEAD)$(git -C "$root" diff --quiet HEAD -- Apps Lib CMake || echo +)}"
 
-if pgrep -f "Cows In Love.app/Contents/MacOS/Cows In Love" >/dev/null; then
-    echo "another Cows is running; the numbers would share the machine" >&2
-fi
+cows_running() {
+    pgrep -f "Contents/MacOS/Cows In Love" | grep -vx "${1:-none}" || true
+}
 
 pid=""
 trap '[[ -n "$pid" ]] && kill "$pid" 2>/dev/null || true' EXIT
 
-for ((run = 1; run <= runs; run++)); do
+first=$(($(cut -d, -f3 "$csv" | sort -n | tail -1 | sed "s/run/0/") + 1))
+for ((run = first; run < first + runs; run++)); do
+    while [[ -n "$(cows_running)" ]]; do
+        echo "  waiting for another Cows ($(cows_running | tr '\n' ' ')) to quit" >&2
+        sleep 10
+    done
+
     log="$out/$scenario-$run.log"
     env COWS_SEED=3 COWS_WINDOW=1280x800 COWS_QUALITY=high COWS_PROFILE=1 \
+        COWS_FPS="${COWS_FPS:-auto}" \
         ${scenario_env[@]+"${scenario_env[@]}"} \
         ${passthrough[@]+"${passthrough[@]}"} \
         "$bin" >"$log" 2>&1 &
@@ -85,23 +78,46 @@ for ((run = 1; run <= runs; run++)); do
     done) >"$gpulog" &
     gpupid=$!
 
+    started="$(date +%H:%M:%S)"
     linesBefore=$(wc -l <"$log")
-    before="$(python3 "$root/tools/perf-probe.py" "$pid")"
+    before="$(python3 "$root/tools/perf-probe.py" "$pid" 2>/dev/null)" || before=""
     sleep "$window"
-    after="$(python3 "$root/tools/perf-probe.py" "$pid")"
+    after="$(python3 "$root/tools/perf-probe.py" "$pid" 2>/dev/null)" || after=""
     linesAfter=$(wc -l <"$log")
+    ended="$(date +%H:%M:%S)"
+    others="$(cows_running "$pid")"
 
+    runpid="$pid"
     kill "$pid" 2>/dev/null || true
     wait "$pid" 2>/dev/null || true
     pid=""
     wait "$toppid" 2>/dev/null || true
     wait "$gpupid" 2>/dev/null || true
 
+    if [[ -z "$before" || -z "$after" || -n "$others" ]]; then
+        echo "  $scenario run $run ended early or shared the machine; running it again" >&2
+        ((run--)) || true
+        continue
+    fi
+
     sed -n "$((linesBefore + 1)),${linesAfter}p" "$log" | grep "profile fps" >"$out/$scenario-$run.profile" || true
 
+    if sed -n "$((linesBefore + 1)),${linesAfter}p" "$log" | grep -q "Cows: input to"; then
+        echo "  $scenario run $run changed screens mid-window; running it again" >&2
+        ((run--)) || true
+        continue
+    fi
+
+    # A window hidden behind another space draws nothing.
+    if [[ ! -s "$out/$scenario-$run.profile" ]]; then
+        echo "  $scenario run $run drew no frames; running it again" >&2
+        ((run--)) || true
+        continue
+    fi
+
     python3 - "$before" "$after" "$out/$scenario-$run.profile" "$toplog" "$gpulog" \
-        "$label,$scenario,$run,$build,$commit,$warmup,$window" \
-        "${scenario_env[*]+${scenario_env[*]}} ${passthrough[*]+${passthrough[*]}}" \
+        "$label,$scenario,$run,$build,$commit,$runpid,$started,$ended,$warmup,$window" \
+        "COWS_FPS=${COWS_FPS:-auto} ${scenario_env[*]+${scenario_env[*]}} ${passthrough[*]+${passthrough[*]}}" \
         "$out/$scenario-threads.jsonl" >>"$csv" <<'PY'
 import json, re, sys
 
@@ -113,8 +129,7 @@ def rate(key):
     return (after[key] - before[key]) / wall
 
 cpu = rate("user_s") + rate("system_s")
-# The main thread's pthread lives in libpthread's data, above every other
-# thread's stack, so its handle is the largest; 0 is an empty slot.
+# The main thread's pthread handle is the largest (it lives above every stack); 0 is empty.
 handles = sorted((h for h in after["threads"] if h != "0"), key=int)
 main = handles[-1] if handles else None
 
@@ -177,7 +192,7 @@ row += [mean(fields[k]) for k in
 row.append(envtext.strip().replace(",", ";"))
 print(",".join(row))
 PY
-    tail -1 "$csv" | cut -d, -f2,3,8,13,20,28 | sed 's/^/  /' >&2
+    tail -1 "$csv" | cut -d, -f2,3,7,8,11,16,23,31 | sed 's/^/  /' >&2
     sleep 1
 done
 

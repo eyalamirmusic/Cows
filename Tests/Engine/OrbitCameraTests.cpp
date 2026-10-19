@@ -128,8 +128,7 @@ auto tEaseOut = test("OrbitCamera/easeOutLeavesFastAndSettles") = []
     }
 };
 
-// At 2 fps eacp hands every frame a delta clamped to 0.1 s; the swing still
-// takes the half second that passed, and Start's 1.1 s swing lands in 1.1 s.
+// eacp clamps delta to 0.1 s; at 2 fps the swing must still take the wall time.
 auto tSwingClockKeepsWallTime = test("OrbitCamera/swingClockKeepsWallTime") = []
 {
     auto clock = SwingClock {};
@@ -141,8 +140,7 @@ auto tSwingClockKeepsWallTime = test("OrbitCamera/swingClockKeepsWallTime") = []
     check(std::abs(swung - 1.5f) < 1e-5f);
 };
 
-// A display link that starts again counts its time from zero; the first frame
-// after it steps by its own delta rather than backwards.
+// A restarted display link counts from zero; step by delta, not backwards.
 auto tSwingClockSurvivesRestart = test("OrbitCamera/swingClockSurvivesRestart") = []
 {
     auto clock = SwingClock {};
@@ -161,7 +159,8 @@ auto tDistanceToFit = test("OrbitCamera/distanceToFitFillsTheShare") = []
     check(near(distanceToFit(2.f, 0.25f, fov), 2.f * distance));
 };
 
-auto tCentreKeepsTarget = test("OrbitCamera/placeTargetOnScreenAtCentreKeepsTarget") = []
+auto tCentreKeepsTarget =
+    test("OrbitCamera/placeTargetOnScreenAtCentreKeepsTarget") = []
 {
     auto pose = OrbitCamera {}.pose();
     auto placed = placeTargetOnScreen(pose, {0.f, 0.f}, radians(42.f), 1.5f);
@@ -169,7 +168,8 @@ auto tCentreKeepsTarget = test("OrbitCamera/placeTargetOnScreenAtCentreKeepsTarg
     check(near(length(placed.target - pose.target), 0.f));
 };
 
-auto tRightEdgeSlidesLeft = test("OrbitCamera/placeTargetOnScreenAtRightEdgeSlidesLeft") = []
+auto tRightEdgeSlidesLeft =
+    test("OrbitCamera/placeTargetOnScreenAtRightEdgeSlidesLeft") = []
 {
     auto camera = OrbitCamera {};
     auto fov = radians(42.f);
@@ -183,7 +183,8 @@ auto tRightEdgeSlidesLeft = test("OrbitCamera/placeTargetOnScreenAtRightEdgeSlid
     check(near(dot(slid, camera.forward()), 0.f));
 };
 
-auto tLandsOnScreen = test("OrbitCamera/placeTargetOnScreenPutsTheOldTargetThere") = []
+auto tLandsOnScreen =
+    test("OrbitCamera/placeTargetOnScreenPutsTheOldTargetThere") = []
 {
     auto camera = OrbitCamera {};
     camera.yaw = 0.7f;

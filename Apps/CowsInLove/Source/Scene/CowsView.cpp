@@ -34,8 +34,7 @@ const auto searchLeastWidth = OrbitCamera {}.leastWidth;
 constexpr auto startYaw = -halfPi;
 constexpr auto chaseRate = 4.f;
 constexpr auto eyeMargin = 0.3f;
-// Where on her the camera's target is pulled down to when it would be in a
-// roof or a loft over her, so the eye is clipped from inside them.
+// Under a roof the target drops to here, so the eye is not clipped inside it.
 constexpr auto bodyHeight = 0.6f;
 constexpr auto nearestEye = 0.6f;
 constexpr auto eyeReturnRate = 3.f;
@@ -66,11 +65,9 @@ constexpr auto dressLength = 0.6f;
 constexpr auto editorHeight = 1.4f;
 constexpr auto editorDistance = 7.5f;
 constexpr auto editorTurn = 0.3f;
-// Seen from her side in the editor she is longer than she is from the front.
 constexpr auto editorCowWidth = 3.2f;
 constexpr auto tallEditorCowShare = 0.7f;
-// Upright, the cow's band is high on the screen, which lowers the camera
-// into the grass unless it looks down more.
+// Upright, the camera sinks into the grass unless it looks down more.
 constexpr auto tallEditorPitch = 0.3f;
 
 constexpr auto fullScreenTriangle = std::to_array<CornerVertex>({
@@ -193,11 +190,6 @@ float startTime()
     return 0.f;
 }
 
-// What COWS_PROFILE runs vary, one at a time, to find what a frame costs:
-// COWS_BLADES caps the blades drawn per tile, COWS_MSAA, COWS_RENDER_SCALE and
-// COWS_SHADOW and COWS_DETAIL override the tier's sample count, render scale,
-// shadow map side and mesh detail, and COWS_SKIP names parts of the frame left out (sky, ground,
-// objects, grass, glow, hud, shadows).
 struct ProfileSettings final
 {
     bool skips(std::string_view part) const
@@ -247,11 +239,25 @@ Graphics::Color displayColor(const Vec3& linear)
     return {encode(linear.x), encode(linear.y), encode(linear.z)};
 }
 
-// The centre of `area`, -1 to 1 across `bounds`, y up.
-Graphics::Point centreOnScreen(Graphics::Rect area, Graphics::Rect bounds)
+Graphics::Point centreInClipSpace(Graphics::Rect area, Graphics::Rect bounds)
 {
     return {2.f * (area.x + area.w * 0.5f) / bounds.w - 1.f,
             1.f - 2.f * (area.y + area.h * 0.5f) / bounds.h};
+}
+
+std::string_view getInputRecipientName(InputRecipient recipient)
+{
+    switch (recipient)
+    {
+        case InputRecipient::Menu:
+            return "menu";
+        case InputRecipient::Editor:
+            return "editor";
+        case InputRecipient::Play:
+            return "play";
+    }
+
+    return "unknown";
 }
 } // namespace
 
@@ -277,7 +283,8 @@ CowsView::CowsView(const QualityPreference& preference,
     menuTitleWide = MenuTitle::makeWide();
     menuTitleTall = MenuTitle::makeTall();
 
-    forcedQuality = qualityOverride();
+    forcedQuality = readQualityFromEnvironment();
+    forcedFrameRate = readFrameRateFromEnvironment();
     applyQualityChoice();
 
     game.makeLevel = stages.level();
@@ -307,7 +314,7 @@ void CowsView::chooseQuality(QualityChoice choice)
 
 void CowsView::applyQualityChoice()
 {
-    auto use = qualityToUse(
+    auto use = chooseQualityToUse(
         forcedQuality, qualityPreference.chosen, qualityPreference.measured);
     measuring = !use.has_value();
     governor = QualityGovernor {};
@@ -323,7 +330,7 @@ void CowsView::useQuality(Quality chosen)
 {
     quality = chosen;
     qualityReady = true;
-    auto settings = settingsFor(chosen);
+    auto settings = getSettingsForQuality(chosen);
 
     setSampleCount(profileSettings().samples.value_or(settings.samples));
     setRenderScale(profileSettings().renderScale.value_or(settings.renderScale));
@@ -353,7 +360,7 @@ void CowsView::useQuality(Quality chosen)
     uploadedBlades = &grass.tile;
 
     preparePipelines();
-    LOG("Cows: quality ", qualityName(chosen));
+    LOG("Cows: quality ", getQualityName(chosen));
 }
 
 void CowsView::preparePipelines()
@@ -432,17 +439,44 @@ void CowsView::update(Threads::FrameTime time)
     if (game.sinceFell < fellBefore)
         camera.target = game.player + Vec3 {0.f, searchHeight, 0.f};
 
-    if (Ending::loops(game))
+    if (Ending::hasEndingPlayedOut(game))
         advanceStage();
 
-    if (game.hintShowing() != showedHint || game.justFell() != showedFall)
+    if (game.isPartnersAnswerShowing() != showedHint
+        || game.justFell() != showedFall)
     {
-        showedHint = game.hintShowing();
+        showedHint = game.isPartnersAnswerShowing();
         showedFall = game.justFell();
         onStateChanged();
     }
 
     steerCamera(delta, wallDelta);
+    applyFrameRateCap();
+
+    if (profile.enabled)
+        logInputRecipientWhenItChanges();
+}
+
+void CowsView::logInputRecipientWhenItChanges()
+{
+    auto recipient = getInputRecipient();
+
+    if (recipient == lastLoggedInputRecipient)
+        return;
+
+    lastLoggedInputRecipient = recipient;
+    LOG("Cows: input to ", getInputRecipientName(recipient));
+}
+
+void CowsView::applyFrameRateCap()
+{
+    auto menusHaveInput = getInputRecipient() != InputRecipient::Play;
+    auto cameraIsStill = !swinging;
+    auto rateToUse = forcedFrameRate.value_or(chosenFrameRate);
+    auto cap = getFrameRateCap(rateToUse, menusHaveInput && cameraIsStill);
+
+    if (maxFps() != cap)
+        setMaxFps(cap);
 }
 
 void CowsView::steerCamera(float delta, float wallDelta)
@@ -456,8 +490,8 @@ void CowsView::steerCamera(float delta, float wallDelta)
         return;
     }
 
-    camera.leastWidth = game.state == Game::State::Found ? Ending::leastWidth
-                                                         : searchLeastWidth;
+    camera.leastWidth =
+        game.state == Game::State::Found ? Ending::leastWidth : searchLeastWidth;
 
     if (game.state == Game::State::Menu)
     {
@@ -484,7 +518,7 @@ void CowsView::steerCamera(float delta, float wallDelta)
             camera.turnToward(game.playerHeading + startYaw,
                               std::min(1.f, delta * chaseRate));
 
-        keepEyeClear(delta);
+        pullCameraInFrontOfBlockingProps(delta);
         return;
     }
 
@@ -500,10 +534,10 @@ void CowsView::steerCamera(float delta, float wallDelta)
         camera.distance += (staging.cameraDistance - camera.distance) * amount;
     }
 
-    keepEyeClear(delta);
+    pullCameraInFrontOfBlockingProps(delta);
 }
 
-void CowsView::keepEyeClear(float delta)
+void CowsView::pullCameraInFrontOfBlockingProps(float delta)
 {
     auto body = game.player + Vec3 {0.f, bodyHeight, 0.f};
     camera.target = game.level.clearReach(body, camera.target, eyeMargin);
@@ -562,8 +596,6 @@ CameraPose CowsView::editorPose() const
                       hatClearance});
 }
 
-// Whether the window or the editor's shape changed since the camera last
-// framed the cow for it, which leaves her where the old cowArea was.
 bool CowsView::editorFramingChanged() const
 {
     if (editor == nullptr)
@@ -585,8 +617,6 @@ void CowsView::frameEditor()
     editorFramedAspect = viewAspect;
 }
 
-// The pose moved back until the cow, with room for a hat above her, fills her
-// share of `area`, then slid so she stands at its centre.
 CameraPose CowsView::framedCow(CameraPose pose,
                                Graphics::Rect area,
                                Graphics::Rect bounds,
@@ -603,14 +633,15 @@ CameraPose CowsView::framedCow(CameraPose pose,
     auto fitted = std::max(distanceToFit(menuCowHeight + above, heightShare, fov),
                            distanceToFit(framing.cowWidth, widthShare, fov));
     pose.distance = std::clamp(fitted, nearestMenu, farthestMenu);
-    return placeTargetOnScreen(pose, centreOnScreen(area, bounds), fov, viewAspect);
+    return placeTargetOnScreen(
+        pose, centreInClipSpace(area, bounds), fov, viewAspect);
 }
 
 CameraPose CowsView::playPose() const
 {
     auto pose = CameraPose {};
 
-    if (game.playing() == Game::State::Found)
+    if (game.getStateBehindMenu() == Game::State::Found)
     {
         auto sway = driftAt(game.sinceFound);
         auto staging = Ending::stagingFor(game.level.hiding);
@@ -701,10 +732,10 @@ void CowsView::startGame()
     onStateChanged();
 }
 
-InputOwner CowsView::inputOwner() const
+InputRecipient CowsView::getInputRecipient() const
 {
-    auto startingPlay = swinging && swingGoal == SwingGoal::Play;
-    return Cows::inputOwner(game.state, dressing, startingPlay);
+    auto swingingIntoPlay = swinging && swingGoal == SwingGoal::Play;
+    return Cows::getInputRecipient(game.state, dressing, swingingIntoPlay);
 }
 
 void CowsView::swingTo(SwingGoal goal)
@@ -1264,7 +1295,7 @@ void CowsView::gatherInstances(float seconds)
 
     auto poses = std::array<CowPose, 2> {};
 
-    if (game.playing() == Game::State::Searching)
+    if (game.getStateBehindMenu() == Game::State::Searching)
     {
         auto warmth = game.warmth();
         poses[0] = cows[0].freePose(game.player,
@@ -1415,7 +1446,7 @@ void CowsView::drawGrassTile(RenderPass& pass,
 
 void CowsView::drawTitle(RenderPass& pass)
 {
-    if (game.playing() != Game::State::Found || title.indices.empty())
+    if (game.getStateBehindMenu() != Game::State::Found || title.indices.empty())
         return;
 
     titleShader.placement = Ending::titlePlacement(game);
@@ -1427,7 +1458,7 @@ void CowsView::drawTitle(RenderPass& pass)
 void CowsView::drawMenuTitle(RenderPass& pass, float width, float height)
 {
     if (game.state != Game::State::Menu || menu == nullptr
-        || game.playing() == Game::State::Found)
+        || game.getStateBehindMenu() == Game::State::Found)
         return;
 
     const auto& shown = width >= height ? menuTitleWide : menuTitleTall;

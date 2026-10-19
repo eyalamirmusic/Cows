@@ -118,8 +118,7 @@ Graphics::Image renderLogo(int width, int height, Graphics::Color background)
     return view.renderToImage(1.f);
 }
 
-// Two renders, over black and over white, give each pixel's coverage and its
-// colour unblended from the background.
+// Renders over black and white recover each pixel's coverage and true colour.
 void saveLogo(const std::string& name, int width, int height)
 {
     auto black = renderLogo(width, height, {0.f, 0.f, 0.f});
@@ -196,16 +195,14 @@ void renderAll()
     saveLogo("logo", 2560, 1440);
 }
 
-// A seed whose hideout is a barn's ridge, so the meadow has room for one.
 constexpr auto barnSeed = 10u;
 constexpr auto barnRoom = 30.f;
 constexpr auto settleSteps = 240;
 constexpr auto barnShotWidth = 960;
 constexpr auto barnShotHeight = 600;
 
-// Far above anything: floorAt from here is the highest surface over a point.
+// floorAt from here finds the highest surface over a point.
 constexpr auto sky = 1000.f;
-// How far she walks in from the doorway, and along the loft towards its wall.
 constexpr auto inFromTheDoor = 7.f;
 constexpr auto alongTheLoft = 5.5f;
 
@@ -222,8 +219,6 @@ struct BarnLook final
     float pitch = 0.3f;
 };
 
-// The level with everything near `center` taken away and a barn, unturned,
-// put there.
 void standBarnAt(Level& level, Vec2 center)
 {
     clearAroundStage(level, {center.x, 0.f, center.y}, barnRoom);
@@ -245,7 +240,6 @@ void standBarnAt(Level& level, Vec2 center)
     addBarn(level, center, 0);
 }
 
-// Over the barn's floor and under its roof.
 bool insideBarn(const Level& level, Vec3 eye)
 {
     const auto& floor = level.clearings.back();
@@ -262,8 +256,6 @@ Vec3 stepped(const BarnSpot& spot, float reach, float feet)
            + Vec3 {0.f, feet - spot.at.y, 0.f};
 }
 
-// Seeds whose hideout is a barn's ridge and its loft, and how far into the
-// ending each is rendered.
 constexpr auto ridgeSeed = 10u;
 constexpr auto loftSeed = 8u;
 constexpr auto endingShown = 4.f;
@@ -293,8 +285,6 @@ struct EndingCase final
     std::uint32_t seed;
 };
 
-// The ending for a seed of each hiding kind, at moments through it: the
-// title rising, risen as the camera settles, and in the hold.
 void renderEndings(const std::string& directory)
 {
     auto cases = std::initializer_list<EndingCase> {{"roof", 10u},
@@ -335,8 +325,6 @@ void renderEndings(const std::string& directory)
     }
 }
 
-// The player at spots inside the barn with the camera swung where its eye
-// would leave it, each rendered and logged with whether the eye stayed in.
 void renderBarn(const std::string& directory)
 {
     auto view = CowsView {{QualityChoice::High, {}}, Stages {}, barnSeed};
@@ -398,8 +386,6 @@ void renderBarn(const std::string& directory)
         }
 }
 
-// The bale showcase: a stack in the meadow with the cow beside it, and a
-// bale rolling over the ravine's bridge, at the Steam screenshots' size.
 constexpr auto baleShotWidth = 1920.f;
 constexpr auto baleShotHeight = 1080.f;
 constexpr auto baleLength = 1.7f;
@@ -423,7 +409,6 @@ void addLyingBale(Level& level, Vec2 at, float lift, float heading)
     addBaleAt(level, lyingDrum(at, lift, heading, 0.f, baleRadius, baleLength));
 }
 
-// A bale stood on one end, its coil facing the sky.
 void addStandingBale(Level& level, Vec2 at, float heading)
 {
     addBaleAt(level,
@@ -576,22 +561,6 @@ void run(const std::string& mode,
 }
 } // namespace
 
-// CowsArt              renders the key art, icon and logo
-// CowsArt screens <dir> [menu|dress|settings|about]  those screens (all four
-//                        by default) at a spread of phone, tablet and desktop
-//                        shapes
-// CowsArt barn <dir>     the player inside a barn, the camera swung each way
-//                        its eye could leave it; logs where the eye ended
-// CowsArt bale <dir>     a bale stack beside the cow in the meadow, and a bale
-//                        rolling on the ravine, 1920x1080
-// CowsArt endings <dir>  the ending for each hiding kind, at three moments
-// CowsArt steam <dir>    the Steam screenshots, 1920x1080
-// CowsArt mac <dir>      the Mac App Store screenshots, 2880x1800
-// CowsArt ios-6.9 <dir>  the App Store 6.9" iPhone screenshots, 1320x2868
-// CowsArt ios-6.5 <dir>  the App Store 6.5" iPhone screenshots, 1284x2778
-// CowsArt play-phone <dir>  Google Play phone screenshots, 1080x1920
-// CowsArt play-7 <dir>      Google Play 7" tablet screenshots, 1440x2560
-// CowsArt play-10 <dir>     Google Play 10" tablet screenshots, 2160x3840
 int main(int argc, char* argv[])
 {
     auto mode = std::string {argc > 1 ? argv[1] : "art"};

@@ -31,8 +31,7 @@ enum class Pants
     BackLegs
 };
 
-// What the player's cow wears: one choice per item class, saved as the
-// enumerators' names so settings.json stays readable by hand.
+// Saved as enumerator names so settings.json stays readable by hand.
 struct CowSkin final
 {
     bool operator==(const CowSkin& other) const = default;
@@ -43,9 +42,7 @@ struct CowSkin final
     MIRO_REFLECT(hat, pants)
 };
 
-// One kind of thing to wear, as the editor shows it: `key` is its field in
-// the saved skin, `choices` its enumerators spelled out ("Top Hat"), in order.
-// `choice` is the skin's index into them, -1 when it holds no named value.
+// `choice` is -1 when the skin holds no named value.
 struct ItemClass final
 {
     std::string key;
@@ -55,21 +52,15 @@ struct ItemClass final
     std::function<void(CowSkin&, int)> choose = [](CowSkin&, int) {};
 };
 
-// Every item class CowSkin holds, in the order the editor lists them.
 const Vector<ItemClass>& itemClasses();
 
-// `skin` with item class `itemClass` moved `by` choices along, wrapping.
-CowSkin stepped(CowSkin skin, int itemClass, int by);
+CowSkin stepSkinItemChoice(CowSkin skin, int itemClass, int by);
 
-// "TopHat" as "Top Hat".
-std::string spelledOut(std::string_view enumeratorName);
+std::string spellOutEnumeratorName(std::string_view enumeratorName);
 
 std::string toJSON(const CowSkin& skin);
 
-// The skin `text` describes; the default skin for text that is not a skin, and
-// the default choice for an item it does not name.
 CowSkin cowSkinFromJSON(std::string_view text);
 
-// `skin` with any item that holds no named choice put back to the default's.
-CowSkin withNamedChoices(CowSkin skin);
+CowSkin replaceUnknownValuesWithDefaults(CowSkin skin);
 } // namespace Cows

@@ -1,5 +1,7 @@
 #include "Snapshot.h"
 
+#include <eacp/Core/Utils/Files.h>
+
 #include <array>
 #include <cmath>
 
@@ -158,7 +160,11 @@ Graphics::Image
     auto image = view.renderToImage(1.f);
 
     if (image.isValid())
-        image.save(FilePath {std::string(COWS_SHOTS_DIR) + "/" + name + ".png"});
+    {
+        auto file = FilePath {std::string(COWS_SHOTS_DIR) + "/" + name + ".png"};
+        Files::createDirectories(file.parentDirectory());
+        image.save(file);
+    }
 
     return image;
 }

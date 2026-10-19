@@ -10,11 +10,9 @@
 
 namespace Cows::Flex
 {
-// The width of `text` set at `pointSize`, in points. The caller supplies it,
-// so the library never sees a font or a GPU.
+// Width in points; supplied by the caller so this library never sees a font.
 using Measure = std::function<float(std::string_view text, float pointSize)>;
 
-// Which way a node lays its children out: side by side, or top to bottom.
 enum class Direction
 {
     Across,
@@ -30,11 +28,7 @@ enum class Align
 
 constexpr auto unbounded = std::numeric_limits<float>::max();
 
-// How a node is sized along one axis. Fit wraps its children or text (never
-// less than `least`); Grow takes a share of what its siblings leave, between
-// `least` and `most`, shrinking to nothing when there is no room; Fixed is
-// `points`; Share is `fraction` of the parent's inner size. Across the parent's
-// direction, Grow fills the parent (between `least` and `most`).
+// Across the parent's direction, Grow fills the parent.
 struct Size final
 {
     enum class Kind
@@ -56,22 +50,15 @@ struct Size final
     float value = 0.f;
 };
 
-// A line of text a leaf is sized for: its width through Measure, its height
-// `lineHeight` times the point size. `alsoFits` are other strings the slot must
-// hold too, such as every choice a value can step through.
 struct Text final
 {
     std::string text;
     float pointSize = 0.f;
-    float lineHeight = 1.f;
+    float lineHeight = 1.f; // times pointSize
     eacp::Vector<std::string> alsoFits = {};
 };
 
-// One box: how it sizes, its padding and the gap between its children, and how
-// it aligns them along its direction (main) and across it (cross). A node with
-// `text` is a leaf sized to it. Nodes sharing a `column` other than
-// `noColumn` take one width, the widest of their fit widths, so cells line up
-// across sibling rows.
+// Nodes sharing a column all take the widest one's fit width, so cells line up.
 struct Node final
 {
     static constexpr auto noColumn = -1;
@@ -87,9 +74,6 @@ struct Node final
     int column = noColumn;
 };
 
-// What a node came to: its rect in points, snapped to whole points so shared
-// edges meet exactly, and whether what it holds (children and gaps, or text)
-// is bigger than the room it got.
 struct Resolved final
 {
     eacp::Graphics::Rect rect;
@@ -98,9 +82,6 @@ struct Resolved final
 
 using NodeId = int;
 
-// A tree of nodes built for one layout pass and resolved to rects. add returns
-// a node's id, which reads its rect back after resolve. Nodes live in one
-// Vector, linked by index, so a pass allocates once as it grows.
 struct Tree final
 {
     static constexpr NodeId root = 0;
@@ -109,16 +90,12 @@ struct Tree final
 
     NodeId add(NodeId parent, Node node);
 
-    // Measures fit sizes bottom up, shares each parent's room out among its
-    // children, and positions them, the root filling `available`.
     void resolve(eacp::Graphics::Rect available, const Measure& measure);
 
     const Node& node(NodeId id) const;
     eacp::Graphics::Rect rect(NodeId id) const;
     bool overflow(NodeId id) const;
-    // Whether any node overflowed.
     bool overflows() const;
-    // The root's fit size: what the tree needs, padding included.
     eacp::Graphics::Point fitSize() const;
 
 private:
@@ -130,11 +107,8 @@ private:
         NodeId lastChild = -1;
         NodeId nextSibling = -1;
         eacp::Graphics::Point fit;
-        // This node's length along its parent's direction, set as the parent
-        // places it.
-        float main = 0.f;
-        // Its rect before snapping, which its children are laid out in.
-        eacp::Graphics::Rect exact;
+        float lengthAlongParent = 0.f;
+        eacp::Graphics::Rect unsnappedRect;
         Resolved resolved;
     };
 

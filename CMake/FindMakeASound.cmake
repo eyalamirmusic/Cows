@@ -1,9 +1,6 @@
 include(CPM)
 
-# Configure with -D CPM_MakeASound_SOURCE=<path> to build a local checkout
-# instead of this one. Until MakeASound takes the iOS session fix (Playback
-# asked for Bluetooth and AirPlay, which an iPhone refuses, so no device ever
-# opened), this is that branch on Jamie's fork.
+# Jamie's fork until MakeASound takes the iOS session fix (no device ever opened).
 CPMAddPackage(
         NAME MakeASound
         GITHUB_REPOSITORY jamierpond/MakeASound

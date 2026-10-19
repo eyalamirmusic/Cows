@@ -4,9 +4,7 @@
 
 namespace Cows
 {
-// A level's content: its segments in order from the start (south, +z) to the
-// goal (north, -z), how wide it is, how far off the middle the critical path
-// may run, and which way the player faces at the start.
+// Segments run from the start (south, +z) to the goal (north, -z).
 struct LevelTemplate final
 {
     SegmentList segments;

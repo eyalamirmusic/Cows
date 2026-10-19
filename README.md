@@ -6,7 +6,7 @@ serious platform? macOS, Windows, iOS and Android, through Steam and the app sto
 
 Find the other cow across the meadow and the ravine; when you do, the postcard's
 kiss plays. `just macos` runs it; `just test` runs every library's tests; see
-`CLAUDE.md` for the layout and `Deploy/README.md` for shipping.
+`AGENTS.md` for the layout and `Deploy/README.md` for shipping.
 
 ## Dress Your Cow
 

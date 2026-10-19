@@ -185,7 +185,7 @@ auto tMenuFirst = test("Game/startsInTheMenuAndStartMovesOn") = []
     auto game = Game {};
     game.reset(3);
     check(game.state == Game::State::Menu);
-    check(game.playing() == Game::State::Searching);
+    check(game.getStateBehindMenu() == Game::State::Searching);
 
     auto standing = game.player;
     game.update(1.f, 1.f, 0.f, true);
@@ -220,7 +220,7 @@ auto tMenuPauses = test("Game/theMenuPausesAndReturnsToTheSameState") = []
     check(game.state == Game::State::Found);
 
     game.openMenu();
-    check(game.playing() == Game::State::Found);
+    check(game.getStateBehindMenu() == Game::State::Found);
     game.start();
     check(game.state == Game::State::Found);
 };
@@ -238,7 +238,7 @@ auto tAgainSkipsMenu = test("Game/anotherMeadowAfterTheEndingSkipsTheMenu") = []
     game.openMenu();
     game.reset(5);
     check(game.state == Game::State::Menu);
-    check(game.playing() == Game::State::Searching);
+    check(game.getStateBehindMenu() == Game::State::Searching);
 };
 
 auto tMenuAnimates = test("Game/theMenuPausesTheGameButNotTheHeartbeat") = []

@@ -14,21 +14,22 @@ struct CowsApp final
 {
     CowsApp();
 
-    void dress(const CowSkin& next);
-    void showSkin();
+    void dressCow(const CowSkin& next);
+    void showSkinInDressEditor();
     void showMainMenu();
     void showAbout();
-    void showQuality();
-    void save() const;
+    void showSettings();
+    void chooseFrameRate(FrameRate rate);
+    void writeSettingsFile() const;
 
-    FilePath savedFile = settingsFile();
-    Settings saved = loadSettings(savedFile);
+    FilePath settingsFilePath = settingsFile();
+    Settings savedSettings = loadSettings(settingsFilePath);
     RootView root;
     CowsView scene;
     Footer footer;
     TouchControls touchControls;
     Menu menu;
-    Editor editor;
+    Editor dressEditor;
     Editor settingsPanel;
     bool showingAbout = false;
     Graphics::Window window;

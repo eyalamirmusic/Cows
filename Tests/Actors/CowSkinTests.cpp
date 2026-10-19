@@ -97,8 +97,8 @@ auto tPantsRoundTrip = test("CowSkin/pantsRoundTripBesideTheHat") = []
 
     check(json.find("\"pants\": \"BackLegs\"") != std::string::npos);
     check(cowSkinFromJSON(json) == skin);
-    check(stepped(skin, 1, 1).pants == Pants::None);
-    check(stepped(skin, 1, 1).hat == Hat::FrogHat);
+    check(stepSkinItemChoice(skin, 1, 1).pants == Pants::None);
+    check(stepSkinItemChoice(skin, 1, 1).hat == Hat::FrogHat);
 
     auto onlyPants = cowSkinFromJSON(R"({"pants": "BothLegs", "hat": "Fez"})");
     check(onlyPants.pants == Pants::BothLegs);
@@ -165,18 +165,18 @@ auto tHatChoices = test("CowSkin/hatChoicesAreSpelledOut") = []
 
 auto tStepWraps = test("CowSkin/stepWrapsBothWays") = []
 {
-    check(stepped(CowSkin {}, 0, 1).hat == Hat::TopHat);
-    check(stepped(CowSkin {}, 0, -1).hat == Hat::WizardHat);
-    check(stepped(wearing(Hat::TrafficCone), 0, 1).hat == Hat::WizardHat);
-    check(stepped(wearing(Hat::WizardHat), 0, 1).hat == Hat::None);
-    check(stepped(CowSkin {}, 0, 11).hat == Hat::TopHat);
-    check(stepped(wearing(Hat::Beanie), 5, 1) == wearing(Hat::Beanie));
-    check(stepped(wearing(Hat::Beanie), -1, 1) == wearing(Hat::Beanie));
+    check(stepSkinItemChoice(CowSkin {}, 0, 1).hat == Hat::TopHat);
+    check(stepSkinItemChoice(CowSkin {}, 0, -1).hat == Hat::WizardHat);
+    check(stepSkinItemChoice(wearing(Hat::TrafficCone), 0, 1).hat == Hat::WizardHat);
+    check(stepSkinItemChoice(wearing(Hat::WizardHat), 0, 1).hat == Hat::None);
+    check(stepSkinItemChoice(CowSkin {}, 0, 11).hat == Hat::TopHat);
+    check(stepSkinItemChoice(wearing(Hat::Beanie), 5, 1) == wearing(Hat::Beanie));
+    check(stepSkinItemChoice(wearing(Hat::Beanie), -1, 1) == wearing(Hat::Beanie));
 };
 
-auto tSpelledOut = test("CowSkin/spelledOut") = []
+auto tSpelledOut = test("CowSkin/spellOutEnumeratorName") = []
 {
-    check(spelledOut("TopHat") == "Top Hat");
-    check(spelledOut("None") == "None");
-    check(spelledOut("") == "");
+    check(spellOutEnumeratorName("TopHat") == "Top Hat");
+    check(spellOutEnumeratorName("None") == "None");
+    check(spellOutEnumeratorName("") == "");
 };

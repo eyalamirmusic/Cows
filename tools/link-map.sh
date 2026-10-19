@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Linker launcher for tools/dead-code.sh: links with dead stripping and writes
-# a link map beside the output (<output>.map).
+# Usage: CMAKE_<LANG>_LINKER_LAUNCHER=tools/link-map.sh (from tools/dead-code.sh)
 out=""
 prev=""
 for arg in "$@"; do

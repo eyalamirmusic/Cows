@@ -1,22 +1,6 @@
 #!/usr/bin/env bash
-# Usage: tools/dead-code.sh [--check]
-# Lists code nothing uses; deletes nothing. --check is the CI gate: the same
-# report, then tools/dead-code-check.py fails if it lists anything outside
-# tools/dead-code-allow.txt, as GitHub annotations. One build (build-dead-code: extra
-# unused warnings, a section per function, dead-stripped links with link maps)
-# feeds every pass:
-#   warnings   the compiler's unused / missing-prototype warnings
-#   tidy       clang-tidy's include-cleaner and unused-declaration checks
-#   cppcheck   cppcheck --enable=unusedFunction
-#   refs       every declaration against every reference, through libclang
-#              (tools/dead-code-refs.py): unused and test-only
-#   link       symbols no executable keeps after -dead_strip
-#              (tools/dead-code-link.py): unused and test-only
-#   files      sources no target compiles, headers nobody includes, embedded
-#              resources nothing names, scripts nothing calls, committed
-#              docs/shots images no doc shows
-# Needs: brew install llvm cppcheck cmake ninja. EACP=<dir> builds against a
-# local eacp, as `just macos` does.
+# Usage: [EACP=dir] tools/dead-code.sh [--check]
+# --check fails on anything tools/dead-code-allow.txt does not name. Needs: brew install llvm cppcheck cmake ninja
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -60,7 +44,7 @@ if [[ ! -f $build/CMakeCache.txt ]]; then
         "-DCMAKE_OBJCXX_LINKER_LAUNCHER=$root/tools/link-map.sh" \
         ${EACP:+-DCPM_eacp_SOURCE=$EACP} >/dev/null
 fi
-# Touch our sources' objects out of date so their warnings print again.
+# Warnings only print for objects that recompile.
 find $build/Lib $build/Apps $build/Tests $build/tools -name '*.o' \
     -not -path '*/_deps/*' -delete 2>/dev/null || true
 cmake --build $build >$build/build.log 2>&1 || { tail -30 $build/build.log; exit 1; }
@@ -124,7 +108,7 @@ for f in tracked:
     if re.match(r"Lib/[^/]+/Resources/", f) and f.endswith((".ttf", ".f32", ".png", ".wav")) \
             and os.path.basename(f) not in cmake:
         print(f"resource not embedded: {f}")
-callers = [f for f in tracked if re.match(r"(justfile|CMakeLists\.txt|CLAUDE\.md|Deploy/|\.github/|tools/|Apps/.*CMakeLists\.txt)", f)]
+callers = [f for f in tracked if re.match(r"(justfile|CMakeLists\.txt|AGENTS\.md|Deploy/|\.github/|tools/|Apps/.*CMakeLists\.txt)", f)]
 text = {f: open(f, errors="replace").read() for f in callers if os.path.isfile(f)}
 for f in tracked:
     if re.match(r"tools/[^/]+\.(sh|py|ps1|bat)$", f) and f != "tools/dead-code.sh":

@@ -12,7 +12,6 @@ namespace Cows
 {
 namespace
 {
-// Where a Shape's mesh is: the group `group` of the embedded `file`.
 struct PropMesh final
 {
     Shape shape;
@@ -47,7 +46,6 @@ Vector<MeshGroup> readGroups(std::string_view file)
     return readMeshBlob(std::as_bytes(std::span {resource.data(), resource.size()}));
 }
 
-// Every prop file's groups, each file read once.
 const Vector<MeshGroup>& groupsOf(std::string_view file)
 {
     static const auto files = []

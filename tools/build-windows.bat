@@ -1,10 +1,5 @@
 @echo off
 rem Usage: [set COWS_EACP=<eacp checkout>] [set COWS_ARCH=arm64^|x64] tools\build-windows.bat [Release^|Debug]
-rem Release: the x64 exe the stores ship, in build-windows\ (static C runtime,
-rem no tests). Debug: build\, for this machine's own architecture (arm64 or x64;
-rem COWS_ARCH overrides), with the tests. Both configure with the newest Visual
-rem Studio's tools (native on Arm machines, cross-compiling x64 there) and Ninja.
-rem COWS_EACP is optional (CPM fetches eacp otherwise).
 setlocal
 set CONFIG=%~1
 if "%CONFIG%"=="" set CONFIG=Release
@@ -41,7 +36,6 @@ if not exist "%VCToolsInstallDir%bin\Host%HOST%\%ARCH%\cl.exe" (
 set EACP=
 if not "%COWS_EACP%"=="" set EACP=-DCPM_eacp_SOURCE=%COWS_EACP%
 
-rem Release links the C runtime statically, so the exe needs no VC++ redist.
 set CRT=
 if /i "%CONFIG%"=="Release" set CRT=-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DCOWS_BUILD_TESTS=OFF
 

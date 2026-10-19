@@ -16,6 +16,7 @@ eacp_add_app(Cows
         Source/Stages.cpp
         Source/Templates.cpp
         Source/Scene/CowsView.cpp
+        Source/Scene/FrameRate.cpp
         Source/Scene/Quality.cpp
         BUNDLE_ID ${COWS_BUNDLE_ID}
         DISPLAY_NAME "${COWS_DISPLAY_NAME}"
@@ -24,9 +25,7 @@ eacp_add_app(Cows
         ICON Resources/AppIcon-Desktop.png
         ORIENTATION portrait)
 
-# Android/res (the adaptive icon) and the store manifest entries (touchscreen
-# and portrait required, isGame, appCategory, no backup) wait for eacp to take
-# an app's own res directory and manifest elements again.
+# Android/res and the store manifest entries wait for eacp to take an app's own again.
 
 eacp_add_plist_entries(Cows
         CFBundleDisplayName "${COWS_DISPLAY_NAME}"
@@ -53,8 +52,7 @@ target_compile_definitions(Cows PRIVATE
         COWS_APP_BUILD="${PROJECT_VERSION_TWEAK}")
 target_link_libraries(Cows PRIVATE cowsinlove_Game)
 
-# An Xcode archive keeps only what installs: the app, never the libraries it
-# links (tools/release-ios.sh and release-mas.sh configure SKIP_INSTALL=YES).
+# An Xcode archive keeps only the app, never the libraries it links.
 set_target_properties(Cows PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_COPYRIGHT "${COWS_COPYRIGHT}"
@@ -63,8 +61,7 @@ set_target_properties(Cows PROPERTIES
         XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${COWS_MAC_ENTITLEMENTS}")
 
-# Finder and Launchpad show a Mac app's file name, so the bundle (and the
-# executable in it) carries the display name; iOS never shows it.
+# Finder and Launchpad show a Mac app's file name.
 if (APPLE AND NOT IOS)
     set_target_properties(Cows PROPERTIES OUTPUT_NAME "${COWS_DISPLAY_NAME}")
 endif ()

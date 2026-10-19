@@ -128,8 +128,6 @@ Vec3 directionOr(Vec3 direction, Vec3 fallback)
     return size > 1e-6f ? direction / size : fallback;
 }
 
-// The longitudes, from 0 towards pi, at which a ring `radius` from the axis
-// lies between the planes x = across.x and x = across.y.
 Vec2 longitudesAcross(Vec2 across, float radius)
 {
     if (radius < 1e-6f)

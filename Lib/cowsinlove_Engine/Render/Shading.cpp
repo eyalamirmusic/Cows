@@ -41,8 +41,7 @@ constexpr auto fewTaps = std::to_array<std::array<float, 2>>({
     {-0.2f, 0.55f},
 });
 
-// 43758.5, not the textbook 43758.5453: the look was tuned while eacp printed
-// shader literals to six digits, so this is the constant the GPU always saw.
+// 43758.5, not 43758.5453: tuned while eacp printed shader literals to six digits.
 Float hashOf(const Float& x, const Float& y, const Float& z)
 {
     return fract(sin(x * 127.1f + y * 311.7f + z * 74.7f) * 43758.5f);

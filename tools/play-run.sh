@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 # Usage: tools/play-run.sh <command...>
-# Fetches the Google Play upload key and Publishing API credential from the
-# personal 1Password account into a private temporary directory, injects the
-# passwords with `op run`, and removes the files when the command exits.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

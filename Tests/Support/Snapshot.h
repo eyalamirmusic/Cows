@@ -20,13 +20,6 @@ constexpr Graphics::Color clearColor {1.f, 0.f, 1.f};
 bool isClearColor(const Graphics::Color& color);
 bool hasDevice();
 
-// Draws `batch`, then `translucent` blended over it, then the additive `glows`,
-// under the default Lighting with nothing casting shadows, seen by `camera`, on
-// clearColor. `content` makes the meshes the Engine has not (ShapeMeshes); by
-// default each is a sphere.
-// `drawOpaque` draws anything else solid after `batch`, for shaders the
-// support library does not know; give them the scene with setSceneUniforms.
-// `drawOverlay` draws last, over everything, as the game's HUD does.
 struct SnapshotView final : GPUView
 {
     explicit SnapshotView(const std::function<MeshData(Shape)>& content = [](Shape)
@@ -60,8 +53,7 @@ private:
     GlowShader glowShader;
 };
 
-// Renders `view` width by height and saves it to docs/shots/tests/<name>.png.
-// The image is invalid when there is no GPU to draw with.
+// Saves docs/shots/tests/<name>.png; the image is invalid without a GPU.
 Graphics::Image
     snapshot(SnapshotView& view, float width, float height, const std::string& name);
 } // namespace Cows::Testing

@@ -1,27 +1,51 @@
 #include "Quality.h"
 
+#include "UI/Editor.h"
+
 #include <eacp/Core/Utils/Environment.h>
 
+#include <algorithm>
 #include <cctype>
 
 namespace Cows
 {
 namespace
 {
-std::string squeezed(std::string_view name)
+const QualityAndLabel* findQuality(Quality quality)
 {
-    auto lower = std::string {};
+    auto entry =
+        std::ranges::find(qualitiesAndLabels, quality, &QualityAndLabel::quality);
+    return entry == qualitiesAndLabels.end() ? nullptr : &*entry;
+}
+
+const QualityChoiceAndLabel* findQualityChoice(QualityChoice choice)
+{
+    auto entry = std::ranges::find(
+        qualityChoicesAndLabels, choice, &QualityChoiceAndLabel::choice);
+    return entry == qualityChoicesAndLabels.end() ? nullptr : &*entry;
+}
+
+std::string lowercaseWithoutSpaces(std::string_view name)
+{
+    auto lowercase = std::string {};
 
     for (auto character: name)
-        if (!std::isspace((unsigned char) character))
-            lower += (char) std::tolower((unsigned char) character);
+    {
+        auto asUnsigned = static_cast<unsigned char>(character);
 
-    return lower;
+        if (std::isspace(asUnsigned))
+            continue;
+
+        auto lowered = std::tolower(asUnsigned);
+        lowercase += static_cast<char>(lowered);
+    }
+
+    return lowercase;
 }
 
 } // namespace
 
-QualitySettings settingsFor(Quality quality)
+QualitySettings getSettingsForQuality(Quality quality)
 {
     auto settings = QualitySettings {};
 
@@ -52,92 +76,82 @@ QualitySettings settingsFor(Quality quality)
     return settings;
 }
 
-std::string qualityName(Quality quality)
+std::string getQualityName(Quality quality)
 {
-    switch (quality)
-    {
-        case Quality::Low:
-            return "low";
-        case Quality::Medium:
-            return "medium";
-        case Quality::High:
-            return "high";
-    }
-
-    return "high";
+    auto entry = findQuality(quality);
+    return entry == nullptr ? std::string {} : std::string {entry->label};
 }
 
-std::optional<Quality> qualityNamed(std::string_view name)
+std::optional<Quality> parseQualityName(std::string_view name)
 {
-    auto lower = squeezed(name);
+    auto lowercaseName = lowercaseWithoutSpaces(name);
 
-    if (lower == "mid")
+    if (lowercaseName == "mid")
         return Quality::Medium;
 
-    for (auto quality: {Quality::Low, Quality::Medium, Quality::High})
-        if (lower == qualityName(quality))
-            return quality;
+    for (const auto& entry: qualitiesAndLabels)
+        if (lowercaseName == entry.label)
+            return entry.quality;
 
     return std::nullopt;
 }
 
-std::string choiceLabel(QualityChoice choice)
+std::string getQualityChoiceLabel(QualityChoice choice)
 {
-    switch (choice)
-    {
-        case QualityChoice::Auto:
-            return "Auto";
-        case QualityChoice::Low:
-            return "Low";
-        case QualityChoice::Medium:
-            return "Medium";
-        case QualityChoice::High:
-            return "High";
-    }
-
-    return "Auto";
+    auto entry = findQualityChoice(choice);
+    return entry == nullptr ? std::string {} : std::string {entry->label};
 }
 
-std::optional<Quality> chosenQuality(QualityChoice choice)
+QualityChoice stepQualityChoice(QualityChoice choice, int steps)
 {
-    if (choice == QualityChoice::Auto)
-        return std::nullopt;
-
-    return (Quality) ((int) choice - 1);
+    auto isCurrent = [choice](const QualityChoiceAndLabel& entry)
+    { return entry.choice == choice; };
+    return stepThroughEntries(qualityChoicesAndLabels, isCurrent, steps).choice;
 }
 
-std::optional<Quality> qualityToUse(std::optional<Quality> forced,
-                                    QualityChoice chosen,
-                                    std::optional<Quality> measured)
+std::optional<Quality> getChosenQuality(QualityChoice choice)
+{
+    auto entry = findQualityChoice(choice);
+    return entry == nullptr ? std::nullopt : entry->quality;
+}
+
+QualityChoice getQualityChoiceFor(Quality quality)
+{
+    for (const auto& entry: qualityChoicesAndLabels)
+        if (entry.quality == quality)
+            return entry.choice;
+
+    return QualityChoice::Auto;
+}
+
+std::optional<Quality> chooseQualityToUse(std::optional<Quality> forced,
+                                          QualityChoice chosen,
+                                          std::optional<Quality> measured)
 {
     if (forced.has_value())
         return forced;
 
-    if (auto quality = chosenQuality(chosen))
+    if (auto quality = getChosenQuality(chosen))
         return quality;
 
     return measured;
 }
 
-std::optional<Quality> qualityOverride()
+std::optional<Quality> readQualityFromEnvironment()
 {
-    return qualityNamed(getEnvValue("COWS_QUALITY"));
+    return parseQualityName(getEnvValue("COWS_QUALITY"));
 }
 
-QualityPreference withKnownValues(QualityPreference preference)
+QualityPreference replaceUnknownValuesWithDefaults(QualityPreference preference)
 {
-    auto choice = (int) preference.chosen;
-
-    if (choice < 0 || choice >= qualityChoices)
+    if (findQualityChoice(preference.chosen) == nullptr)
         preference.chosen = QualityChoice::Auto;
 
-    if (preference.measured.has_value())
-    {
-        auto tier = (int) *preference.measured;
+    auto measuredIsUnknown = preference.measured.has_value()
+                             && findQuality(*preference.measured) == nullptr;
 
-        if (tier < 0 || tier >= qualityLevels)
-            preference.measured.reset();
-    }
+    if (measuredIsUnknown)
+        preference.measured.reset();
 
     return preference;
 }

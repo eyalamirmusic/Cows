@@ -53,8 +53,6 @@ Graphics::Image menuShot(Menu& menu, float width, float height, const char* name
 }
 } // namespace
 
-// The menu in a column on the left of a wide window, the cow's room on the
-// right: Start above the disabled choice, a selection ring round Start.
 auto tMenuWide = test("MenuSnapshot/wide") = []
 {
     if (!hasDevice())
@@ -89,9 +87,6 @@ auto tMenuWide = test("MenuSnapshot/wide") = []
     check(menu.itemAt({start.x + start.w * 0.5f, start.y + start.h * 0.5f}) == 0);
 };
 
-// A portrait phone puts them below the cow's room: Start large and centred,
-// the disabled choice smaller below it, every tap target at least 64 points
-// tall.
 auto tMenuTall = test("MenuSnapshot/tall") = []
 {
     if (!hasDevice())
@@ -122,9 +117,6 @@ auto tMenuTall = test("MenuSnapshot/tall") = []
     check(anyDrawnIn(image, start.area) && anyDrawnIn(image, dress.area));
 };
 
-// The main menu's four choices never wrap or touch, in one column beside the
-// cow's room on a wide window and below it on a narrow one, every one inside
-// the window and below the title's room.
 namespace
 {
 void checkMainMenu(float width, float height, const char* name)
@@ -152,7 +144,7 @@ void checkMainMenu(float width, float height, const char* name)
         check(inside(area, width, height));
         check(area.y >= title.y + title.h);
 
-        if (menu.shape().cow > 0.f)
+        if (menu.shape().cowShare > 0.f)
             check(!area.intersects(menu.cowArea()));
 
         for (auto other = index + 1; other < 4; ++other)
@@ -178,7 +170,6 @@ auto tMainMenuSizes = test("MenuSnapshot/mainMenuNeverWrapsOrOverlaps") = []
     checkMainMenu(320.f, 700.f, "engine-menu-main-320x700");
 };
 
-// Only an enabled choice is ever chosen.
 auto tMenuDisabled = test("Menu/aDisabledChoiceNeverFires") = []
 {
     auto menu = Menu {};

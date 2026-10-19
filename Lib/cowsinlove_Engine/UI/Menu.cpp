@@ -15,9 +15,7 @@ namespace
 using Graphics::Point;
 using Graphics::Rect;
 
-// The shapes the menu takes, wide or tall, and the most the cow's and the
-// title's room give way to the items, a step at a time, before the cow goes
-// behind them (tightTallShape) in a window too small for anything else.
+// tightTallShape stands the cow behind the items when nothing else fits.
 constexpr auto wideShape = Menu::Shape {true, 0.34f, 0.55f};
 constexpr auto tallShape = Menu::Shape {false, 0.18f, 0.4f};
 constexpr auto roomyWideShape = Menu::Shape {true, 0.24f, 0.4f};
@@ -29,8 +27,7 @@ constexpr auto rowStep = 1.35f;
 constexpr auto noteScale = 0.4f;
 constexpr auto noteLift = 0.12f;
 constexpr auto hoverScale = 1.08f;
-// Room each side of a label for it to grow by hoverScale, as a share of its
-// point size.
+// Room each side for a label to grow by hoverScale, a share of its point size.
 constexpr auto hoverRoom = 0.25f;
 constexpr auto padding = 14.f;
 constexpr auto ringWidth = 4.f;
@@ -51,12 +48,13 @@ bool aspectWide(const Graphics::View& view)
 
 Rect titleIn(Rect content, Menu::Shape shape)
 {
-    return {content.x, content.y, content.w, std::round(content.h * shape.title)};
+    return {
+        content.x, content.y, content.w, std::round(content.h * shape.titleShare)};
 }
 
 Rect bodyIn(Rect content, Menu::Shape shape)
 {
-    auto title = std::round(content.h * shape.title);
+    auto title = std::round(content.h * shape.titleShare);
     return {content.x, content.y + title, content.w, content.h - title};
 }
 
@@ -66,15 +64,15 @@ Rect cowIn(Rect content, Menu::Shape shape)
 
     if (shape.wide)
     {
-        auto width = std::round(body.w * shape.cow);
+        auto width = std::round(body.w * shape.cowShare);
         return {body.x + body.w - width, body.y, width, body.h};
     }
 
     // With no band of her own she stands behind the items.
-    if (shape.cow <= 0.f)
+    if (shape.cowShare <= 0.f)
         return body;
 
-    return {body.x, body.y, body.w, std::round(content.h * shape.cow)};
+    return {body.x, body.y, body.w, std::round(content.h * shape.cowShare)};
 }
 
 Rect itemsIn(Rect content, Menu::Shape shape)
@@ -82,9 +80,10 @@ Rect itemsIn(Rect content, Menu::Shape shape)
     auto body = bodyIn(content, shape);
 
     if (shape.wide)
-        return {body.x, body.y, body.w - std::round(body.w * shape.cow), body.h};
+        return {
+            body.x, body.y, body.w - std::round(body.w * shape.cowShare), body.h};
 
-    auto cow = std::round(content.h * shape.cow);
+    auto cow = std::round(content.h * shape.cowShare);
     return {body.x, body.y + cow, body.w, body.h - cow};
 }
 
@@ -104,8 +103,8 @@ Menu::Shape squeezed(Menu::Shape from, Menu::Shape to, int step)
 {
     auto along = (float) step / (float) squeezeSteps;
     return {from.wide,
-            from.title + (to.title - from.title) * along,
-            from.cow + (to.cow - from.cow) * along};
+            from.titleShare + (to.titleShare - from.titleShare) * along,
+            from.cowShare + (to.cowShare - from.cowShare) * along};
 }
 
 struct ItemNodes final
@@ -119,9 +118,6 @@ float noteSizeFor(float labelSize, float leastNote)
     return onFontGrid(std::max(labelSize * noteScale, leastNote));
 }
 
-// One centred column of rows, each a label (with its note above it, never
-// under `leastNote`) padded to at least a tap target, the labels at
-// `pointSize` times their item's scale.
 Flex::Tree itemTree(const Vector<MenuItem>& items,
                     float pointSize,
                     float target,
@@ -256,8 +252,7 @@ void Menu::layOut(Hud& hud)
                  area});
         }
 
-        // The smallest item, About, is held to the readable size, so the rest
-        // are larger.
+        // About, the smallest item, is held to the readable size.
         auto readable = smallestReadableSize(content) / smallestScale(items);
         auto largest =
             std::clamp(content.h * largestShare, leastLargest, mostLargest);
@@ -265,9 +260,6 @@ void Menu::layOut(Hud& hud)
         return std::pair {shapes[best.index], best};
     };
 
-    // The first step of squeeze at which either shape, the aspect's first,
-    // holds the items at the readable size, so the text is near that size
-    // either side of a step and the cow keeps as much room as it can.
     auto shapeChosen = Shape {};
     auto size = ChosenShape {};
 
