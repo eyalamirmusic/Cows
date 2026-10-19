@@ -148,7 +148,7 @@ mostly deciding, file by file, which of those two it wants.
   `TextRenderer::setSampleCount` (eacp) lets glyphs draw into the scene's 4×
   MSAA pass. There is no CPU 2D tier on Android: the earlier HUD texture
   painted by `SoftwareContext` with FreeType (~30 ms per repaint in Release, the one thing left
-  dropping frames) is gone, per the Rendering Rule in `CLAUDE.md`.
+  dropping frames) is gone, per the Rendering Rule in `AGENTS.md`.
 
 ### Files and resources
 
