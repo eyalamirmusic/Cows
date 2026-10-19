@@ -21,20 +21,20 @@ enum class Quality
     High
 };
 
-struct QualityAndName final
+struct QualityAndLabel final
 {
     Quality quality;
-    std::string_view name;
+    std::string_view label;
 };
 
-// Every tier in enum order, with the name COWS_QUALITY and the log use.
-constexpr auto qualitiesAndNames = std::array {
-    QualityAndName {Quality::Low, "low"},
-    QualityAndName {Quality::Medium, "medium"},
-    QualityAndName {Quality::High, "high"},
+// Every tier in enum order, with the label COWS_QUALITY and the log use.
+constexpr auto qualitiesAndLabels = std::array {
+    QualityAndLabel {Quality::Low, "low"},
+    QualityAndLabel {Quality::Medium, "medium"},
+    QualityAndLabel {Quality::High, "high"},
 };
 
-constexpr auto numQualityLevels = static_cast<int>(qualitiesAndNames.size());
+constexpr auto numQualityLevels = static_cast<int>(qualitiesAndLabels.size());
 
 // Every knob a tier turns, in one place.
 struct QualitySettings final

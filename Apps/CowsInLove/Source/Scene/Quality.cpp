@@ -16,7 +16,7 @@ constexpr auto firstTierChoiceIndex = 1;
 constexpr bool qualitiesAreInEnumOrder()
 {
     for (auto index = 0; index < numQualityLevels; ++index)
-        if (static_cast<int>(qualitiesAndNames[index].quality) != index)
+        if (static_cast<int>(qualitiesAndLabels[index].quality) != index)
             return false;
 
     for (auto index = 0; index < numQualityChoices; ++index)
@@ -91,8 +91,8 @@ QualitySettings getSettingsForQuality(Quality quality)
 
 std::string getQualityName(Quality quality)
 {
-    const auto& entry = qualitiesAndNames[getQualityIndex(quality)];
-    return std::string {entry.name};
+    const auto& entry = qualitiesAndLabels[getQualityIndex(quality)];
+    return std::string {entry.label};
 }
 
 std::optional<Quality> parseQualityName(std::string_view name)
@@ -102,8 +102,8 @@ std::optional<Quality> parseQualityName(std::string_view name)
     if (lowercaseName == "mid")
         return Quality::Medium;
 
-    for (const auto& entry: qualitiesAndNames)
-        if (lowercaseName == entry.name)
+    for (const auto& entry: qualitiesAndLabels)
+        if (lowercaseName == entry.label)
             return entry.quality;
 
     return std::nullopt;
@@ -128,7 +128,7 @@ std::optional<Quality> getChosenQuality(QualityChoice choice)
         return std::nullopt;
 
     auto qualityIndex = getQualityChoiceIndex(choice) - firstTierChoiceIndex;
-    return qualitiesAndNames[qualityIndex].quality;
+    return qualitiesAndLabels[qualityIndex].quality;
 }
 
 QualityChoice getQualityChoiceFor(Quality quality)
