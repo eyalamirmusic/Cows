@@ -16,11 +16,10 @@ using namespace eacp::Maths;
 
 namespace
 {
-// A position's int16 for the quantised value at `share` of the bounds.
 constexpr std::int16_t lowest = -32768;
 constexpr std::int16_t highest = 32767;
 constexpr std::int8_t unit = 127;
-// How near a read position is to the one written: half a quantum of 2 m.
+// Half a quantum over 2 m bounds.
 constexpr auto tolerance = 1e-4f;
 
 struct BlobWriter final
@@ -56,8 +55,6 @@ struct BlobWriter final
     std::vector<std::byte> bytes;
 };
 
-// Two groups in bounds from -1 to 1: a triangle facing up, and a quad facing
-// down made of two triangles sharing an edge.
 BlobWriter twoGroups()
 {
     auto writer = BlobWriter {};
