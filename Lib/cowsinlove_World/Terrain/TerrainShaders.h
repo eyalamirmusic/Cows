@@ -7,10 +7,7 @@
 
 namespace Cows
 {
-// Each contact is (x, z, strength): the soft dark patch right under a cow.
-//
-// With `cheapNoise` the meadow's two octaves come from a NoiseLattice
-// (bound as `noise`) in two filtered fetches instead of sixteen sines.
+// Contacts are (x, z, strength); cheapNoise: two `noise` fetches, not 16 sines.
 struct GroundShader final : LitProgram
 {
     explicit GroundShader(int shadowTapsToUse = fullShadowTaps,
@@ -30,8 +27,6 @@ struct GroundShader final : LitProgram
     bool cheapNoise = false;
 };
 
-// With `quickNoise` its noise is Shading::quickValueNoise: the same kind of
-// meadow, hashed without sines.
 struct GrassShader final : LitProgram
 {
     explicit GrassShader(int shadowTapsToUse = fullShadowTaps,

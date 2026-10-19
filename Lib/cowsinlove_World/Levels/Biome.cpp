@@ -143,8 +143,6 @@ std::optional<Vec2> hideoutSpot(Layout& layout, const Region& area)
     return std::nullopt;
 }
 
-// On the ridge, facing along it so the ending plays out on the roof's top;
-// and in the loft, facing along it.
 void addBarnHidings(Layout& layout, Vec2 center, int quarterTurns)
 {
     auto spots = barnSpots(center, quarterTurns);

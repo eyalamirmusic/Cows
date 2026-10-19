@@ -4,7 +4,6 @@
 
 namespace Cows
 {
-// Open meadow: nothing built, dressed by the meadow biome.
 struct MeadowSegment final : Segment
 {
     explicit MeadowSegment(float lengthToUse);

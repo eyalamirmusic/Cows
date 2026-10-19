@@ -4,8 +4,7 @@
 
 namespace Cows
 {
-// What dresses a region: how many of each prop the whole arena would hold,
-// scaled to the region's share of it.
+// Counts are for the whole arena, scaled to each region's share.
 struct Biome final
 {
     int barns = 5;
@@ -16,12 +15,7 @@ struct Biome final
     int rocks = 28;
 };
 
-// Groves of trees, hedgerows with gaps in them, hay bales, rocks, crates and
-// barns with ramps and platforms up to their roofs.
 Biome meadowBiome();
 
-// The populate pass: dresses `region` with `biome`'s props, never in the
-// clearing round the start or on the critical path, and notes where she
-// could hide among them.
 void populate(Level& level, Layout& layout, Region region, const Biome& biome);
 } // namespace Cows

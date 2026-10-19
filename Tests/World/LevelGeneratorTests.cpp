@@ -17,9 +17,7 @@ using namespace Maths;
 
 namespace
 {
-// makeMeadow(seed) for seeds 1 to 40, hashed before levels were generated from
-// templates. MSVC's random distributions and maths differ in the low bits, so
-// Windows has its own table, taken from the same template.
+// MSVC's random distributions and maths differ in the low bits: own table.
 // TODO: the Windows and Linux tables predate the walk-in barn; retake them there.
 constexpr auto msvcMeadowGolden = std::to_array<std::uint64_t>({
     11244291730218905906ull, 10343436613414068082ull, 11684292388551233939ull,
@@ -55,8 +53,7 @@ constexpr auto otherMeadowGolden = std::to_array<std::uint64_t>({
     10416429798810184413ull,
 });
 
-// x86-64 Linux (CI's runner) differs in the low bits again. arm64 Linux matches
-// none of the three.
+// x86-64 Linux (CI's runner) differs again; arm64 Linux matches none of the three.
 constexpr auto linuxMeadowGolden = std::to_array<std::uint64_t>({
     1151177960577254616ull,  13738730589382266549ull, 15197971795123286052ull,
     2383273968527815807ull,  2428477535599350953ull,  12072876086045465495ull,

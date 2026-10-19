@@ -13,7 +13,7 @@ namespace
 {
 Vec2 pushedOutOf(const Collider& collider, Vec2 point, float radius, float feet)
 {
-    if (collider.top <= feet + stepUp)
+    if (collider.top <= feet + maxStepUpHeight)
         return point;
 
     auto offset = point - collider.center;
@@ -29,7 +29,7 @@ Vec2 pushedOutOf(const Collider& collider, Vec2 point, float radius, float feet)
 
 bool standsOn(const Collider& collider, Vec2 point, float feet)
 {
-    return collider.top <= feet + stepUp
+    return collider.top <= feet + maxStepUpHeight
            && distance(point, collider.center) < collider.radius;
 }
 
@@ -38,24 +38,19 @@ bool floats(const Block& block)
     return block.bottom > 0.f;
 }
 
-// Under a floating block, and out of a step's reach of its top there.
 bool passesUnder(const Block& block, Vec2 at, float feet)
 {
     return floats(block) && feet < block.bottom
-           && feet + stepUp < block.heightAt(at);
+           && feet + maxStepUpHeight < block.heightAt(at);
 }
 
-// One side of a convex solid: the points x with dot(normal, x) <= offset.
 struct HalfSpace final
 {
     Vec3 normal;
     float offset = 0.f;
 };
 
-// The block as the solid it is: its footprint between its bottom and its top,
-// the top a plane sloping along `rise` on a ramp (heightAt, as a plane). A
-// floating ramp (a roof's pitch) is a slab a step deep under its top, which is
-// how far below it passesUnder still counts as on it.
+// A floating ramp is a slab a step deep: as far down as passesUnder counts as on it.
 std::array<HalfSpace, 6> sidesOf(const Block& block)
 {
     auto low = block.center - block.half;
@@ -77,15 +72,13 @@ std::array<HalfSpace, 6> sidesOf(const Block& block)
                         - slope * dot(block.center, block.rise)};
 
         if (floats(block))
-            sides[4] = {-sides[5].normal, stepUp - sides[5].offset};
+            sides[4] = {-sides[5].normal, maxStepUpHeight - sides[5].offset};
     }
 
     return sides;
 }
 
-// Where along from + (to - from) * s, s in [0, 1], the segment enters the
-// block (Cyrus-Beck clipping against its sides); nothing when it misses or
-// starts inside.
+// Cyrus-Beck clipping; nothing when the segment misses or starts inside.
 std::optional<float> entryInto(const Block& block, Vec3 from, Vec3 to)
 {
     auto direction = to - from;
@@ -150,7 +143,7 @@ Vec2 Level::pushedOut(Vec2 point, float radius, float feet) const
             if (passesUnder(block, closest, feet))
                 continue;
 
-            if (block.heightAt(closest) <= feet + stepUp)
+            if (block.heightAt(closest) <= feet + maxStepUpHeight)
                 continue;
 
             auto offset = point - closest;
@@ -182,7 +175,7 @@ Vec2 Level::pushedOut(Vec2 point, float radius, float feet) const
 
 Vec2 Level::keptInGap(Vec2 point, float radius, float feet) const
 {
-    if (gaps.empty() || feet + stepUp >= 0.f || overGap(point))
+    if (gaps.empty() || feet + maxStepUpHeight >= 0.f || overGap(point))
         return point;
 
     auto nearest = gaps.begin();
@@ -226,7 +219,7 @@ float Level::floorAt(Vec2 point, float feet) const
 
         auto height = block.heightAt(point);
 
-        if (height <= feet + stepUp)
+        if (height <= feet + maxStepUpHeight)
             floor = std::max(floor, height);
     }
 

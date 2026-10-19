@@ -136,7 +136,7 @@ auto tJumpLines = test("RavineSegment/jumpLinesAreJumpableNotSteppable") = []
             continue;
 
         ++lines;
-        check(block.top > stepUp && block.top < jumpHeight);
+        check(block.top > maxStepUpHeight && block.top < jumpHeight);
     }
 
     check(lines > 4 * 20);
@@ -168,7 +168,7 @@ auto tMoversPeriodic = test("RavineSegment/moversArePeriodicAndStayOnTheBridge")
     for (const auto& mover: level.movers)
     {
         check(mover.collider.radius == rollingBaleRadius);
-        check(mover.collider.top > stepUp);
+        check(mover.collider.top > maxStepUpHeight);
 
         for (auto t = 0.f; t < 20.f; t += 0.37f)
         {

@@ -186,7 +186,7 @@ under `Apps/CowsInLove/`.
   - `Level` — a `Scenery` plus the hideout, `start` / `startHeading`, `gaps`
     (holes in the ground with a floor depth), `movers` (their `moving` batch
     rebuilt by `update(seconds)`), `killDepth` and `criticalPath`;
-    `pushedOut` / `floorAt` / `overGap` / `isFree`; `stepUp`.
+    `pushedOut` / `floorAt` / `overGap` / `isFree`; `maxStepUpHeight`.
     A floating block (`Block::bottom` set: a loft, a lintel, a roof's pitch)
     is passed under by feet below its bottom and more than a step under its
     top there; `ceilingAt` is the lowest bottom over the feet, which `Game`

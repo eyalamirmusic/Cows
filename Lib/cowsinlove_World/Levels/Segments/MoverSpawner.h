@@ -4,8 +4,6 @@
 
 namespace Cows
 {
-// Emits a rolling bale into a level, going to and fro between `from` and
-// `to` once each `period` seconds, `phase` of the way through at zero.
 struct MoverSpawner final
 {
     void spawn(Level& level) const;

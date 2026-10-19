@@ -6,8 +6,6 @@ namespace Cows
 {
 constexpr auto jumpLineLength = 9.f;
 
-// A line across the whole arena, through its middle, too tall to step over
-// and low enough to jump: felled logs or a post-and-rail fence.
 struct JumpLineSegment final : Segment
 {
     enum class Obstacle

@@ -32,9 +32,7 @@ Cows::Block loft()
     return {{0.f, 5.f}, {5.7f, 3.f}, loftTop, {}, loftBottom};
 }
 
-// The +x half of a gambrel roof: a steep lower pitch from the eaves, and a
-// shallow upper one to the ridge at x = 0, both rising towards it.
-Level underARoof()
+Level underTheGambrelRoofsPositiveXHalf()
 {
     auto level = Level {};
     level.blocks.add(loft());
@@ -75,7 +73,7 @@ auto tFloatingWallAboveBottom =
 
 auto tFloatingRoof = test("FloatingBlock/loftUnderTheRoofAndTheRoofsSlope") = []
 {
-    auto level = underARoof();
+    auto level = underTheGambrelRoofsPositiveXHalf();
 
     check(near(level.floorAt({0.f, 5.f}, loftTop), loftTop));
     check(level.pushedOut({3.f, 0.f}, 0.8f, loftTop) == Vec2 {3.f, 0.f});
