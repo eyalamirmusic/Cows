@@ -5,10 +5,7 @@
 
 namespace Cows
 {
-// What the controllers ask for this frame: the left stick and D-pad as walk
-// ahead / turn (left positive), the right stick as look (y up), the triggers
-// as zoom (in positive), and the buttons' edges; East is also back. Several controllers act as
-// one: the largest stick wins, buttons are ORed.
+// Left, up and zoom-in are positive; the largest stick of several pads wins.
 struct PadControls final
 {
     float ahead = 0.f;

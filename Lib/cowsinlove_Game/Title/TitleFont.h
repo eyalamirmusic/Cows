@@ -23,12 +23,8 @@ struct TitleMesh final
     float top = 0.f;
 };
 
-// A lowercase text in a rounded tube font: every stroke a pink balloon tube with
-// ball ends, the x-height one unit, centred on x = 0 with its baseline at y = 0.
-// Only the letters "cowsinlove.com" needs are drawn; anything else is a space.
+// x-height 1, centred on x = 0, baseline at y = 0; unknown letters are spaces.
 TitleMesh makeTitle(std::string_view text);
 
-// `lower` under `upper`, its baseline `drop` below, the wave running on through
-// it.
 TitleMesh stackTitles(const TitleMesh& upper, const TitleMesh& lower, float drop);
 } // namespace Cows

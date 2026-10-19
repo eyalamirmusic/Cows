@@ -206,7 +206,7 @@ under `Apps/CowsInLove/`.
 - `Lib/cowsinlove_Game` — the rules of this game; nothing that owns GPU passes.
   Links World.
   - `Game` — state machine (`Menu` first, then `Searching` and `Found`;
-    `start()` leaves the menu, `openMenu()` pauses into it, `playing()` is the
+    `start()` leaves the menu, `openMenu()` pauses into it, `getStateBehindMenu()` is the
     state behind it; a `reset` from play skips the menu), player movement, found test, moo cooldown, the moo
     hint, the level's clock (`seconds`, driving its movers), the checkpoint and
     respawn below `killDepth` (`sinceFell`), `footerText` (for a `Hints`), and
@@ -219,7 +219,7 @@ under `Apps/CowsInLove/`.
     (where the title stands and the camera settles: out in the open behind
     the pair; for the loft from the meadow in front, the pair framed in the
     hay door and the title over the ridge), `titlePlacement`, `foundStart`,
-    `loops` (start again after the title)
+    `hasEndingPlayedOut` (start again after the title)
   - `Input` — held keys (wasd / hjkl / arrows, space), the touch stick and the
     controller (`setPad`, kept apart so neither clears the other), summed and
     clamped into walk ahead / turn

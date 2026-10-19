@@ -11,14 +11,11 @@ constexpr auto lowerLine = "in love";
 constexpr auto lineDrop = 2.4f;
 constexpr auto depth = 8.f;
 
-// The title on one line, for a wide screen.
 TitleMesh makeWide();
 
-// "cows" over "in love", for a tall one.
 TitleMesh makeTall();
 
-// Places `title` in front of `camera`, filling `area` (in points, y down, of a
-// view `viewSize` points across) as fully as its shape allows, facing the lens.
+// `area` and `viewSize` are in points, y down.
 Maths::Mat4 placement(const OrbitCamera& camera,
                       Graphics::Point viewSize,
                       const Graphics::Rect& area,

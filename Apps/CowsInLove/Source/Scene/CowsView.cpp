@@ -439,12 +439,13 @@ void CowsView::update(Threads::FrameTime time)
     if (game.sinceFell < fellBefore)
         camera.target = game.player + Vec3 {0.f, searchHeight, 0.f};
 
-    if (Ending::loops(game))
+    if (Ending::hasEndingPlayedOut(game))
         advanceStage();
 
-    if (game.hintShowing() != showedHint || game.justFell() != showedFall)
+    if (game.isPartnersAnswerShowing() != showedHint
+        || game.justFell() != showedFall)
     {
-        showedHint = game.hintShowing();
+        showedHint = game.isPartnersAnswerShowing();
         showedFall = game.justFell();
         onStateChanged();
     }
@@ -640,7 +641,7 @@ CameraPose CowsView::playPose() const
 {
     auto pose = CameraPose {};
 
-    if (game.playing() == Game::State::Found)
+    if (game.getStateBehindMenu() == Game::State::Found)
     {
         auto sway = driftAt(game.sinceFound);
         auto staging = Ending::stagingFor(game.level.hiding);
@@ -1294,7 +1295,7 @@ void CowsView::gatherInstances(float seconds)
 
     auto poses = std::array<CowPose, 2> {};
 
-    if (game.playing() == Game::State::Searching)
+    if (game.getStateBehindMenu() == Game::State::Searching)
     {
         auto warmth = game.warmth();
         poses[0] = cows[0].freePose(game.player,
@@ -1445,7 +1446,7 @@ void CowsView::drawGrassTile(RenderPass& pass,
 
 void CowsView::drawTitle(RenderPass& pass)
 {
-    if (game.playing() != Game::State::Found || title.indices.empty())
+    if (game.getStateBehindMenu() != Game::State::Found || title.indices.empty())
         return;
 
     titleShader.placement = Ending::titlePlacement(game);
@@ -1457,7 +1458,7 @@ void CowsView::drawTitle(RenderPass& pass)
 void CowsView::drawMenuTitle(RenderPass& pass, float width, float height)
 {
     if (game.state != Game::State::Menu || menu == nullptr
-        || game.playing() == Game::State::Found)
+        || game.getStateBehindMenu() == Game::State::Found)
         return;
 
     const auto& shown = width >= height ? menuTitleWide : menuTitleTall;

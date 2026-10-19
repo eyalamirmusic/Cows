@@ -13,8 +13,6 @@ namespace
 {
 using Graphics::TouchPhase;
 
-// The app's stack on a phone: the touch controls, then the menu and the editor
-// over them, all the root's size, shown as CowsApp shows them.
 struct Phone final
 {
     Phone()
@@ -80,10 +78,7 @@ auto tStickWalksInPlay = test("PlayTouch/stickWalksInPlay") = []
     check(phone.chosen == -1);
 };
 
-// Start swings the camera down for over a second at 60 fps, and at the few
-// frames a second of a slow phone for several, and the menu used to keep every
-// touch until it landed: a thumb put on the stick in that time stayed the
-// faded menu's, and the cow never walked however it was pushed.
+// The menu used to keep every touch until the camera swing landed.
 auto tStickWalksWhileStartSwings = test("PlayTouch/stickWalksWhileStartSwings") = []
 {
     auto phone = Phone {};

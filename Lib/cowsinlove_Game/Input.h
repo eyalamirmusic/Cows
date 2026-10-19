@@ -6,9 +6,6 @@
 
 namespace Cows
 {
-// The walking controls: held keys (wasd / hjkl / arrows, space), the
-// on-screen stick and the controller, summed into how far to walk ahead and
-// turn.
 struct Input final
 {
     void setHeld(std::uint16_t keyCode, bool down);

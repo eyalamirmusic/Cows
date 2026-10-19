@@ -20,9 +20,7 @@ constexpr auto landed = 0.01f;
 constexpr auto walkFrames = 120;
 constexpr auto settleFrames = 30;
 constexpr auto fallFrom = 20.f;
-// Far above anything: floorAt from here is the highest surface over a point.
-constexpr auto sky = 1000.f;
-// How far along the loft from its middle she stands to be near its wall.
+constexpr auto farAboveEverything = 1000.f;
 constexpr auto alongTheLoft = 5.5f;
 
 Vec2 ground(Vec3 point)
@@ -55,8 +53,7 @@ void standOn(Game& game, float feet)
         game.update(steadyFrame, 0.f, 0.f, false);
 }
 
-// Jumps on the spot and returns the highest the feet rose.
-float jumpOnce(Game& game, float frame)
+float jumpOnTheSpotAndGetHighestFeet(Game& game, float frame)
 {
     auto highest = game.player.y;
     game.update(frame, 0.f, 0.f, true);
@@ -78,8 +75,6 @@ struct Spot final
 
 const auto spots = barnSpots({}, 0);
 
-// The top of the climb: the highest block standing outside the roof, and the
-// heading from it toward the barn along its nearer axis.
 struct ClimbTop final
 {
     Vec2 at;
@@ -128,9 +123,9 @@ auto tUnderTheRoof = test("BarnJump/aJumpInsideNeverSurfacesOnTheRoof") = []
             auto game = inBarn(spot.at);
             standOn(game, spot.feet);
             auto floor = game.player.y;
-            auto roof = game.level.floorAt(spot.at, sky);
+            auto roof = game.level.floorAt(spot.at, farAboveEverything);
 
-            check(jumpOnce(game, frame) < roof);
+            check(jumpOnTheSpotAndGetHighestFeet(game, frame) < roof);
             check(std::abs(game.player.y - floor) < landed);
             check(game.level.floorAt(ground(game.player), game.player.y) < roof);
         }
@@ -144,17 +139,18 @@ auto tOnTheRoof = test("BarnJump/aJumpOnTheRoofLandsOnTheRoof") = []
         for (auto at: {ground(spots.roof.at), nearTheLoftsWall})
         {
             auto game = inBarn(at);
-            auto roof = game.level.floorAt(at, sky);
+            auto roof = game.level.floorAt(at, farAboveEverything);
             standOn(game, roof);
 
-            jumpOnce(game, frame);
+            jumpOnTheSpotAndGetHighestFeet(game, frame);
             check(std::abs(game.player.y - roof) < landed);
         }
 
         auto game = inBarn(nearTheLoftsWall);
         game.player.y = fallFrom;
-        jumpOnce(game, frame);
-        check(std::abs(game.player.y - game.level.floorAt(nearTheLoftsWall, sky))
+        jumpOnTheSpotAndGetHighestFeet(game, frame);
+        check(std::abs(game.player.y
+                       - game.level.floorAt(nearTheLoftsWall, farAboveEverything))
               < landed);
     }
 };
@@ -172,6 +168,7 @@ auto tClimb = test("BarnJump/theClimbStepsOntoTheRoof") = []
         game.update(steadyFrame, 1.f, 0.f, false);
 
     check(game.player.y > top.feet);
-    check(std::abs(game.player.y - game.level.floorAt(ground(game.player), sky))
+    check(std::abs(game.player.y
+                   - game.level.floorAt(ground(game.player), farAboveEverything))
           < landed);
 };

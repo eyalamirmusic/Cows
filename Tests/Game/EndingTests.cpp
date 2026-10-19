@@ -56,13 +56,13 @@ auto tPlacementFinite = test("Ending/titlePlacementIsFinite") = []
 
 auto tLoops = test("Ending/loopsAfterLoopTime") = []
 {
-    check(!Ending::loops(foundGame(0.f)));
-    check(!Ending::loops(foundGame(Ending::loopTime)));
-    check(Ending::loops(foundGame(Ending::loopTime + 0.001f)));
+    check(!Ending::hasEndingPlayedOut(foundGame(0.f)));
+    check(!Ending::hasEndingPlayedOut(foundGame(Ending::loopTime)));
+    check(Ending::hasEndingPlayedOut(foundGame(Ending::loopTime + 0.001f)));
 
     auto searching = foundGame(Ending::loopTime + 1.f);
     searching.state = Game::State::Searching;
-    check(!Ending::loops(searching));
+    check(!Ending::hasEndingPlayedOut(searching));
 };
 
 auto tFooter = test("Ending/footerText") = []
@@ -108,11 +108,11 @@ auto tFooter = test("Ending/footerText") = []
         check(footerText(game, "hint", expected.hints) == expected.searching);
 
         game.sinceMoo = mooAnswerDelay + 1.f;
-        check(game.hintShowing());
+        check(game.isPartnersAnswerShowing());
         check(footerText(game, "hint", expected.hints) == "hint");
 
         game.state = Game::State::Found;
-        check(!game.hintShowing());
+        check(!game.isPartnersAnswerShowing());
         check(footerText(game, "hint", expected.hints) == expected.found);
     }
 };
@@ -149,8 +149,6 @@ auto tFoundStart = test("Ending/foundStartIsFoundAlongTheStagesHeading") = []
     }
 };
 
-// The loft's ending looks in at the pair from the meadow in front, through
-// the open hay door, with nothing of the barn between.
 auto tLoftFromOutside = test("Ending/loftEndingSeesThePairThroughTheHayDoor") = []
 {
     auto level = Level {};
