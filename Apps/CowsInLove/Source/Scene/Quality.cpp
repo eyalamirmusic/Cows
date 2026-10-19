@@ -8,7 +8,7 @@ namespace Cows
 {
 namespace
 {
-std::string squeezed(std::string_view name)
+std::string lowercaseWithoutSpaces(std::string_view name)
 {
     auto lower = std::string {};
 
@@ -21,7 +21,7 @@ std::string squeezed(std::string_view name)
 
 } // namespace
 
-QualitySettings settingsFor(Quality quality)
+QualitySettings getSettingsForQuality(Quality quality)
 {
     auto settings = QualitySettings {};
 
@@ -52,7 +52,7 @@ QualitySettings settingsFor(Quality quality)
     return settings;
 }
 
-std::string qualityName(Quality quality)
+std::string getQualityName(Quality quality)
 {
     switch (quality)
     {
@@ -67,21 +67,21 @@ std::string qualityName(Quality quality)
     return "high";
 }
 
-std::optional<Quality> qualityNamed(std::string_view name)
+std::optional<Quality> parseQualityName(std::string_view name)
 {
-    auto lower = squeezed(name);
+    auto lower = lowercaseWithoutSpaces(name);
 
     if (lower == "mid")
         return Quality::Medium;
 
     for (auto quality: {Quality::Low, Quality::Medium, Quality::High})
-        if (lower == qualityName(quality))
+        if (lower == getQualityName(quality))
             return quality;
 
     return std::nullopt;
 }
 
-std::string choiceLabel(QualityChoice choice)
+std::string getQualityChoiceLabel(QualityChoice choice)
 {
     switch (choice)
     {
@@ -98,7 +98,7 @@ std::string choiceLabel(QualityChoice choice)
     return "Auto";
 }
 
-std::optional<Quality> chosenQuality(QualityChoice choice)
+std::optional<Quality> getChosenQuality(QualityChoice choice)
 {
     if (choice == QualityChoice::Auto)
         return std::nullopt;
@@ -106,36 +106,36 @@ std::optional<Quality> chosenQuality(QualityChoice choice)
     return (Quality) ((int) choice - 1);
 }
 
-std::optional<Quality> qualityToUse(std::optional<Quality> forced,
-                                    QualityChoice chosen,
-                                    std::optional<Quality> measured)
+std::optional<Quality> chooseQualityToUse(std::optional<Quality> forced,
+                                          QualityChoice chosen,
+                                          std::optional<Quality> measured)
 {
     if (forced.has_value())
         return forced;
 
-    if (auto quality = chosenQuality(chosen))
+    if (auto quality = getChosenQuality(chosen))
         return quality;
 
     return measured;
 }
 
-std::optional<Quality> qualityOverride()
+std::optional<Quality> readQualityFromEnvironment()
 {
-    return qualityNamed(getEnvValue("COWS_QUALITY"));
+    return parseQualityName(getEnvValue("COWS_QUALITY"));
 }
 
-QualityPreference withKnownValues(QualityPreference preference)
+QualityPreference replaceUnknownValuesWithDefaults(QualityPreference preference)
 {
     auto choice = (int) preference.chosen;
 
-    if (choice < 0 || choice >= qualityChoices)
+    if (choice < 0 || choice >= numQualityChoices)
         preference.chosen = QualityChoice::Auto;
 
     if (preference.measured.has_value())
     {
         auto tier = (int) *preference.measured;
 
-        if (tier < 0 || tier >= qualityLevels)
+        if (tier < 0 || tier >= numQualityLevels)
             preference.measured.reset();
     }
 

@@ -108,14 +108,15 @@ EscapeAction escapeAction(Game::State state, bool dressing, bool swinging);
 // takes them from the moment Start swings the camera down, not when the swing
 // lands, so a finger put on the stick mid-swing is the stick's and not the
 // fading menu's for as long as it stays down.
-enum class InputOwner
+enum class InputRecipient
 {
     Menu,
     Editor,
     Play
 };
 
-InputOwner inputOwner(Game::State state, bool dressing, bool startingPlay);
+InputRecipient
+    getInputRecipient(Game::State state, bool dressing, bool startingPlay);
 
 // Whose controls the footer names: the keys, the touch controls, or a
 // controller by the labels it wears.

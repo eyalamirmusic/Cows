@@ -20,7 +20,7 @@ enum class Quality
     High
 };
 
-constexpr auto qualityLevels = 3;
+constexpr auto numQualityLevels = 3;
 
 // Every knob a tier turns, in one place.
 struct QualitySettings final
@@ -43,10 +43,10 @@ struct QualitySettings final
     int shadowResolution = 2048;
 };
 
-QualitySettings settingsFor(Quality quality);
+QualitySettings getSettingsForQuality(Quality quality);
 
-std::string qualityName(Quality quality);
-std::optional<Quality> qualityNamed(std::string_view name);
+std::string getQualityName(Quality quality);
+std::optional<Quality> parseQualityName(std::string_view name);
 
 // What the player picked in Settings: a tier, or Auto, which is the tier
 // measured on this device.
@@ -58,19 +58,19 @@ enum class QualityChoice
     High
 };
 
-constexpr auto qualityChoices = 4;
+constexpr auto numQualityChoices = 4;
 
-std::string choiceLabel(QualityChoice choice);
-std::optional<Quality> chosenQuality(QualityChoice choice);
+std::string getQualityChoiceLabel(QualityChoice choice);
+std::optional<Quality> getChosenQuality(QualityChoice choice);
 
 // The tier to draw at: `forced` (COWS_QUALITY), else the player's choice, else
 // the measured tier; none means it is still to be measured.
-std::optional<Quality> qualityToUse(std::optional<Quality> forced,
-                                    QualityChoice chosen,
-                                    std::optional<Quality> measured);
+std::optional<Quality> chooseQualityToUse(std::optional<Quality> forced,
+                                          QualityChoice chosen,
+                                          std::optional<Quality> measured);
 
 // COWS_QUALITY=low|medium|high: that tier, and no measuring.
-std::optional<Quality> qualityOverride();
+std::optional<Quality> readQualityFromEnvironment();
 
 // The player's choice and, under Auto, the tier this device measured, as
 // settings.json keeps them.
@@ -86,5 +86,5 @@ struct QualityPreference final
 
 // `preference` with anything that names no choice or tier put back to Auto
 // and unmeasured.
-QualityPreference withKnownValues(QualityPreference preference);
+QualityPreference replaceUnknownValuesWithDefaults(QualityPreference preference);
 } // namespace Cows

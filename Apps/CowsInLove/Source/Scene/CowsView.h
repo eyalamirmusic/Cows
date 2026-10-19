@@ -78,7 +78,7 @@ struct CowsView final : GPUView
     void control(const ControlEvent& event);
     void openMenu(bool swing = true);
     void startGame();
-    InputOwner inputOwner() const;
+    InputRecipient getInputRecipient() const;
     void openEditor(Editor& which);
     void swingTo(SwingGoal goal);
     void closeEditor();
@@ -114,8 +114,8 @@ struct CowsView final : GPUView
     void steerCamera(float delta, float wallDelta);
     // Pulls the eye in to just short of the first block between it and the
     // target, and lets it back out once the way is clear.
-    void keepEyeClear(float delta);
-    void paceFrames();
+    void pullCameraInFrontOfBlockingProps(float delta);
+    void applyFrameRateCap();
     void framePortrait(float aspect);
 
     void chooseQuality(QualityChoice choice);
@@ -161,7 +161,7 @@ struct CowsView final : GPUView
     // The player's choice; COWS_FPS (forcedFrameRate) wins over it.
     FrameRate frameRate = FrameRate::Auto;
     std::optional<FrameRate> forcedFrameRate;
-    std::optional<InputOwner> loggedOwner;
+    std::optional<InputRecipient> lastReportedInputRecipient;
     ShapeMeshes shapes;
     Mesh ground;
     TitleMesh title;

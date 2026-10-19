@@ -254,15 +254,15 @@ Graphics::Point centreOnScreen(Graphics::Rect area, Graphics::Rect bounds)
             1.f - 2.f * (area.y + area.h * 0.5f) / bounds.h};
 }
 
-std::string_view ownerName(InputOwner owner)
+std::string_view getInputRecipientName(InputRecipient owner)
 {
     switch (owner)
     {
-        case InputOwner::Menu:
+        case InputRecipient::Menu:
             return "menu";
-        case InputOwner::Editor:
+        case InputRecipient::Editor:
             return "editor";
-        case InputOwner::Play:
+        case InputRecipient::Play:
             return "play";
     }
 
@@ -292,8 +292,8 @@ CowsView::CowsView(const QualityPreference& preference,
     menuTitleWide = MenuTitle::makeWide();
     menuTitleTall = MenuTitle::makeTall();
 
-    forcedQuality = qualityOverride();
-    forcedFrameRate = frameRateOverride();
+    forcedQuality = readQualityFromEnvironment();
+    forcedFrameRate = readFrameRateFromEnvironment();
     applyQualityChoice();
 
     game.makeLevel = stages.level();
@@ -323,7 +323,7 @@ void CowsView::chooseQuality(QualityChoice choice)
 
 void CowsView::applyQualityChoice()
 {
-    auto use = qualityToUse(
+    auto use = chooseQualityToUse(
         forcedQuality, qualityPreference.chosen, qualityPreference.measured);
     measuring = !use.has_value();
     governor = QualityGovernor {};
@@ -339,7 +339,7 @@ void CowsView::useQuality(Quality chosen)
 {
     quality = chosen;
     qualityReady = true;
-    auto settings = settingsFor(chosen);
+    auto settings = getSettingsForQuality(chosen);
 
     setSampleCount(profileSettings().samples.value_or(settings.samples));
     setRenderScale(profileSettings().renderScale.value_or(settings.renderScale));
@@ -369,7 +369,7 @@ void CowsView::useQuality(Quality chosen)
     uploadedBlades = &grass.tile;
 
     preparePipelines();
-    LOG("Cows: quality ", qualityName(chosen));
+    LOG("Cows: quality ", getQualityName(chosen));
 }
 
 void CowsView::preparePipelines()
@@ -459,22 +459,22 @@ void CowsView::update(Threads::FrameTime time)
     }
 
     steerCamera(delta, wallDelta);
-    paceFrames();
+    applyFrameRateCap();
 }
 
-void CowsView::paceFrames()
+void CowsView::applyFrameRateCap()
 {
-    auto owner = inputOwner();
+    auto owner = getInputRecipient();
 
-    if (owner != loggedOwner)
+    if (owner != lastReportedInputRecipient)
     {
-        loggedOwner = owner;
-        LOG("Cows: input to ", ownerName(owner));
+        lastReportedInputRecipient = owner;
+        LOG("Cows: input to ", getInputRecipientName(owner));
     }
 
-    auto inMenus = owner == InputOwner::Menu || owner == InputOwner::Editor;
-    auto wanted = maxFramesPerSecond(forcedFrameRate.value_or(frameRate),
-                                     inMenus && !swinging);
+    auto inMenus = owner == InputRecipient::Menu || owner == InputRecipient::Editor;
+    auto wanted =
+        getFrameRateCap(forcedFrameRate.value_or(frameRate), inMenus && !swinging);
 
     if (maxFps() != wanted)
         setMaxFps(wanted);
@@ -491,8 +491,8 @@ void CowsView::steerCamera(float delta, float wallDelta)
         return;
     }
 
-    camera.leastWidth = game.state == Game::State::Found ? Ending::leastWidth
-                                                         : searchLeastWidth;
+    camera.leastWidth =
+        game.state == Game::State::Found ? Ending::leastWidth : searchLeastWidth;
 
     if (game.state == Game::State::Menu)
     {
@@ -519,7 +519,7 @@ void CowsView::steerCamera(float delta, float wallDelta)
             camera.turnToward(game.playerHeading + startYaw,
                               std::min(1.f, delta * chaseRate));
 
-        keepEyeClear(delta);
+        pullCameraInFrontOfBlockingProps(delta);
         return;
     }
 
@@ -535,10 +535,10 @@ void CowsView::steerCamera(float delta, float wallDelta)
         camera.distance += (staging.cameraDistance - camera.distance) * amount;
     }
 
-    keepEyeClear(delta);
+    pullCameraInFrontOfBlockingProps(delta);
 }
 
-void CowsView::keepEyeClear(float delta)
+void CowsView::pullCameraInFrontOfBlockingProps(float delta)
 {
     auto body = game.player + Vec3 {0.f, bodyHeight, 0.f};
     camera.target = game.level.clearReach(body, camera.target, eyeMargin);
@@ -736,10 +736,10 @@ void CowsView::startGame()
     onStateChanged();
 }
 
-InputOwner CowsView::inputOwner() const
+InputRecipient CowsView::getInputRecipient() const
 {
     auto startingPlay = swinging && swingGoal == SwingGoal::Play;
-    return Cows::inputOwner(game.state, dressing, startingPlay);
+    return Cows::getInputRecipient(game.state, dressing, startingPlay);
 }
 
 void CowsView::swingTo(SwingGoal goal)

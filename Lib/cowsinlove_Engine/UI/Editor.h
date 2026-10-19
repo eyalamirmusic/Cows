@@ -126,7 +126,7 @@ struct Editor final : Graphics::View
     void act(Target target);
     void returnKeyFocus();
 
-    std::function<void(int row, int by)> onStep = [](int, int) {};
+    std::function<void(int row, int by)> onRowValueStepped = [](int, int) {};
     std::function<void()> onDone = [] {};
     std::function<void(const ControlEvent&)> onControl = [](const ControlEvent&) {};
 

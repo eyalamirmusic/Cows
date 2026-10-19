@@ -168,7 +168,7 @@ auto tEditorTargets = test("Editor/clicksStepAndFinish") = []
 
     auto steps = Vector<int> {};
     auto finished = 0;
-    editor.onStep = [&](int row, int by) { steps.add(row * 10 + by); };
+    editor.onRowValueStepped = [&](int row, int by) { steps.add(row * 10 + by); };
     editor.onDone = [&] { ++finished; };
 
     check(editor.targetAt(editor.placed[0].previous.center())
@@ -246,7 +246,7 @@ void checkEveryShape(const std::string& title, const Vector<EditorRow>& rows)
     }
 }
 
-Vector<EditorRow> settingsRows()
+Vector<EditorRow> makeSettingsRows()
 {
     auto rows = Vector<EditorRow> {};
     rows.add({"Quality", {"Auto: High", "Low", "Medium", "High"}});
@@ -272,7 +272,7 @@ auto tSettingsShapes = test("EditorLayout/settingsHoldAtEveryShape") = []
     if (!hasDevice())
         return;
 
-    checkEveryShape("Settings", settingsRows());
+    checkEveryShape("Settings", makeSettingsRows());
 };
 
 auto tSettingsShot = test("EditorSnapshot/settings") = []
@@ -282,7 +282,7 @@ auto tSettingsShot = test("EditorSnapshot/settings") = []
 
     auto editor = Editor {};
     editor.setTitle("Settings");
-    editor.setRows(settingsRows());
+    editor.setRows(makeSettingsRows());
     editor.topClearance = 28.f;
 
     auto image = editorShot(editor, 1280.f, 800.f, "engine-editor-settings");

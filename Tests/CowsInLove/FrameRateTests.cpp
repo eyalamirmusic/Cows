@@ -7,38 +7,38 @@ using namespace Cows;
 
 auto tAutoCapsTheMenus = test("FrameRate/autoIsSixtyInTheMenusOnly") = []
 {
-    check(maxFramesPerSecond(FrameRate::Auto, true) == 60);
-    check(maxFramesPerSecond(FrameRate::Auto, false) == 0);
+    check(getFrameRateCap(FrameRate::Auto, true) == 60);
+    check(getFrameRateCap(FrameRate::Auto, false) == 0);
 };
 
 auto tFixedRates = test("FrameRate/sixtyAndMaxHoldEverywhere") = []
 {
     for (auto menus: {true, false})
     {
-        check(maxFramesPerSecond(FrameRate::Sixty, menus) == 60);
-        check(maxFramesPerSecond(FrameRate::Max, menus) == 0);
+        check(getFrameRateCap(FrameRate::Sixty, menus) == 60);
+        check(getFrameRateCap(FrameRate::Max, menus) == 0);
     }
 };
 
 auto tNamed = test("FrameRate/namedAsCowsFpsSpellsThem") = []
 {
-    check(frameRateNamed("auto") == FrameRate::Auto);
-    check(frameRateNamed("60") == FrameRate::Sixty);
-    check(frameRateNamed("MAX") == FrameRate::Max);
-    check(!frameRateNamed("").has_value());
-    check(!frameRateNamed("120").has_value());
+    check(parseFrameRateName("auto") == FrameRate::Auto);
+    check(parseFrameRateName("60") == FrameRate::Sixty);
+    check(parseFrameRateName("MAX") == FrameRate::Max);
+    check(!parseFrameRateName("").has_value());
+    check(!parseFrameRateName("120").has_value());
 };
 
 auto tLabels = test("FrameRate/labelsForTheSettingsRow") = []
 {
-    check(frameRateLabel(FrameRate::Auto) == "Auto");
-    check(frameRateLabel(FrameRate::Sixty) == "60");
-    check(frameRateLabel(FrameRate::Max) == "Max");
+    check(getFrameRateLabel(FrameRate::Auto) == "Auto");
+    check(getFrameRateLabel(FrameRate::Sixty) == "60");
+    check(getFrameRateLabel(FrameRate::Max) == "Max");
 };
 
 auto tUnknown = test("FrameRate/unknownValuesAreAuto") = []
 {
-    check(withKnownValue((FrameRate) 7) == FrameRate::Auto);
-    check(withKnownValue((FrameRate) -1) == FrameRate::Auto);
-    check(withKnownValue(FrameRate::Max) == FrameRate::Max);
+    check(replaceUnknownValuesWithDefaults((FrameRate) 7) == FrameRate::Auto);
+    check(replaceUnknownValuesWithDefaults((FrameRate) -1) == FrameRate::Auto);
+    check(replaceUnknownValuesWithDefaults(FrameRate::Max) == FrameRate::Max);
 };

@@ -34,10 +34,10 @@ struct Phone final
         controls.resized();
     }
 
-    void show(InputOwner owner)
+    void show(InputRecipient owner)
     {
-        menu.setShowing(owner == InputOwner::Menu);
-        editor.setShowing(owner == InputOwner::Editor);
+        menu.setShowing(owner == InputRecipient::Menu);
+        editor.setShowing(owner == InputRecipient::Editor);
     }
 
     void touch(TouchPhase phase, Graphics::Point position, int id = 1)
@@ -73,7 +73,7 @@ void pushStick(Phone& phone)
 auto tStickWalksInPlay = test("PlayTouch/stickWalksInPlay") = []
 {
     auto phone = Phone {};
-    phone.show(inputOwner(Game::State::Searching, false, false));
+    phone.show(getInputRecipient(Game::State::Searching, false, false));
     pushStick(phone);
 
     check(phone.steered());
@@ -87,7 +87,7 @@ auto tStickWalksInPlay = test("PlayTouch/stickWalksInPlay") = []
 auto tStickWalksWhileStartSwings = test("PlayTouch/stickWalksWhileStartSwings") = []
 {
     auto phone = Phone {};
-    phone.show(inputOwner(Game::State::Menu, false, true));
+    phone.show(getInputRecipient(Game::State::Menu, false, true));
     pushStick(phone);
 
     check(phone.steered());
@@ -97,7 +97,7 @@ auto tMenuTakesTouchesBeforeStart =
     test("PlayTouch/menuTakesTouchesBeforeStart") = []
 {
     auto phone = Phone {};
-    phone.show(inputOwner(Game::State::Menu, false, false));
+    phone.show(getInputRecipient(Game::State::Menu, false, false));
     pushStick(phone);
 
     check(!phone.steered());
@@ -106,9 +106,13 @@ auto tMenuTakesTouchesBeforeStart =
 
 auto tOwnerFollowsTheGame = test("PlayTouch/ownerFollowsTheGame") = []
 {
-    check(inputOwner(Game::State::Menu, false, false) == InputOwner::Menu);
-    check(inputOwner(Game::State::Menu, true, false) == InputOwner::Editor);
-    check(inputOwner(Game::State::Menu, false, true) == InputOwner::Play);
-    check(inputOwner(Game::State::Searching, false, false) == InputOwner::Play);
-    check(inputOwner(Game::State::Found, false, false) == InputOwner::Play);
+    check(getInputRecipient(Game::State::Menu, false, false)
+          == InputRecipient::Menu);
+    check(getInputRecipient(Game::State::Menu, true, false)
+          == InputRecipient::Editor);
+    check(getInputRecipient(Game::State::Menu, false, true) == InputRecipient::Play);
+    check(getInputRecipient(Game::State::Searching, false, false)
+          == InputRecipient::Play);
+    check(getInputRecipient(Game::State::Found, false, false)
+          == InputRecipient::Play);
 };

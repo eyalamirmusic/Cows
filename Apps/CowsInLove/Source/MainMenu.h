@@ -25,7 +25,7 @@ constexpr auto autoPrefix = "Auto: ";
 
 // The start menu's choices, Start the biggest and About the smallest, and the
 // screens behind them; CowsApp shows them and CowsArt renders them.
-inline Vector<MenuItem> mainMenuItems()
+inline Vector<MenuItem> makeMainMenuItems()
 {
     auto items = Vector<MenuItem> {};
     items.add({startLabel, "", startScale});
@@ -35,21 +35,21 @@ inline Vector<MenuItem> mainMenuItems()
     return items;
 }
 
-inline std::string versionText()
+inline std::string getVersionText()
 {
     return std::string {"Version " COWS_APP_VERSION " (Build " COWS_APP_BUILD ")"};
 }
 
 // About: Back, with the version over it.
-inline Vector<MenuItem> aboutItems()
+inline Vector<MenuItem> makeAboutItems()
 {
     auto items = Vector<MenuItem> {};
-    items.add({backLabel, versionText()});
+    items.add({backLabel, getVersionText()});
     return items;
 }
 
 // Dress Your Cow: a row per item class, on what `skin` wears.
-inline Vector<EditorRow> dressRows(const CowSkin& skin)
+inline Vector<EditorRow> makeDressRows(const CowSkin& skin)
 {
     auto rows = Vector<EditorRow> {};
 
@@ -61,38 +61,39 @@ inline Vector<EditorRow> dressRows(const CowSkin& skin)
 
 // Settings' quality row: the quality choices, Auto naming the tier it measured
 // once it has one.
-inline EditorRow qualityRow(QualityChoice chosen, Quality measured, bool measuring)
+inline EditorRow
+    makeQualityRow(QualityChoice chosen, Quality measured, bool measuring)
 {
     auto row = EditorRow {qualityRowName, {}, (int) chosen};
 
-    for (auto index = 0; index < qualityChoices; ++index)
-        row.choices.add(choiceLabel((QualityChoice) index));
+    for (auto index = 0; index < numQualityChoices; ++index)
+        row.choices.add(getQualityChoiceLabel((QualityChoice) index));
 
     if (chosen == QualityChoice::Auto && !measuring)
         row.choices[0] =
-            autoPrefix + choiceLabel((QualityChoice) ((int) measured + 1));
+            autoPrefix + getQualityChoiceLabel((QualityChoice) ((int) measured + 1));
 
     return row;
 }
-inline EditorRow frameRateRow(FrameRate chosen)
+inline EditorRow makeFrameRateRow(FrameRate chosen)
 {
     auto row = EditorRow {frameRateRowName, {}, (int) chosen};
 
-    for (auto index = 0; index < frameRates; ++index)
-        row.choices.add(frameRateLabel((FrameRate) index));
+    for (auto index = 0; index < numFrameRates; ++index)
+        row.choices.add(getFrameRateLabel((FrameRate) index));
 
     return row;
 }
 
 // Settings: quality, then frame rate.
-inline Vector<EditorRow> settingsRows(QualityChoice chosen,
-                                      Quality measured,
-                                      bool measuring,
-                                      FrameRate frameRate)
+inline Vector<EditorRow> makeSettingsRows(QualityChoice chosen,
+                                          Quality measured,
+                                          bool measuring,
+                                          FrameRate frameRate)
 {
     auto rows = Vector<EditorRow> {};
-    rows.add(qualityRow(chosen, measured, measuring));
-    rows.add(frameRateRow(frameRate));
+    rows.add(makeQualityRow(chosen, measured, measuring));
+    rows.add(makeFrameRateRow(frameRate));
     return rows;
 }
 } // namespace Cows

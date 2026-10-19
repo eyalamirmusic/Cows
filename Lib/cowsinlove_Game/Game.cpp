@@ -305,12 +305,12 @@ EscapeAction escapeAction(Game::State state, bool dressing, bool swinging)
     return EscapeAction::OpenMenu;
 }
 
-InputOwner inputOwner(Game::State state, bool dressing, bool startingPlay)
+InputRecipient getInputRecipient(Game::State state, bool dressing, bool startingPlay)
 {
     if (state != Game::State::Menu || startingPlay)
-        return InputOwner::Play;
+        return InputRecipient::Play;
 
-    return dressing ? InputOwner::Editor : InputOwner::Menu;
+    return dressing ? InputRecipient::Editor : InputRecipient::Menu;
 }
 
 std::string editorText(Hints hints)

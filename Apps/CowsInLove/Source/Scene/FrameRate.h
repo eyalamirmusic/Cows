@@ -17,18 +17,18 @@ enum class FrameRate
     Max
 };
 
-constexpr auto frameRates = 3;
+constexpr auto numFrameRates = 3;
 constexpr auto menuFramesPerSecond = 60;
 
-std::string frameRateLabel(FrameRate rate);
+std::string getFrameRateLabel(FrameRate rate);
 
 // COWS_FPS=auto|60|max: that rate whatever Settings says.
-std::optional<FrameRate> frameRateNamed(std::string_view name);
-std::optional<FrameRate> frameRateOverride();
+std::optional<FrameRate> parseFrameRateName(std::string_view name);
+std::optional<FrameRate> readFrameRateFromEnvironment();
 
 // The cap to hand GPUView::setMaxFps, 0 for none.
-int maxFramesPerSecond(FrameRate rate, bool menusHaveInput);
+int getFrameRateCap(FrameRate rate, bool menusHaveInput);
 
 // `rate`, or Auto when it names no rate.
-FrameRate withKnownValue(FrameRate rate);
+FrameRate replaceUnknownValuesWithDefaults(FrameRate rate);
 } // namespace Cows

@@ -6,7 +6,7 @@
 
 namespace Cows
 {
-std::string frameRateLabel(FrameRate rate)
+std::string getFrameRateLabel(FrameRate rate)
 {
     switch (rate)
     {
@@ -21,7 +21,7 @@ std::string frameRateLabel(FrameRate rate)
     return "Auto";
 }
 
-std::optional<FrameRate> frameRateNamed(std::string_view name)
+std::optional<FrameRate> parseFrameRateName(std::string_view name)
 {
     auto lower = std::string {};
 
@@ -30,7 +30,7 @@ std::optional<FrameRate> frameRateNamed(std::string_view name)
 
     for (auto rate: {FrameRate::Auto, FrameRate::Sixty, FrameRate::Max})
     {
-        auto label = frameRateLabel(rate);
+        auto label = getFrameRateLabel(rate);
 
         for (auto& character: label)
             character = (char) std::tolower((unsigned char) character);
@@ -42,12 +42,12 @@ std::optional<FrameRate> frameRateNamed(std::string_view name)
     return std::nullopt;
 }
 
-std::optional<FrameRate> frameRateOverride()
+std::optional<FrameRate> readFrameRateFromEnvironment()
 {
-    return frameRateNamed(eacp::getEnvValue("COWS_FPS"));
+    return parseFrameRateName(eacp::getEnvValue("COWS_FPS"));
 }
 
-int maxFramesPerSecond(FrameRate rate, bool menusHaveInput)
+int getFrameRateCap(FrameRate rate, bool menusHaveInput)
 {
     switch (rate)
     {
@@ -62,9 +62,9 @@ int maxFramesPerSecond(FrameRate rate, bool menusHaveInput)
     return 0;
 }
 
-FrameRate withKnownValue(FrameRate rate)
+FrameRate replaceUnknownValuesWithDefaults(FrameRate rate)
 {
     auto index = (int) rate;
-    return index < 0 || index >= frameRates ? FrameRate::Auto : rate;
+    return index < 0 || index >= numFrameRates ? FrameRate::Auto : rate;
 }
 } // namespace Cows

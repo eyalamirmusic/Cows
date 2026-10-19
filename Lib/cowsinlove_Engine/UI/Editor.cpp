@@ -549,7 +549,7 @@ void Editor::stepSelected(int by)
     showSelection = true;
 
     if (selected < doneIndex())
-        onStep(selected, by);
+        onRowValueStepped(selected, by);
 }
 
 void Editor::chooseSelected()
@@ -570,11 +570,11 @@ void Editor::act(Target target)
     switch (target.part)
     {
         case Part::Previous:
-            onStep(target.row, -1);
+            onRowValueStepped(target.row, -1);
             break;
         case Part::Value:
         case Part::Next:
-            onStep(target.row, 1);
+            onRowValueStepped(target.row, 1);
             break;
         case Part::Done:
             onDone();

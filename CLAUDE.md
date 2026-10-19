@@ -71,8 +71,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     the cow stands behind the items. `titleArea`, `cowArea` and `itemArea` are
     worked out from the window on demand; `menuPose` frames the cow in
     `cowArea`. A `MenuItem` is `{label, note, scale, enabled}`, `scale` sizing
-    one item against the rest (Start biggest, About smallest; `mainMenuItems`
-    and `aboutItems` in the app's `MainMenu.h`, which names every string it
+    one item against the rest (Start biggest, About smallest; `makeMainMenuItems`
+    and `makeAboutItems` in the app's `MainMenu.h`, which names every string it
     shows); `setItems` replaces them. Hover and click, tap (targets at least
     64 pt), and a selection ring for keys and controllers; a disabled item is
     grey and never chosen; `opacity` fades it
@@ -84,8 +84,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     `panelArea`. Text is held to `smallestReadableSize`: the cow's room gives
     way first, then each name goes over its value (`stacked`). `setRows` and
     `setTitle` lay it out again; a row's `choice` alone doesn't. `editorPose`
-    frames the cow in `cowArea` (`framedCow`, `CowFraming`); `dressRows` and
-    `qualityRow` in `MainMenu.h` build the rows. Hover and click, tap, a
+    frames the cow in `cowArea` (`framedCow`, `CowFraming`); `makeDressRows` and
+    `makeQualityRow` in `MainMenu.h` build the rows. Hover and click, tap, a
     selection ring for keys and controllers; a drag or wheel off the rows
     goes out through `onControl` as Look / Zoom. `topClearance` keeps it
     under the macOS title bar, which the safe area does not count
@@ -123,7 +123,7 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     from `Resources/moo.f32` (see `Resources/CREDITS.md`)
   - `Cow/CowSkin` — what the player's cow wears: one enum per item class
     (`Hat`, `Pants`), saved through Miro as enumerator names in the app's
-    `Settings` (`withNamedChoices` puts anything unnamed back to the
+    `Settings` (`replaceUnknownValuesWithDefaults` puts anything unnamed back to the
     default). `itemClasses()` lists the
     classes for the editor, so a new class (Glasses, Trousers) is an enum, a
     `CowSkin` field and one line there. `Cow/Wardrobe` — each hat as parts
@@ -211,7 +211,7 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     state behind it; a `reset` from play skips the menu), player movement, found test, moo cooldown, the moo
     hint, the level's clock (`seconds`, driving its movers), the checkpoint and
     respawn below `killDepth` (`sinceFell`), `footerText` (for a `Hints`), and
-    `inputOwner` (menu, editor or play takes touches; play from the moment Start
+    `getInputRecipient` (menu, editor or play takes touches; play from the moment Start
     swings the camera down); `reset(seed)` builds the level through its
     `makeLevel` hook, which the app sets (the library never names a level)
   - `Ending` — the ending's numbers (title rise, kiss point, camera settle,
@@ -249,12 +249,12 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   `CowSkin`, the `QualityPreference` and the `FrameRate`; anything unreadable
   or unnamed loads as the default, and a new setting is one field. No other file is written
 - `Apps/CowsInLove/Source/Scene/Quality` — `Quality` (Low, Medium, High) and
-  `settingsFor`, the one place every tier's knobs are set (MSAA, render scale,
+  `getSettingsForQuality`, the one place every tier's knobs are set (MSAA, render scale,
   mesh detail, grass tiles, density and blade segments, grass and ground noise,
   shadow map side and taps); `QualityChoice` (Auto or a tier) and
-  `qualityToUse` (COWS_QUALITY, else the choice, else the measured tier)
+  `chooseQualityToUse` (COWS_QUALITY, else the choice, else the measured tier)
 - `Apps/CowsInLove/Source/Scene/FrameRate` — `FrameRate` (Auto, 60, Max) and
-  `maxFramesPerSecond`, the cap `CowsView::paceFrames` hands
+  `getFrameRateCap`, the cap `CowsView::applyFrameRateCap` hands
   `GPUView::setMaxFps` each update: Max every display refresh, 60 everywhere,
   Auto every refresh in play and during a swing and 60 while the menu or the
   editor has the input

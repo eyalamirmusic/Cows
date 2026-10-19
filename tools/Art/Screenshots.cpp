@@ -273,21 +273,21 @@ void renderScreens(const std::string& directory, const std::string& only)
             scene.menu = &menu;
             scene.pointerHints = shape.hints;
             scene.hints = scene.pointerHints;
-            menu.setItems(screen.screen == Screen::About ? aboutItems()
-                                                         : mainMenuItems());
+            menu.setItems(screen.screen == Screen::About ? makeAboutItems()
+                                                         : makeMainMenuItems());
             menu.topClearance = clearance;
             editor.topClearance = clearance;
 
             if (screen.screen == Screen::Dress)
             {
                 editor.setTitle(dressTitle);
-                editor.setRows(dressRows(CowSkin {}));
+                editor.setRows(makeDressRows(CowSkin {}));
             }
 
             if (screen.screen == Screen::Settings)
             {
                 editor.setTitle(settingsTitle);
-                editor.setRows(settingsRows(
+                editor.setRows(makeSettingsRows(
                     QualityChoice::Auto, Quality::High, false, FrameRate::Auto));
             }
 

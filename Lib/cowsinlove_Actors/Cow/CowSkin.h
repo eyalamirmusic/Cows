@@ -59,10 +59,10 @@ struct ItemClass final
 const Vector<ItemClass>& itemClasses();
 
 // `skin` with item class `itemClass` moved `by` choices along, wrapping.
-CowSkin stepped(CowSkin skin, int itemClass, int by);
+CowSkin stepSkinItemChoice(CowSkin skin, int itemClass, int by);
 
 // "TopHat" as "Top Hat".
-std::string spelledOut(std::string_view enumeratorName);
+std::string spellOutEnumeratorName(std::string_view enumeratorName);
 
 std::string toJSON(const CowSkin& skin);
 
@@ -71,5 +71,5 @@ std::string toJSON(const CowSkin& skin);
 CowSkin cowSkinFromJSON(std::string_view text);
 
 // `skin` with any item that holds no named choice put back to the default's.
-CowSkin withNamedChoices(CowSkin skin);
+CowSkin replaceUnknownValuesWithDefaults(CowSkin skin);
 } // namespace Cows
