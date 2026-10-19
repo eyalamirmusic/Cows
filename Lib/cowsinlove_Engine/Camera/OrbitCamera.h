@@ -66,7 +66,7 @@ struct OrbitCamera final
     void turnToward(float wantedYaw, float amount);
 
     CameraPose pose() const;
-    void setPose(const CameraPose& pose);
+    void setPose(const CameraPose& to);
 
     Maths::Vec3 eye() const;
     Maths::Vec3 forward() const;
