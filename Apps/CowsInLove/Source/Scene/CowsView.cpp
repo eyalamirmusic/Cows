@@ -39,6 +39,7 @@ constexpr auto eyeMargin = 0.3f;
 constexpr auto bodyHeight = 0.6f;
 constexpr auto nearestEye = 0.6f;
 constexpr auto eyeReturnRate = 3.f;
+constexpr auto groundProbeStep = 0.1f;
 constexpr auto contactReach = 0.4f;
 constexpr auto flareTime = 2.6f;
 constexpr auto flareHeight = 22.f;
@@ -489,6 +490,12 @@ void CowsView::applyFrameRateCap()
 
 void CowsView::steerCamera(float delta, float wallDelta)
 {
+    moveCameraForGameState(delta, wallDelta);
+    keepCameraAboveGround(delta);
+}
+
+void CowsView::moveCameraForGameState(float delta, float wallDelta)
+{
     if (swinging || game.state == Game::State::Menu)
         camera.reach = unlimitedReach;
 
@@ -559,6 +566,49 @@ void CowsView::pullCameraInFrontOfBlockingProps(float delta)
         wanted < held
             ? wanted
             : held + (wanted - held) * std::min(1.f, delta * eyeReturnRate);
+}
+
+// The eye stays cameraGroundClearance over the ground beneath it, tilting up
+// rather than closing in; over a gap the floor is the gap's. The limit rises
+// at once and sinks back gently, so crossing a gap's rim does not snap.
+void CowsView::keepCameraAboveGround(float delta)
+{
+    auto eye = camera.eye();
+    auto wanted = game.level.groundAt({eye.x, eye.z}) + cameraGroundClearance;
+    auto held = camera.lowestEye;
+
+    camera.lowestEye =
+        wanted >= held
+            ? wanted
+            : held + (wanted - held) * std::min(1.f, delta * eyeReturnRate);
+
+    if (camera.eye().y >= camera.lowestEye)
+        return;
+
+    pullCameraInOverLowerGround();
+}
+
+// Tilting up was not enough, the target being too low (falling into a gap):
+// the eye comes in along its line to the farthest point that clears the
+// ground there, the gap's floor once it is over the gap, and is held at that
+// height so it keeps the line.
+void CowsView::pullCameraInOverLowerGround()
+{
+    auto direction = normalize(camera.eye() - camera.target);
+    auto radius = std::min(camera.distance, camera.reach);
+    auto clearRadius = groundProbeStep;
+
+    for (auto along = groundProbeStep; along <= radius; along += groundProbeStep)
+    {
+        auto point = camera.target + direction * along;
+        auto floor = game.level.groundAt({point.x, point.z}) + cameraGroundClearance;
+
+        if (point.y >= floor)
+            clearRadius = along;
+    }
+
+    camera.reach = clearRadius;
+    camera.lowestEye = (camera.target + direction * clearRadius).y;
 }
 
 CameraPose CowsView::menuPose() const

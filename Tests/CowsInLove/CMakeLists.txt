@@ -1,10 +1,12 @@
 nano_add_executable(CowsInLoveTests
         NO_MAIN
         SOURCES
+            CameraGroundTests.cpp
             FrameRateTests.cpp
             QualityTests.cpp
             SettingsTests.cpp
             StagesTests.cpp
+            ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/CowsView.cpp
             ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/FrameRate.cpp
             ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/Quality.cpp
             ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Settings.cpp

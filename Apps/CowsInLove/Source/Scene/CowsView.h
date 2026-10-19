@@ -36,6 +36,11 @@
 
 namespace Cows
 {
+// How far the camera's eye stays above the ground beneath it: over the tallest
+// grass blade (about 0.62) by more than the near plane's reach, so no blade
+// crosses the near plane.
+constexpr auto cameraGroundClearance = 0.8f;
+
 // How the camera frames the cow in a screen's area: how wide she is seen from
 // there in world units, the share of the area she fills, and the world units
 // kept clear above her head for a hat.
@@ -112,6 +117,9 @@ struct CowsView final : GPUView
     MooAnswer answerFrom() const;
     void addAnswerFlare();
     void steerCamera(float delta, float wallDelta);
+    // Moves the camera the way the game's state wants: the menu, a swing, the
+    // chase, the ending.
+    void moveCameraForGameState(float delta, float wallDelta);
     // Pulls the camera in to just short of the first prop between it and the
     // cow, and lets it back out once the way is clear.
     void pullCameraInFrontOfBlockingProps(float delta);
@@ -120,6 +128,10 @@ struct CowsView final : GPUView
     // Under COWS_PROFILE, logs "input to menu|editor|play" whenever that
     // changes, so tools/perf.sh can throw out a run that changed screens.
     void logInputRecipientWhenItChanges();
+    // Tilts the eye up, else pulls it in, so it stays cameraGroundClearance
+    // over the ground beneath it.
+    void keepCameraAboveGround(float delta);
+    void pullCameraInOverLowerGround();
     void framePortrait(float aspect);
 
     void chooseQuality(QualityChoice choice);

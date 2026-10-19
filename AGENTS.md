@@ -50,6 +50,9 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `Render/Instances` — per-instance data and per-mesh batches
   - `Render/ShadowMap` — the key light's depth target
   - `Camera/OrbitCamera` — drag to orbit, scroll to zoom, idle drift;
+    `lowestEye`, below which the eye tilts up just enough
+    (`findLowestTiltKeepingEyeAbove`, sway and `reach` counted) while the pose
+    keeps the pitch wanted;
     `CameraPose`, `blend` and `easeOut` for the menu's camera swing, `SwingClock`
     (the swing's step on the clock, past eacp's 0.1 s delta clamp);
     `distanceToFit` (how far back something fills a share of the view) and
@@ -270,7 +273,11 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   shadow pass, main pass (ending with the `Hud`), camera steering, mouse;
   forwards keys to `Input`; polls `GameInput` each `update`, sends the
   controller's buttons through `control()` as touch does, orbits on the right
-  stick (a look, mouse drag included, holds off the chase for `lookHold`), and
+  stick (a look, mouse drag included, holds off the chase for `lookHold`),
+  keeps the eye `cameraGroundClearance` (0.8) over the ground beneath it in
+  every state (`keepCameraAboveGround`: tilt up first, the limit sinking back
+  gently over a gap; when the target is too low for any tilt, the eye comes in
+  over the gap's floor, `pullCameraInOverLowerGround`), and
   tracks the last-used input as `hints`. In the menu it holds the camera in
   front of the cow (`menuPose`, drifting), draws the menu title, and takes
   Enter / Space / arrows / A D and the controller's South / Start / stick /
@@ -301,7 +308,8 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   the runbook
 - `Tests/Layout`, `Tests/Engine`, `Tests/AudioEngine`, `Tests/Actors`, `Tests/World`,
   `Tests/Game` — one NanoTest executable per library, and `Tests/CowsInLove`
-  for the app's content; run with `ctest --test-dir build` or `just test`.
+  for the app's content (`CameraGround` runs `CowsView` frames, skipping without
+  a GPU); run with `ctest --test-dir build` or `just test`.
   `Tests/Support` holds the shared `TestMain` and `SnapshotView`, which draws a
   `SurfaceBatch` (plus anything in `drawOpaque`) off-screen and saves
   `docs/shots/tests/<name>.png`; snapshot tests skip without a GPU
