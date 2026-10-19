@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # Usage: tools/perf-power.py <powermetrics.txt>
-#
-# Reads a capture from tools/powermetrics.sh and prints, per Cows process seen
-# in it (one per perf.sh run), the time span, the mean package CPU and GPU
-# power over its samples, and its own CPU ms/s, timer deadlines (<2 ms) per
-# second, interrupt wakeups per second and energy impact.
+
 import re
 import sys
 from collections import OrderedDict

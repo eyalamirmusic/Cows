@@ -104,8 +104,7 @@ enum class EscapeAction
 
 EscapeAction escapeAction(Game::State state, bool dressing, bool swinging);
 
-// Derived from Game::State each time, which stays Menu while Start swings the
-// camera down although play already has the input.
+// Not Game::State: that stays Menu while Start swings the camera down into play.
 enum class InputRecipient
 {
     Menu,

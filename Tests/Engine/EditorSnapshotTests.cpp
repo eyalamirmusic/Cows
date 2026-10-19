@@ -266,7 +266,6 @@ auto tEditorShapes = test("EditorLayout/holdsAtEveryShape") = []
     checkEveryShape("Dress Your Cow", rows);
 };
 
-// Settings' two rows, quality and frame rate, hold at every shape too.
 auto tSettingsShapes = test("EditorLayout/settingsHoldAtEveryShape") = []
 {
     if (!hasDevice())

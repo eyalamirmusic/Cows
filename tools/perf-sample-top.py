@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
 # Usage: tools/perf-sample-top.py [--match=REGEX] [--top=N] <sample.txt>...
-#
-# Reads `sample` call graphs and keeps only the samples that were on the CPU:
-# a stack whose innermost frame is a blocking trap (mach_msg, workq, semaphore,
-# condition variable waits) is a thread asleep, not working. Prints each
-# thread's on-CPU samples and, for the whole process, the frames with the
-# largest inclusive share of on-CPU samples (a frame counted once per stack
-# however often it recurses), summed over the files. --match keeps frames whose
-# name matches (default: everything).
+
 import re
 import sys
 from collections import defaultdict
@@ -34,15 +27,11 @@ WAITS = {
     "semaphore_timedwait_signal_trap", "__psynch_cvwait", "__psynch_mutexwait",
     "kevent_id", "kevent", "kevent64", "__semwait_signal", "__ulock_wait",
     "__ulock_wait2", "__select", "poll", "__sigsuspend", "__wait4",
-    # _pthread_cond_wait reads the clock on its way into a timed wait; sample
-    # catches sleeping threads there (MakeASound's recovery thread: 2.5% of its
-    # samples, while proc_pidinfo bills it 0.03 ms of CPU a second).
+    # _pthread_cond_wait reads the clock on its way into a timed wait
     "__gettimeofday",
 }
 
 
-# Every node is (depth, count, path from the thread's root); a node's own
-# samples are its count less its children's, and that is where a stack ended.
 def tally(thread, nodes):
     for index, (depth, count, path) in enumerate(nodes):
         children, child_depth = 0, None

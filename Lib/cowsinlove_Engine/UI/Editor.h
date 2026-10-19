@@ -32,7 +32,6 @@ const Entry& stepThroughEntries(const std::array<Entry, numEntries>& entries,
                                 int steps)
 {
     auto current = std::ranges::find_if(entries, isCurrent);
-    // A Settings table holds a handful of entries, so positions fit an int.
     auto currentIndex = static_cast<int>(current - entries.begin());
     auto numChoices = static_cast<int>(numEntries);
     return entries[wrapChoiceIndex(currentIndex + steps, numChoices)];
@@ -146,7 +145,6 @@ struct Editor final : Graphics::View
     void act(Target target);
     void returnKeyFocus();
 
-    // A row's < or > (or its value, or a key) moved its choice `steps` along.
     std::function<void(int rowIndex, int steps)> onRowValueStepped = [](int, int) {};
     std::function<void()> onDone = [] {};
     std::function<void(const ControlEvent&)> onControl = [](const ControlEvent&) {};

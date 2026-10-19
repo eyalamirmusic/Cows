@@ -69,11 +69,8 @@ cows_running() {
 pid=""
 trap '[[ -n "$pid" ]] && kill "$pid" 2>/dev/null || true' EXIT
 
-# Runs number on from the rows already in the CSV, so a second call tops it up
-# without overwriting the earlier runs' logs.
 first=$(($(cut -d, -f3 "$csv" | sort -n | tail -1 | sed "s/run/0/") + 1))
 for ((run = first; run < first + runs; run++)); do
-    # Another Cows (someone else's) would share the CPU and GPU with this one.
     while [[ -n "$(cows_running)" ]]; do
         echo "  waiting for another Cows ($(cows_running | tr '\n' ' ')) to quit" >&2
         sleep 10
@@ -115,7 +112,6 @@ for ((run = first; run < first + runs; run++)); do
     wait "$toppid" 2>/dev/null || true
     wait "$gpupid" 2>/dev/null || true
 
-    # The window takes focus, so a key typed into it (q) can end a run early.
     if [[ -z "$before" || -z "$after" || -n "$others" ]]; then
         echo "  $scenario run $run ended early or shared the machine; running it again" >&2
         ((run--)) || true
@@ -124,16 +120,13 @@ for ((run = first; run < first + runs; run++)); do
 
     sed -n "$((linesBefore + 1)),${linesAfter}p" "$log" | grep "profile fps" >"$out/$scenario-$run.profile" || true
 
-    # The window takes key focus, so a key or a controller button can leave the
-    # menu (or open it) mid-run; the app logs every change of input owner.
     if sed -n "$((linesBefore + 1)),${linesAfter}p" "$log" | grep -q "Cows: input to"; then
         echo "  $scenario run $run changed screens mid-window; running it again" >&2
         ((run--)) || true
         continue
     fi
 
-    # A window that never drew (hidden behind another space, say) logs no
-    # profile lines and idles at ~0 CPU; it measures nothing.
+    # A window hidden behind another space draws nothing
     if [[ ! -s "$out/$scenario-$run.profile" ]]; then
         echo "  $scenario run $run drew no frames; running it again" >&2
         ((run--)) || true

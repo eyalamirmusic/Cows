@@ -27,7 +27,6 @@ struct QualityAndLabel final
     std::string_view label;
 };
 
-// Every tier, with the label COWS_QUALITY and the log use.
 constexpr auto qualitiesAndLabels = std::array {
     QualityAndLabel {Quality::Low, "low"},
     QualityAndLabel {Quality::Medium, "medium"},
@@ -74,11 +73,9 @@ struct QualityChoiceAndLabel final
 {
     QualityChoice choice;
     std::string_view label;
-    // The tier it picks; none for Auto.
     std::optional<Quality> quality;
 };
 
-// Every choice in the Settings row's order, with the label it shows.
 constexpr auto qualityChoicesAndLabels = std::array {
     QualityChoiceAndLabel {QualityChoice::Auto, "Auto", std::nullopt},
     QualityChoiceAndLabel {QualityChoice::Low, "Low", Quality::Low},
@@ -88,13 +85,10 @@ constexpr auto qualityChoicesAndLabels = std::array {
 
 std::string getQualityChoiceLabel(QualityChoice choice);
 
-// `choice` moved `steps` along the list, wrapping round: the Settings row's < >.
 QualityChoice stepQualityChoice(QualityChoice choice, int steps);
 
-// The tier a choice picks; none for Auto.
 std::optional<Quality> getChosenQuality(QualityChoice choice);
 
-// The choice that picks `quality`.
 QualityChoice getQualityChoiceFor(Quality quality);
 
 // The tier to draw at: `forced` (COWS_QUALITY), else the player's choice, else

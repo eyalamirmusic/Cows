@@ -164,7 +164,7 @@ CowsApp::CowsApp()
     };
     settingsPanel.onDone = [this] { scene.closeEditor(); };
     settingsPanel.onControl = dressEditor.onControl;
-    scene.frameRate = savedSettings.frameRate;
+    scene.chosenFrameRate = savedSettings.frameRate;
     showSettings();
     scene.wear(savedSettings.skin);
     scene.onQualityChanged = [this]
@@ -305,7 +305,7 @@ void CowsApp::writeSettingsFile() const
 void CowsApp::chooseFrameRate(FrameRate rate)
 {
     savedSettings.frameRate = rate;
-    scene.frameRate = rate;
+    scene.chosenFrameRate = rate;
     showSettings();
     writeSettingsFile();
 }
@@ -315,11 +315,9 @@ void CowsApp::showSettings()
     auto rows = makeSettingsRows(scene.qualityPreference.chosen,
                                  scene.quality,
                                  scene.measuring,
-                                 scene.frameRate);
+                                 scene.chosenFrameRate);
     auto& shownRows = settingsPanel.rows;
 
-    // Auto's label names the measured tier, so the choices themselves change
-    // once it is measured; then the rows are laid out again.
     if (!rowsOfferTheSameChoices(shownRows, rows))
     {
         settingsPanel.setRows(rows);

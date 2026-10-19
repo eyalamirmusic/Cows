@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 # Usage: tools/perf-sample.sh <scenario> <label> [runs] [seconds]
-#
-# Launches the RelWithDebInfo build (PERF_BUILD overrides) in one of perf.sh's
-# scenarios, waits 5 s (1 s for S5), runs `sample` on it for `seconds`
-# (default 20; 3 for S5), and kills it; `runs` times (default 3). The call
-# graphs land in $COWS_PERF_DIR/<label>/<scenario>-<run>.sample.txt.
+
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"

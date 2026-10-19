@@ -59,8 +59,6 @@ inline Vector<EditorRow> makeDressRows(const CowSkin& skin)
     return rows;
 }
 
-// Settings' quality row: the quality choices, Auto naming the tier it measured
-// once it has one.
 inline EditorRow
     makeQualityRow(QualityChoice chosen, Quality measured, bool measuring)
 {
@@ -83,7 +81,6 @@ inline EditorRow
     return row;
 }
 
-// Settings' frame rate row: Auto, 60, Max.
 inline EditorRow makeFrameRateRow(FrameRate chosen)
 {
     auto row = EditorRow {};
@@ -100,7 +97,6 @@ inline EditorRow makeFrameRateRow(FrameRate chosen)
     return row;
 }
 
-// Settings: quality, then frame rate.
 inline Vector<EditorRow> makeSettingsRows(QualityChoice chosen,
                                           Quality measured,
                                           bool measuring,

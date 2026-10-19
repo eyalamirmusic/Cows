@@ -480,7 +480,7 @@ void CowsView::applyFrameRateCap()
 {
     auto menusHaveInput = getInputRecipient() != InputRecipient::Play;
     auto cameraIsStill = !swinging;
-    auto rateToUse = forcedFrameRate.value_or(frameRate);
+    auto rateToUse = forcedFrameRate.value_or(chosenFrameRate);
     auto cap = getFrameRateCap(rateToUse, menusHaveInput && cameraIsStill);
 
     if (maxFps() != cap)

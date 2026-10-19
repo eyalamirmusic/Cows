@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 # Usage: sudo tools/powermetrics.sh [seconds] [scenarios...]
-# Runs every perf scenario in turn (the same S1..S5 as tools/perf.sh: seed 3,
-# 1280x800, high quality) and, while each is on screen, captures CPU and GPU
-# package power and per-process energy with powermetrics, which is why it needs
-# root. The app itself runs as the invoking user. One file per scenario goes to
-# $COWS_PERF_DIR (default /tmp/cows-perf)/power-<scenario>-<HHMMSS>.txt. PERF_BUILD picks the build
-# directory (default build-release), or PERF_APP an app bundle anywhere.
+
 set -euo pipefail
 
 if [ "$(id -u)" -ne 0 ]; then
