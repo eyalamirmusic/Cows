@@ -34,10 +34,10 @@ struct Phone final
         controls.resized();
     }
 
-    void show(InputRecipient owner)
+    void show(InputRecipient recipient)
     {
-        menu.setShowing(owner == InputRecipient::Menu);
-        editor.setShowing(owner == InputRecipient::Editor);
+        menu.setShowing(recipient == InputRecipient::Menu);
+        editor.setShowing(recipient == InputRecipient::Editor);
     }
 
     void touch(TouchPhase phase, Graphics::Point position, int id = 1)

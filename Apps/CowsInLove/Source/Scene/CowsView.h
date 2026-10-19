@@ -112,10 +112,14 @@ struct CowsView final : GPUView
     MooAnswer answerFrom() const;
     void addAnswerFlare();
     void steerCamera(float delta, float wallDelta);
-    // Pulls the eye in to just short of the first block between it and the
-    // target, and lets it back out once the way is clear.
+    // Pulls the camera in to just short of the first prop between it and the
+    // cow, and lets it back out once the way is clear.
     void pullCameraInFrontOfBlockingProps(float delta);
+    // Caps the frame rate at 60 while the menus have the input, under Auto.
     void applyFrameRateCap();
+    // Under COWS_PROFILE, logs "input to menu|editor|play" whenever that
+    // changes, so tools/perf.sh can throw out a run that changed screens.
+    void logInputRecipientWhenItChanges();
     void framePortrait(float aspect);
 
     void chooseQuality(QualityChoice choice);
@@ -161,7 +165,7 @@ struct CowsView final : GPUView
     // The player's choice; COWS_FPS (forcedFrameRate) wins over it.
     FrameRate frameRate = FrameRate::Auto;
     std::optional<FrameRate> forcedFrameRate;
-    std::optional<InputRecipient> lastReportedInputRecipient;
+    std::optional<InputRecipient> lastLoggedInputRecipient;
     ShapeMeshes shapes;
     Mesh ground;
     TitleMesh title;

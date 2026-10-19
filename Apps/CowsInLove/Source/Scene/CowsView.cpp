@@ -254,9 +254,9 @@ Graphics::Point centreOnScreen(Graphics::Rect area, Graphics::Rect bounds)
             1.f - 2.f * (area.y + area.h * 0.5f) / bounds.h};
 }
 
-std::string_view getInputRecipientName(InputRecipient owner)
+std::string_view getInputRecipientName(InputRecipient recipient)
 {
-    switch (owner)
+    switch (recipient)
     {
         case InputRecipient::Menu:
             return "menu";
@@ -460,24 +460,31 @@ void CowsView::update(Threads::FrameTime time)
 
     steerCamera(delta, wallDelta);
     applyFrameRateCap();
+
+    if (profile.enabled)
+        logInputRecipientWhenItChanges();
+}
+
+void CowsView::logInputRecipientWhenItChanges()
+{
+    auto recipient = getInputRecipient();
+
+    if (recipient == lastLoggedInputRecipient)
+        return;
+
+    lastLoggedInputRecipient = recipient;
+    LOG("Cows: input to ", getInputRecipientName(recipient));
 }
 
 void CowsView::applyFrameRateCap()
 {
-    auto owner = getInputRecipient();
+    auto menusHaveInput = getInputRecipient() != InputRecipient::Play;
+    auto cameraIsStill = !swinging;
+    auto rateToUse = forcedFrameRate.value_or(frameRate);
+    auto cap = getFrameRateCap(rateToUse, menusHaveInput && cameraIsStill);
 
-    if (owner != lastReportedInputRecipient)
-    {
-        lastReportedInputRecipient = owner;
-        LOG("Cows: input to ", getInputRecipientName(owner));
-    }
-
-    auto inMenus = owner == InputRecipient::Menu || owner == InputRecipient::Editor;
-    auto wanted =
-        getFrameRateCap(forcedFrameRate.value_or(frameRate), inMenus && !swinging);
-
-    if (maxFps() != wanted)
-        setMaxFps(wanted);
+    if (maxFps() != cap)
+        setMaxFps(cap);
 }
 
 void CowsView::steerCamera(float delta, float wallDelta)
@@ -738,8 +745,8 @@ void CowsView::startGame()
 
 InputRecipient CowsView::getInputRecipient() const
 {
-    auto startingPlay = swinging && swingGoal == SwingGoal::Play;
-    return Cows::getInputRecipient(game.state, dressing, startingPlay);
+    auto swingingIntoPlay = swinging && swingGoal == SwingGoal::Play;
+    return Cows::getInputRecipient(game.state, dressing, swingingIntoPlay);
 }
 
 void CowsView::swingTo(SwingGoal goal)
