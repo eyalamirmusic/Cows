@@ -66,19 +66,18 @@ inline EditorRow
 {
     auto row = EditorRow {};
     row.name = qualityRowName;
+    auto namesMeasuredTier = chosen == QualityChoice::Auto && !measuring;
+    auto measuredLabel = getQualityChoiceLabel(getQualityChoiceFor(measured));
 
     for (const auto& entry: qualityChoicesAndLabels)
     {
         if (entry.choice == chosen)
             row.choice = row.choices.size();
 
-        row.choices.add(std::string {entry.label});
-    }
-
-    if (chosen == QualityChoice::Auto && !measuring)
-    {
-        auto measuredChoice = getQualityChoiceFor(measured);
-        row.choices[0] = autoPrefix + getQualityChoiceLabel(measuredChoice);
+        if (entry.choice == QualityChoice::Auto && namesMeasuredTier)
+            row.choices.add(autoPrefix + measuredLabel);
+        else
+            row.choices.add(std::string {entry.label});
     }
 
     return row;

@@ -266,7 +266,7 @@ std::string_view getInputRecipientName(InputRecipient recipient)
             return "play";
     }
 
-    return "play";
+    return "unknown";
 }
 } // namespace
 
