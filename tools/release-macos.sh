@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
-# Usage: COWS_SIGN_IDENTITY="Developer ID Application: <Name> (<TEAM>)"
-#        COWS_NOTARY_PROFILE=<profile> [COWS_SIGN_KEYCHAIN=<path>]
-#        [COWS_BUNDLE_ID=<id>] tools/release-macos.sh
-# Builds the universal (arm64 + x86_64) Release app, signs it with the
-# Developer ID (hardened runtime, secure timestamp), notarizes and staples it,
-# and stages it as the Steam macOS depot in Deploy/Steam/content/macos/.
-# COWS_NOTARY_PROFILE=skip signs without notarizing, for a local check only.
-#
-# One-time notarization setup (app-specific password, or --key for an API key):
-#   xcrun notarytool store-credentials <profile> --apple-id <apple id> \
-#       --team-id <TEAM> --password <app-specific password>
+# Usage: COWS_SIGN_IDENTITY="Developer ID Application: <Name> (<TEAM>)" COWS_NOTARY_PROFILE=<profile>|skip [COWS_SIGN_KEYCHAIN=path] [COWS_BUNDLE_ID=id] tools/release-macos.sh
+# One-time: xcrun notarytool store-credentials <profile> --apple-id <id> --team-id <TEAM> --password <app-specific password>
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Creates a JSON key for the dedicated Play publisher service account and
-# stores its only durable copy as a 1Password file field.
+# Usage: tools/setup-play-service-account.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

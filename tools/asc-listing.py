@@ -1,17 +1,6 @@
 #!/usr/bin/env python3
-"""Fills the App Store Connect listing for Cows In Love and submits it for review.
-
-Usage: just asc <command> [--platform ios|macos]
-       [--write] [flags]
-
-Commands: check, info, version, screenshots, build, price, testflight,
-invite [--internal] <email> [--first NAME] [--last NAME], submit [--file MD],
-review-notes --file MD, review-attach <file>, all.
-Without --write every POST/PATCH/DELETE and upload is printed, not sent.
-Credentials come from COWS_ASC_KEY_ID, COWS_ASC_ISSUER_ID and COWS_ASC_KEY
-(path to the .p8) or COWS_ASC_KEY_P8 (its contents): `just asc` fills them
-from 1Password through Deploy/asc.env.
-"""
+# Usage: just asc <command> [--platform ios|macos] [--write]; without --write nothing is sent.
+"""Fills the App Store Connect listing for Cows In Love and submits it for review."""
 
 import argparse
 import atexit
@@ -79,8 +68,6 @@ def fail(message):
     sys.exit(1)
 
 
-# ---- auth -------------------------------------------------------------------
-
 def b64url(data):
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
 
@@ -132,8 +119,6 @@ def token():
         TOKEN["made"] = time.time()
     return TOKEN["value"]
 
-
-# ---- api --------------------------------------------------------------------
 
 def api(method, path, body=None, params=None, missing_ok=False):
     if method != "GET" and not WRITE:
@@ -197,8 +182,6 @@ def update(type_, id_, attributes, current=None):
     api("PATCH", f"/v1/{type_}/{id_}",
         {"data": {"type": type_, "id": id_, "attributes": attributes}})
 
-
-# ---- metadata ---------------------------------------------------------------
 
 def table(text):
     rows = {}
@@ -276,8 +259,6 @@ def required(args, name):
     return value
 
 
-# ---- lookups ----------------------------------------------------------------
-
 def find_app():
     apps = get_all("/v1/apps", {"filter[bundleId]": BUNDLE_ID})
     if not apps:
@@ -318,8 +299,6 @@ def localization(path, locale=LOCALE):
             return item
     return None
 
-
-# ---- commands ---------------------------------------------------------------
 
 def cmd_check(args, app):
     print(f"app {app['id']}: {app['attributes'].get('name')} "

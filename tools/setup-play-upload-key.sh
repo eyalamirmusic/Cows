@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
-# Creates the Play upload key in a temporary directory and stores the only
-# durable copy as a file field on the 1Password "Google Play" item.
+# Usage: tools/setup-play-upload-key.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# The shell commonly carries Tamber's 1Password service-account token. This
-# key belongs to the personal publishing account, authenticated by the desktop
-# app, just like tools/asc-run.sh.
+# The shell's service-account token is Tamber's; this key is the personal account's.
 unset OP_SERVICE_ACCOUNT_TOKEN
 
 account="my.1password.com"

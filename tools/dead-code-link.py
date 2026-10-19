@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Symbols this repo's code defines that no linked executable keeps, from a
-build made with -ffunction-sections -fdata-sections and linked through
-tools/link-map.sh (-dead_strip, a link map per executable).
-
-usage: dead-code-link.py <build dir>
-"""
+# Usage: tools/dead-code-link.py <build dir linked through tools/link-map.sh>
 
 import glob
 import os

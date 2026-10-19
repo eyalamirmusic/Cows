@@ -331,9 +331,7 @@ void renderScreens(const std::string& directory, const std::string& only)
                 }
             };
 
-            // The first render lays the screen out, which picks its shape;
-            // the camera frames the cow for that shape before the second, as
-            // the app's swing does over the frames it draws.
+            // The first render picks the layout's shape the camera then frames.
             root.renderToImage(1.f);
             settle(scene, step);
 

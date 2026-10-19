@@ -1,9 +1,4 @@
-# The android preset's toolchain: the NDK COWS_NDK locks to, else the one
-# $ANDROID_NDK_HOME, $ANDROID_NDK_ROOT or $ANDROID_NDK names, else the newest
-# NDK in the SDK ($ANDROID_HOME, else $ANDROID_SDK_ROOT, else where Android
-# Studio installs it on this host). eacp's own CMake/AndroidToolchain.cmake does
-# the same, but only for a top-level eacp: Cows fetches eacp after project(),
-# too late for a toolchain.
+# eacp's own toolchain only works for a top-level eacp; ours is fetched after project().
 
 set(COWS_NDK "" CACHE STRING "An NDK version to build with, else the newest installed")
 

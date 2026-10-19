@@ -1,25 +1,7 @@
 #!/usr/bin/env bash
-# Usage: tools/perf.sh <scenario> <label> [runs]
-#
-# Runs the macOS app `runs` more times (default 10), a fresh process each, in
-# one fixed scenario, and appends a row per run to $COWS_PERF_DIR/<label>/<scenario>.csv
-# (default /tmp/cows-perf). Each run waits out a warm-up, then measures a
-# window: CPU seconds per wall second (process and main thread), the energy the
-# kernel bills the process (rusage ri_energy_nj), top's %CPU and POWER, the
-# system's GPU utilisation, and the averages of the COWS_PROFILE lines logged
-# in the window. Per-thread CPU goes to <scenario>-threads.jsonl beside it.
-#
-# Scenarios (all COWS_SEED=3, COWS_WINDOW=1280x800, COWS_QUALITY=high, and
-# COWS_FPS=auto unless the environment names another rate):
-#   S1 menu idle          S2 editor open (COWS_DRESS=1)
-#   S3 play, standing     S4 play, walking ahead (COWS_WALK=1)
-#   S5 the ending (COWS_FOUND=1; it loops to the next level 4.5 s in, so its
-#      warm-up is 1 s and its window 3 s)
-#
-# PERF_BUILD picks the build directory (default build-release), or PERF_APP an
-# app bundle anywhere (a copy kept from an earlier commit, named by
-# PERF_COMMIT); PERF_WARMUP and PERF_WINDOW override the seconds. Extra COWS_*
-# settings in the environment pass through, so `COWS_MSAA=1 tools/perf.sh S3 msaa1` varies one knob.
+# Usage: [PERF_BUILD=dir | PERF_APP=bundle PERF_COMMIT=sha] [PERF_WARMUP=s] [PERF_WINDOW=s] [COWS_*=...] tools/perf.sh <scenario> <label> [runs]
+#   S1 menu idle, S2 editor (COWS_DRESS=1), S3 play standing, S4 walking (COWS_WALK=1)
+#   S5 ending (COWS_FOUND=1; loops 4.5 s in, so 1 s warm-up and 3 s window)
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -126,7 +108,7 @@ for ((run = first; run < first + runs; run++)); do
         continue
     fi
 
-    # A window hidden behind another space draws nothing
+    # A window hidden behind another space draws nothing.
     if [[ ! -s "$out/$scenario-$run.profile" ]]; then
         echo "  $scenario run $run drew no frames; running it again" >&2
         ((run--)) || true
@@ -147,8 +129,7 @@ def rate(key):
     return (after[key] - before[key]) / wall
 
 cpu = rate("user_s") + rate("system_s")
-# The main thread's pthread lives in libpthread's data, above every other
-# thread's stack, so its handle is the largest; 0 is an empty slot.
+# The main thread's pthread handle is the largest (it lives above every stack); 0 is empty.
 handles = sorted((h for h in after["threads"] if h != "0"), key=int)
 main = handles[-1] if handles else None
 

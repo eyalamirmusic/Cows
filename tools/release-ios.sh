@@ -1,22 +1,11 @@
 #!/usr/bin/env bash
-# Usage: COWS_TEAM=<team id> [COWS_BUNDLE_ID=id]
-#        tools/release-ios.sh [--upload]
-# Builds a Release archive for the App Store and exports the .ipa into
-# Deploy/Apple-iOS/out/. --upload sends it straight to App Store Connect.
-# Signing is automatic: Xcode creates the distribution certificate and profile
-# when it needs to, through the account Xcode is signed into, or without one
-# when COWS_ASC_KEY_ID, COWS_ASC_ISSUER_ID and COWS_ASC_KEY (the .p8 path) or
-# COWS_ASC_KEY_P8 (its contents) name an App Store Connect API key:
-# `just release-ios` fills them from 1Password through Deploy/asc.env.
-# COWS_TEAM=none builds an unsigned archive, to check the build only.
+# Usage: COWS_TEAM=<team id>|none [COWS_BUNDLE_ID=id] [COWS_ASC_KEY_ID= COWS_ASC_ISSUER_ID= COWS_ASC_KEY=|COWS_ASC_KEY_P8=] tools/release-ios.sh [--upload]
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 
-# Xcode's export runs Apple's rsync, which starts a second rsync by name; a
-# newer one on the PATH (Homebrew, nix) rejects Apple's flags and the export
-# fails with "Copy failed".
+# Xcode's export calls rsync by name; a Homebrew or nix one rejects Apple's flags.
 export PATH="/usr/bin:$PATH"
 
 team="${COWS_TEAM:?set COWS_TEAM to the Apple Developer team id (or none)}"

@@ -1,14 +1,6 @@
 #!/usr/bin/env bash
-# Usage: tools/android.sh sim [shot.png]   build, run on the "cows" emulator
-#        tools/android.sh device           build, run on the phone adb sees
-#
-# Configures the android preset into build-android if it has no cache, then
-# Gradle installs the Cows module from build-android/AndroidStudio: Debug, or
-# Release with COWS_CONFIG=Release (Debug is 5 fps while a finger moves). With
-# no device attached it boots the emulator EACP_AVD (default cows).
-# EACP=<path> builds against that eacp checkout, else CPM fetches the tag in
-# CMake/Findeacp.cmake. COWS_ENV="COWS_SEED=3 COWS_STAGE=1" launches with
-# those settings as --es extras (Debug builds only).
+# Usage: [COWS_CONFIG=Release] [EACP_AVD=avd] [COWS_ENV="COWS_SEED=3"] tools/android.sh sim [shot.png] | device
+# Release because Debug is 5 fps while a finger moves; COWS_ENV works in Debug only.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"

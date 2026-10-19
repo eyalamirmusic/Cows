@@ -1,5 +1,3 @@
-# Renders the store art (app icon, key art, logo) and the store screenshots
-# from the game itself. A macOS tool; never shipped.
 add_executable(CowsArt
         Main.cpp
         LogoView.cpp

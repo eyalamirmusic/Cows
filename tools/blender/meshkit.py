@@ -1,8 +1,3 @@
-# What the prop scripts share: solids written in the game's space (x right,
-# y up, -z forward) and turned into Blender's z-up space as they are made, one
-# Blender material per group, and the export of one mesh blob grouped by
-# material (the format is in README.md).
-
 import math
 import struct
 
@@ -21,10 +16,7 @@ def material(name):
 
 
 def solid(mat, points, faces, bevel=0.0, segments=1, recalc=True, tidy=False):
-    """A mesh of `faces` (lists of indices into `points`) in material `mat`.
-    With `recalc`, Blender turns the faces outward; without, the faces must
-    already wind counter-clockwise seen from outside. `tidy` drops the faces
-    that merging points left with no area."""
+    """Without `recalc`, faces must already wind counter-clockwise seen from outside."""
     mesh = bpy.data.meshes.new(mat)
     built = bmesh.new()
     verts = [built.verts.new(to_blender(point)) for point in points]
@@ -69,8 +61,6 @@ def to_game(point):
 
 
 def group_triangles(obj):
-    """The object's triangles in the game's space: (positions, normal) each,
-    the normal the face's own, for flat shading."""
     mesh = obj.data
     mesh.calc_loop_triangles()
     triangles = []
@@ -87,8 +77,6 @@ def quantise(value, low, high):
 
 
 def write_blob(path, groups):
-    """`groups` is a list of (name, triangles). Positions go as int16 against
-    the file's bounds, normals as int8, each corner a distinct pair."""
     every = [corner for _, triangles in groups for corners, _ in triangles
              for corner in corners]
     low = [min(point[axis] for point in every) for axis in range(3)]
@@ -127,8 +115,6 @@ def write_blob(path, groups):
 
 
 def finish(path, materials, name):
-    """Joins every object of each of `materials` into one flat-shaded object
-    and writes them to `path` as a mesh blob, one group per material."""
     bpy.ops.object.select_all(action="SELECT")
     bpy.context.view_layer.objects.active = bpy.context.scene.objects[0]
     bpy.ops.object.convert(target="MESH")

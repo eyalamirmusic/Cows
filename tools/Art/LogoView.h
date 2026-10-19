@@ -9,7 +9,6 @@
 
 namespace Cows
 {
-// The tube-font title alone, on a flat colour, for cutting out as a logo.
 struct LogoView final : GPUView
 {
     explicit LogoView(std::string_view text);

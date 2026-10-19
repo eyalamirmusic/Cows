@@ -1,7 +1,5 @@
-# Builds the barn and writes it as a mesh blob grouped by material:
-#   blender -b --factory-startup --python tools/blender/barn.py -- <out.mesh>
-# Everything is written in the game's own space (x right, y up, the front
-# facing -z) and turned into Blender's z-up space as it is made.
+# Usage: blender -b --factory-startup --python tools/blender/barn.py -- <out.mesh>
+# Written in the game's space (x right, y up, front facing -z).
 
 import math
 import os
@@ -58,7 +56,7 @@ TROUGH_WIDTH = 0.8
 TROUGH_LENGTH = 1.6
 TROUGH_HEIGHT = 0.8
 
-# The model's own details, which nothing in the game depends on.
+# Nothing in the game depends on these.
 ROOF_THICKNESS = 0.18
 SEAM_HEIGHT = 0.035
 SEAM_WIDTH = 0.06
@@ -113,7 +111,7 @@ ROOF_BACK = HALF_DEPTH + GABLE_OVERHANG
 
 
 def prism_z(mat, profile, z0, z1, bevel=0.0, segments=1):
-    """A prism whose cross-section is `profile` (x, y), from z0 to z1."""
+    """`profile` is (x, y) points."""
     count = len(profile)
     points = [(x, y, z0) for x, y in profile] + [(x, y, z1) for x, y in profile]
     faces = [list(range(count)), list(range(2 * count - 1, count - 1, -1))]
@@ -123,7 +121,7 @@ def prism_z(mat, profile, z0, z1, bevel=0.0, segments=1):
 
 
 def prism_x(mat, profile, x0, x1, bevel=0.0, segments=1):
-    """A prism whose cross-section is `profile` (z, y), from x0 to x1."""
+    """`profile` is (z, y) points."""
     count = len(profile)
     points = [(x0, y, z) for z, y in profile] + [(x1, y, z) for z, y in profile]
     faces = [list(range(count)), list(range(2 * count - 1, count - 1, -1))]
@@ -137,14 +135,11 @@ def box(mat, x0, x1, y0, y1, z0, z1, bevel=SMALL_BEVEL, segments=1):
                    bevel, segments)
 
 
-# The roof's line across the barn, and lines parallel to it.
-
 def lower_slope():
     return (BREAK_HEIGHT - EAVES) / (HALF_WIDTH - BREAK_X)
 
 
 def roof_height(x):
-    """The walkable top of the roof over x."""
     x = abs(x)
     if x <= BREAK_X:
         return RIDGE - x * (RIDGE - BREAK_HEIGHT) / BREAK_X
@@ -152,7 +147,6 @@ def roof_height(x):
 
 
 def roof_line(reach):
-    """The roof's top from -reach to reach, through the breaks and ridge."""
     return [(-reach, roof_height(reach)), (-BREAK_X, BREAK_HEIGHT), (0.0, RIDGE),
             (BREAK_X, BREAK_HEIGHT), (reach, roof_height(reach))]
 
@@ -163,8 +157,6 @@ def normalised(vector):
 
 
 def offset(line, distance):
-    """`line` moved `distance` along its upward normal, mitred at the corners;
-    the ends cut square to their segments."""
     normals = []
     for a, b in zip(line, line[1:]):
         dx, dy = normalised((b[0] - a[0], b[1] - a[1]))
@@ -187,12 +179,10 @@ def offset(line, distance):
 
 
 def vertical_line(line, distance):
-    """`line` moved `distance` straight up, keeping each point's x."""
     return [(x, y + distance) for x, y in line]
 
 
 def thickness_below(x):
-    """How far below the roof's top its underside is, straight down at x."""
     slope = lower_slope() if abs(x) > BREAK_X else (RIDGE - BREAK_HEIGHT) / BREAK_X
     return ROOF_THICKNESS * math.hypot(1.0, slope)
 
@@ -206,8 +196,6 @@ def strip(mat, top, bottom, z0, z1, bevel=0.0):
 def along(a, b, t):
     return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
 
-
-# The parts.
 
 def build_roof():
     outer = roof_line(HALF_WIDTH + EAVES_OVERHANG)
@@ -249,7 +237,7 @@ def build_roof():
 
 
 def wall_top(x):
-    """Where the walls end: halfway into the roof's thickness, out of sight."""
+    """Halfway into the roof's thickness, so the top is out of sight."""
     return roof_height(x) - thickness_below(x) / 2
 
 
@@ -260,7 +248,6 @@ def gable_profile():
 
 
 def gable_top(x):
-    """The gable's top at x, along gable_profile."""
     points = sorted(gable_profile())
     x = abs(x)
     for (x0, y0), (x1, y1) in zip(points, points[1:]):
@@ -291,7 +278,6 @@ def build_walls():
 
 
 def open_spans(top, blocked):
-    """What is left of [0, top] once the `blocked` (y0, y1) spans are cut out."""
     spans = [(0.0, top)]
     for y0, y1 in blocked:
         cut = []
@@ -305,9 +291,7 @@ def open_spans(top, blocked):
 
 
 def battens(face, side, start, end, top, holes):
-    """Upright battens along a wall, `face` the axis the wall faces along and
-    `side` which way. `top(u)` is how high they reach at u along the wall;
-    `holes` are (u0, u1, y0, y1) they stop short of."""
+    """`holes` are (u0, u1, y0, y1) spans they stop short of."""
     count = int((end - start) / BATTEN_SPACING)
     for index in range(count + 1):
         u = start + (end - start) * index / count
@@ -371,8 +355,6 @@ def build_corner_boards():
 
 
 def braced_panel(mat, x0, x1, y0, y1, back, front, braces=1):
-    """A board door: a panel framed in trim with a cross brace in each of
-    `braces` stacked bays. Builds forward from `back` (z) to `front`."""
     sign = 1.0 if front > back else -1.0
     depth = abs(front - back)
     z_panel = sorted([back, back + sign * depth * 0.6])
@@ -451,8 +433,6 @@ def build_doors():
 
 
 def hay_leaf(side, face):
-    """A hay door leaf swung open square to the gable beside the opening, its
-    boards facing out across the front."""
     inner = side * (HAY_DOOR_HALF + TRIM_WIDTH)
     outer = inner + side * DOOR_THICKNESS
     x0, x1 = sorted([inner, outer])
@@ -480,7 +460,6 @@ def hay_leaf(side, face):
 
 
 def window(face_axis, side, centre, bottom, top, half):
-    """A four-pane window on a wall, `face_axis` the axis it faces along."""
     def place(u0, u1, y0, y1, d0, d1, mat, bevel=0.0):
         if face_axis == "x":
             base = side * HALF_WIDTH
@@ -552,13 +531,12 @@ def ramp_run():
 
 
 def ramp_point(along):
-    """The ramp's top `along` from its foot: (z, height)."""
+    """Returns (z, height)."""
     toward = math.copysign(1.0, LOFT_EDGE - RAMP_FOOT_Z)
     return RAMP_FOOT_Z + toward * along, LOFT_HEIGHT * along / ramp_run()
 
 
 def cleat(x0, x1, z0, z1, top):
-    """Slats across a ramp from z0 (the ground) up to `top` at z1."""
     run = z1 - z0
     count = int(abs(run) / 0.8)
     for index in range(1, count):
@@ -571,8 +549,6 @@ def cleat(x0, x1, z0, z1, top):
 
 
 def turned_box(mat, centre, size, yaw, bevel=0.0, segments=1, tilt=0.0):
-    """A box `size` big about `centre`, turned `yaw` about y and tipped `tilt`
-    about x; its bottom face at centre.y - size.y / 2 before tipping."""
     cx, cy, cz = centre
     sx, sy, sz = (value / 2 for value in size)
     corners = [(x, y, z) for x in (-sx, sx) for y in (-sy, sy) for z in (-sz, sz)]
@@ -589,9 +565,6 @@ def turned_box(mat, centre, size, yaw, bevel=0.0, segments=1, tilt=0.0):
 
 
 def bale_at(centre, width, length, height, yaw, rng, segments):
-    """A bale about `centre` (its top at centre.y + height / 2), its length
-    along z turned by `yaw`, a little smaller and a little more turned than
-    asked so a stack looks stacked by hand."""
     width -= rng.uniform(0.0, 2 * BALE_JITTER)
     deep = length - rng.uniform(0.0, 2 * BALE_JITTER)
     yaw += rng.uniform(-BALE_TWIST, BALE_TWIST)
@@ -605,7 +578,6 @@ def bale_at(centre, width, length, height, yaw, rng, segments):
 
 
 def bale(x0, y0, z0, rng, segments):
-    """A bale filling the cell from (x0, y0, z0), its length along z."""
     centre = (x0 + BALE_WIDTH / 2, y0 + BALE_HEIGHT / 2, z0 + BALE_LENGTH / 2)
     bale_at(centre, BALE_WIDTH, BALE_LENGTH, BALE_HEIGHT, 0.0, rng, segments)
 
@@ -618,8 +590,6 @@ def stack(x0, z0, base, layers, rng, segments, across=2):
 
 
 def cross_layer(x0, z0, y0, rng):
-    """Two bales across the layer under them, length along x, filling the same
-    two-wide, one-long footprint."""
     for row in range(2):
         centre = (x0 + BALE_WIDTH, y0 + BALE_HEIGHT / 2,
                   z0 + BALE_LENGTH * (row + 0.5) / 2)
@@ -662,8 +632,7 @@ def build_climb():
 
 
 def lathe(mat, centre, profile, segments):
-    """A surface of revolution about the upright through `centre`, `profile`
-    (radius, height) running from the top on the axis down to the ground."""
+    """`profile` is (radius, height), from the top on the axis down to the ground."""
     cx, cy, cz = centre
     points = []
     rings = []
@@ -690,7 +659,6 @@ def lathe(mat, centre, profile, segments):
 
 
 def build_floor():
-    """Boards over the ground inside, in the twine's darker brown."""
     box("twine", -INSIDE, INSIDE, 0.0, FLOOR_HEIGHT, FRONT + WALL, BACK_INSIDE, 0.0)
     box("twine", -DOOR_HALF, DOOR_HALF, 0.0, FLOOR_HEIGHT, FRONT, FRONT + WALL, 0.0)
 

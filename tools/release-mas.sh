@@ -1,15 +1,5 @@
 #!/usr/bin/env bash
-# Usage: COWS_TEAM=<team id> [COWS_BUNDLE_ID=id]
-#        tools/release-mas.sh [--upload]
-# Builds a sandboxed, universal Release archive for the Mac App Store and
-# exports the signed .pkg into Deploy/Apple-macOS/out/. --upload sends it
-# straight to App Store Connect. Signing is automatic (Apple Distribution and
-# 3rd Party Mac Developer Installer, created by Xcode on first export), through
-# the account Xcode is signed into, or without one when COWS_ASC_KEY_ID,
-# COWS_ASC_ISSUER_ID and COWS_ASC_KEY or COWS_ASC_KEY_P8 name an App Store
-# Connect API key: `just release-mas` fills them from 1Password through
-# Deploy/asc.env, as release-ios.sh does.
-# COWS_TEAM=none builds an unsigned archive, to check the build only.
+# Usage: COWS_TEAM=<team id>|none [COWS_BUNDLE_ID=id] [COWS_ASC_KEY_ID= COWS_ASC_ISSUER_ID= COWS_ASC_KEY=|COWS_ASC_KEY_P8=] tools/release-mas.sh [--upload]
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"

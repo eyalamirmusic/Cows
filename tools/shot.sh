@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Usage: [COWS_TIME=s] [COWS_FREEZE=1] [COWS_SEED=n] [COWS_STAGE=n] [COWS_FOUND=1] [COWS_MENU=0] [COWS_START=s] [COWS_DRESS=1] [COWS_SETTINGS=1] [COWS_WINDOW=wxh] [SHOT_NOBUILD=1] tools/shot.sh [out.png]
-# Builds, launches Cows, screenshots its window, quits. Prints the output path.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"

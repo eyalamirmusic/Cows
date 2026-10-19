@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 # Usage: tools/perf-probe.py <pid>
-# Prints one JSON line: the process's CPU time (user, system), its energy as
-# the kernel bills it (rusage v6 ri_energy_nj, no root needed), its
-# instructions and cycles, and each thread's CPU time and name. perf.sh takes
-# two and subtracts.
 import ctypes
 import json
 import sys

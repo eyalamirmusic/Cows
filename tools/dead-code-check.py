@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""The CI gate over tools/dead-code.sh's report (read from stdin): every finding
-is an error, printed as a GitHub annotation, except docs/shots images no doc
-shows and the symbols the allowlist names. An allowlist line nothing matches is
-an error too, so the list only holds what is still there.
-
-usage: dead-code.sh | dead-code-check.py <allowlist>
-"""
+# Usage: tools/dead-code.sh | tools/dead-code-check.py <allowlist>
 
 import re
 import sys

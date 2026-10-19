@@ -1,6 +1,5 @@
 #!/bin/bash
-# Regenerates Lib/cowsinlove_Actors/Resources/<name>.mesh from
-# tools/blender/<name>.py: tools/prop-mesh.sh barn, tools/prop-mesh.sh bale.
+# Usage: [BLENDER=path] tools/prop-mesh.sh barn|bale
 set -euo pipefail
 export PYTHONDONTWRITEBYTECODE=1
 

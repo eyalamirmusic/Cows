@@ -8,8 +8,7 @@ if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     endif ()
 endif ()
 
-# x.y.z is the marketing version; the fourth number is the build (Play
-# versionCode, CFBundleVersion): raise it for every upload.
+# The fourth number is the build (versionCode, CFBundleVersion): raise it every upload.
 project(Cows VERSION 1.0.1.12 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -27,9 +26,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 if (ANDROID)
     list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Android")
 
-    # Play requires API 36 for new submissions. Keep compileSdk locked to the
-    # same installed platform so an older local SDK cannot silently generate a
-    # bundle that Play rejects.
+    # Play requires API 36; compileSdk matches so an older local SDK cannot slip in.
     set(COWS_ANDROID_TARGET_SDK 36 CACHE STRING "Android target/compile SDK")
     set(COWS_ANDROID_MIN_SDK 30 CACHE STRING "Oldest supported Android SDK")
     set(EACP_ANDROID_TARGET_SDK "${COWS_ANDROID_TARGET_SDK}" CACHE STRING
@@ -40,9 +37,6 @@ if (ANDROID)
             "minSdk selected by Cows" FORCE)
 endif ()
 
-# eacp supplies both the GPU module and the CMake helpers every target here is
-# configured with (set_default_target_setting, eacp_set_gui_subsystem), so it
-# is fetched before those helpers are included.
 find_package(eacp REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH "${eacp_SOURCE_DIR}/CMake")
@@ -59,10 +53,7 @@ option(COWS_BUILD_TESTS "Build the test suites" ON)
 add_subdirectory(Lib)
 add_subdirectory(Apps)
 
-# Adapt eacp's generated project without putting signing secrets in CMake's
-# cache or the generated Gradle file. Besides fixing its integer compile SDK,
-# use the Play upload key when all four COWS_ANDROID_* variables are present;
-# Android Studio builds without those variables keep using the debug key.
+# Signing secrets come from the environment so they never land in CMake's cache.
 if (ANDROID AND EACP_ANDROID_STUDIO)
     set(cows_gradle "${CMAKE_BINARY_DIR}/AndroidStudio/Cows/build.gradle.kts")
     if (EXISTS "${cows_gradle}")
