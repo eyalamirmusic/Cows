@@ -7,7 +7,6 @@
 
 namespace Cows
 {
-// Where an OrbitCamera stands: everything that places its eye.
 struct CameraPose final
 {
     Maths::Vec3 target;
@@ -18,16 +17,12 @@ struct CameraPose final
     float swayPitch = 0.f;
 };
 
-// `amount` of the way from `from` to `to`, yaw the short way round.
+// Yaw goes the short way round.
 CameraPose blend(const CameraPose& from, const CameraPose& to, float amount);
 
-// Fast out of the start, settling gently: 0 at 0, 1 at 1.
 float easeOut(float amount);
 
-// eacp clamps FrameTime::delta to 0.1 s, so at a slow phone's few frames a
-// second the game runs in slow motion; the camera's swings between the menu,
-// the editor and play take their steps from here instead, the clock's own time
-// between frames, so Start lands on time however few frames there are.
+// eacp clamps FrameTime::delta to 0.1 s; swings step on the clock's own time.
 struct SwingClock final
 {
     float step(Threads::FrameTime time);
@@ -35,19 +30,13 @@ struct SwingClock final
     std::optional<double> last;
 };
 
-// How far back a camera with `verticalFov` stands for something `size` tall to
-// fill `share` of the view's height: half the size over the half-share's
-// tangent span, size / (2 tan(fov / 2) share).
 float distanceToFit(float size, float share, float verticalFov);
 
-// The pose with its target moved so what was at the target shows at `onScreen`
-// (NDC: x right, y up).
 CameraPose placeTargetOnScreen(CameraPose pose,
-                               Graphics::Point onScreen,
+                               Graphics::Point onScreenNdc,
                                float verticalFov,
                                float aspect);
 
-// The idle sway drift() gives at `seconds`, as yaw and pitch.
 Maths::Vec2 driftAt(float seconds);
 
 constexpr auto unlimitedReach = std::numeric_limits<float>::infinity();
@@ -57,12 +46,10 @@ struct OrbitCamera final
     void orbit(float horizontal, float vertical);
     void zoom(float amount);
 
-    // A slow idle sway, so the postcard breathes while nobody drags it.
     void drift(float seconds);
 
     void follow(Maths::Vec3 goal, float delta);
 
-    // Turns `amount` of the way round to `wantedYaw`, the short way.
     void turnToward(float wantedYaw, float amount);
 
     CameraPose pose() const;
@@ -76,16 +63,13 @@ struct OrbitCamera final
     Maths::Mat4 view() const;
     Maths::Mat4 projection(float aspect) const;
 
-    // `fieldOfView`, widened on a narrow view so it still sees `leastWidth`
-    // across.
     float verticalFieldOfView(float aspect) const;
 
     Maths::Vec3 target {0.f, 3.1f, 0.f};
     float yaw = 0.f;
     float pitch = 0.22f;
     float distance = 11.f;
-    // How far out the eye may stand, short of `distance` when something is in
-    // the way; the pose keeps the distance wanted.
+    // Caps the eye's distance when something is in the way; pose() keeps distance.
     float reach = unlimitedReach;
     float swayYaw = 0.f;
     float swayPitch = 0.f;

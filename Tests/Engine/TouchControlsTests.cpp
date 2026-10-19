@@ -11,8 +11,6 @@ namespace
 {
 using Role = TouchControls::Role;
 
-// A portrait phone: the stick's home bottom left, Jump bottom right and Moo up
-// and left of it.
 struct Phone final
 {
     Phone()
@@ -135,7 +133,6 @@ auto tStickFollowsAndReleases = test("TouchControls/stickFollowsAndReleases") = 
     check(controls.pressed(Role::Stick));
     check(same(controls.stickCenter, leftLow));
 
-    // Only one finger holds the stick; a second on its side of the screen looks.
     check(controls.roleAt({leftLow.x + 10.f, leftLow.y}) == Role::Look);
 
     controls.pointerMoved(1, {leftLow.x, leftLow.y - 200.f});
@@ -190,7 +187,6 @@ auto tPinchZooms = test("TouchControls/pinchZooms") = []
 auto tNoTouchScreenOnMacOS =
     test("TouchControls/noTouchScreenOnMacOS") = [] { check(!touchScreen); };
 
-// Fingers reach the controls through eacp's view tree, each as its own pointer.
 auto tTouchesArePointers = test("TouchControls/touchesArePointers") = []
 {
     auto phone = Phone {};
@@ -220,7 +216,6 @@ auto tTouchesArePointers = test("TouchControls/touchesArePointers") = []
     check(phone.controls.pointers.empty());
 };
 
-// The window's safe area lifts the controls clear of the home indicator.
 auto tSafeAreaLiftsControls = test("TouchControls/safeAreaLiftsControls") = []
 {
     auto phone = Phone {};

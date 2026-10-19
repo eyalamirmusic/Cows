@@ -8,8 +8,6 @@
 
 namespace Cows
 {
-// The footer, drawn over the scene: how to play while searching, how to play
-// again once she is found. Breaks between phrases when it runs too wide.
 struct Footer final
 {
     void draw(Hud& hud) const;
@@ -20,10 +18,8 @@ struct Footer final
 
     static constexpr auto bottomMargin = 16.f;
     static constexpr auto lineHeight = 18.f;
-    // The strip above the safe area's bottom a screen keeps clear for one line
-    // of footer, and below `oneLineWidth` for the two the menu's and the
-    // editor's footers wrap to.
     static constexpr auto reserve = bottomMargin + lineHeight;
+    // Below this the menu's and the editor's footers wrap to two lines.
     static constexpr auto oneLineWidth = 400.f;
     static float reserveFor(float width);
 
@@ -34,10 +30,7 @@ struct Footer final
     static constexpr auto fontSize = 13.f;
 };
 
-// Stacks its children over each other, quits on q, and on Escape unless
-// onEscape takes it, and passes every other key on. Back is Escape that never
-// quits: what onEscape leaves goes on to the system, which on Android leaves
-// the app, and its repeats and release follow the press.
+// Back never quits: what onEscape declines goes on to the system.
 struct RootView final : Graphics::View
 {
     void resized() override;

@@ -14,20 +14,13 @@ namespace
 constexpr auto outlineShare = 0.05f;
 constexpr auto outlineSteps = 16;
 constexpr auto targetShare = 0.2f;
-// The readable size as a share of a finger's target (leastTarget): 18 pt on
-// a phone, as tall as a button's label there, 22 pt on a desktop, and in
-// between for content whose short side is between theirs.
+// Shares of leastTarget: 18 pt on a phone, 22 pt on a desktop.
 constexpr auto phoneTextShare = 0.285f;
 constexpr auto desktopTextShare = 0.345f;
 constexpr auto phoneSide = 400.f;
 constexpr auto desktopSide = 480.f;
-// The least any text goes to in a window too small for readable text.
 constexpr auto smallestFallback = 6.f;
-// A shape earlier in the order of preference (the one the window's aspect
-// suggests) is kept while its text is at least this share of the largest any
-// shape allows: a 16:10 window keeps the cow beside the rows unless that
-// costs a fifth of their size, and the text never jumps by more than 1 / 0.8
-// when the shape changes.
+// Keeps the preferred shape unless that costs a fifth of the text's size.
 constexpr auto preferenceShare = 0.8f;
 
 bool sameRect(const Graphics::Rect& a, const Graphics::Rect& b)

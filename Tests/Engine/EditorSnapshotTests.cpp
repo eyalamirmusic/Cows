@@ -49,10 +49,6 @@ bool within(const Graphics::Rect& inner, const Graphics::Rect& outer)
            && inner.y + inner.h <= outer.y + outer.h + slack;
 }
 
-// The panel clear of the cow's area and inside the content: the heading
-// above the rows, the rows apart and in order, the names in one column and
-// the values in another, Done below them, and the text never under the
-// readable size.
 void checkPanel(const Editor& editor)
 {
     auto content = frameOf(editor, editor.topClearance).contentArea();
@@ -116,8 +112,6 @@ void checkLayout(const Editor& editor, float width, float height)
 }
 } // namespace
 
-// Beside the cow on a wide window: every row and Done right of the scene's
-// share, inside the window, each target a comfortable size.
 auto tEditorWide = test("EditorSnapshot/wide") = []
 {
     if (!hasDevice())
@@ -138,7 +132,6 @@ auto tEditorWide = test("EditorSnapshot/wide") = []
     checkLayout(editor, 1280.f, 800.f);
 };
 
-// Below her on a portrait phone.
 auto tEditorTall = test("EditorSnapshot/tall") = []
 {
     if (!hasDevice())
@@ -194,8 +187,6 @@ auto tEditorTargets = test("Editor/clicksStepAndFinish") = []
     check(finished == 1);
 };
 
-// Dress Your Cow's rows at the shapes CowsArt renders, from a phone to a large
-// desktop window and a small square one.
 namespace
 {
 void checkEveryShape(const std::string& title, const Vector<EditorRow>& rows)

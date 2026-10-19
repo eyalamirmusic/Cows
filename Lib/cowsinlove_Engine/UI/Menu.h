@@ -23,28 +23,16 @@ struct MenuItem final
     Enabled enabled = Enabled::Yes;
 };
 
-// The start menu over the scene: big pink choices in Comic Neue under room
-// left at the top for the title, in a column beside the cow on a wide screen
-// and below her on a tall one. A disabled choice is grey and never chosen. The
-// mouse hovers and clicks, a finger taps, and keys or a controller move a
-// selection ring. Its labels are laid out through Flex trees, again only when
-// the window, its safe area or the items change.
 struct Menu final : Graphics::View
 {
     Menu();
 
     void draw(Hud& hud);
 
-    // Where the title goes, in points: the top of the safe area, below
-    // topClearance.
     Graphics::Rect titleArea() const;
-    // Where the cow should stand on screen: right of the items when wide,
-    // between the title and the items when tall.
     Graphics::Rect cowArea() const;
-    // Whether the items sit in a column beside the cow rather than below her.
     bool wide() const;
 
-    // Replaces the items and lays them out again on the next draw.
     void setItems(Vector<MenuItem> newItems);
 
     void selectNext();
@@ -53,9 +41,7 @@ struct Menu final : Graphics::View
 
     int itemAt(Graphics::Point position) const;
 
-    // Hidden, it takes no mouse or touch, so they reach the views under it.
-    // eacp finds a finger's view without calling hitTest, so this clears the
-    // handles flags rather than overriding hitTest.
+    // eacp routes touches without hitTest, so hiding clears the handles flags.
     void setShowing(bool shouldShow);
     bool isShowing() const;
 
@@ -75,20 +61,13 @@ struct Menu final : Graphics::View
         float noteSize = 0.f;
     };
 
-    // How the content area is shared out. Wide: the title across the top
-    // (`title` of the height), then the items' column and the cow's (`cow` of
-    // the width) side by side. Tall: title, cow (`cow` of the height) and
-    // items, top to bottom.
     struct Shape final
     {
         bool wide = true;
-        float title = 0.f;
-        float cow = 0.f;
+        float titleShare = 0.f;
+        float cowShare = 0.f;
     };
 
-    // A column of labels, each on one line, never wrapped, at the largest
-    // size that fits the items' area, in the first shape that holds every label at
-    // the readable size: the cow and the title give way before the text.
     void layOut(Hud& hud);
     Shape shape() const;
     void drawItem(Hud& hud, int index);
@@ -99,11 +78,10 @@ struct Menu final : Graphics::View
 
     Vector<MenuItem> items;
     Vector<Placed> placed;
-    // The size an item of scale 1 is laid out at.
+    // At scale 1.
     float pointSize = 0.f;
     float opacity = 1.f;
-    // Room kept at the top for a title bar the safe area does not count
-    // (macTitleBarClearance on macOS).
+    // For a title bar the safe area does not count (macTitleBarClearance on macOS).
     float topClearance = 0.f;
     bool showSelection = false;
     int selected = 0;
@@ -113,13 +91,11 @@ struct Menu final : Graphics::View
 private:
     bool showing = true;
     bool itemsChanged = true;
-    // The shape the last layOut chose, for the window it was laid out for;
-    // until then, or in another window, the window's aspect decides.
+    // Until laid out, or in another window, the window's aspect decides.
     Shape chosen;
     std::optional<ScreenFrame> laidOutFor;
 };
 
-// The family Comic Neue Bold registered under, embedded with the Engine; the
-// platform's monospace face if it could not be registered.
+// The platform's monospace face if Comic Neue could not be registered.
 const std::string& menuFontFamily();
 } // namespace Cows

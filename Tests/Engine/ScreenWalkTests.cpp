@@ -18,10 +18,7 @@ constexpr auto widest = 1920.f;
 constexpr auto tallest = 1080.f;
 constexpr auto walkStep = 40.f;
 constexpr auto titleBar = 28.f;
-// The most a screen's text may grow or shrink between two windows a step
-// apart: 1 / 0.8 when a shape gives way to one with text a quarter larger
-// (largestShape's preference), times what a 40 point step adds to it (up to
-// a tenth, 1.37 at worst for the editor from 1120x680 to 1120x720).
+// 1 / 0.8 for a shape change, times a 40 pt step's growth (1.37 at worst).
 constexpr auto maxStepRatio = 1.4f;
 constexpr auto startScale = 1.3f;
 constexpr auto aboutScale = 0.75f;
@@ -43,10 +40,6 @@ bool smooth(float a, float b)
 }
 } // namespace
 
-// From the smallest window to a large desktop one, a step at a time: the
-// menu's text (About, its smallest item, included) and the editor's never go
-// under the readable size, and never jump between neighbouring windows,
-// whichever shape each takes.
 auto tWalk = test("ScreenWalk/textStaysReadableAndChangesSmoothly") = []
 {
     if (!hasDevice())

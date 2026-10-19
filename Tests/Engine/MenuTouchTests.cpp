@@ -11,7 +11,6 @@ namespace
 {
 using Graphics::TouchPhase;
 
-// The app's stack: the menu, then the editor over it, both the root's size.
 struct Screen final
 {
     Screen()
@@ -43,8 +42,7 @@ struct Screen final
 };
 } // namespace
 
-// eacp hands a finger to the topmost view that handles touches without
-// asking hitTest, so the hidden editor over the menu took every tap on iOS.
+// eacp picks a finger's view without hitTest; the hidden editor took every iOS tap.
 auto tTapReachesMenuUnderHiddenEditor =
     test("MenuTouch/tapReachesMenuUnderHiddenEditor") = []
 {

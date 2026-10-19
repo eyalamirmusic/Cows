@@ -9,13 +9,9 @@
 
 namespace Cows
 {
-// Where the controls are on screen and the footer teaches them.
 constexpr auto touchScreen = Platform::isIOS() || Platform::isAndroid();
 
-// The on-screen controls: a floating stick on the left to walk, Moo and Jump
-// (or Again, once she is found) on the right, and a drag anywhere else to look
-// round, or a pinch to zoom. Driven by numbered pointers so several fingers can
-// work it at once: each touch is its own pointer, and the mouse is pointer 0.
+// Each touch is its own pointer; the mouse is pointer 0.
 struct TouchControls final : Graphics::View
 {
     TouchControls();

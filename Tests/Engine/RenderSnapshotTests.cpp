@@ -6,8 +6,6 @@ using namespace nano;
 using namespace Cows;
 using namespace Cows::Testing;
 
-// One white sphere at the origin, lit by the scene's light with nothing in the
-// way of it, seen by the orbit camera from four units off.
 auto tLitSphere = test("RenderSnapshot/litSphere") = []
 {
     if (!hasDevice())
