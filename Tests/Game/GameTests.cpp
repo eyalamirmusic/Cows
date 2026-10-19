@@ -264,23 +264,20 @@ auto tMenuAnimates = test("Game/theMenuPausesTheGameButNotTheHeartbeat") = []
 };
 
 auto tEscapeInGameOpensMenu = test("Game/escapeInGameOpensMenu") = []
-{
-    check(escapeAction(Game::State::Searching, false, false)
-          == EscapeAction::OpenMenu);
-    check(escapeAction(Game::State::Found, false, false) == EscapeAction::OpenMenu);
-};
+{ check(escapeAction(InputRecipient::Play, false) == EscapeAction::OpenMenu); };
 
 auto tEscapeInEditorClosesIt = test("Game/escapeInEditorGoesBackToMenu") = []
-{
-    check(escapeAction(Game::State::Menu, true, false) == EscapeAction::CloseEditor);
-};
+{ check(escapeAction(InputRecipient::Editor, false) == EscapeAction::CloseEditor); };
 
 auto tEscapeOnMenuPassesOn = test("Game/escapeOnMenuPassesOn") = []
-{ check(escapeAction(Game::State::Menu, false, false) == EscapeAction::PassOn); };
+{ check(escapeAction(InputRecipient::Menu, false) == EscapeAction::PassOn); };
 
-auto tEscapeMidSwingIsSwallowed = test("Game/escapeMidSwingIsSwallowed") = []
+auto tEscapeWhileStartSwingsOpensMenu =
+    test("Game/escapeWhileStartSwingsOpensMenu") = []
+{ check(escapeAction(InputRecipient::Play, true) == EscapeAction::OpenMenu); };
+
+auto tEscapeMidMenuSwingIsSwallowed = test("Game/escapeMidMenuSwingIsSwallowed") = []
 {
-    for (auto state: {Game::State::Menu, Game::State::Searching})
-        for (auto dressing: {false, true})
-            check(escapeAction(state, dressing, true) == EscapeAction::Swallow);
+    for (auto recipient: {InputRecipient::Menu, InputRecipient::Editor})
+        check(escapeAction(recipient, true) == EscapeAction::Swallow);
 };

@@ -58,6 +58,14 @@ void Hud::strokeRing(Graphics::Point center,
                      outer);
 }
 
+void Hud::drawLine(Graphics::Point start,
+                   Graphics::Point end,
+                   float width,
+                   const Graphics::Color& color)
+{
+    shapes->drawLine(start, end, color, width);
+}
+
 void Hud::strokeRoundedRect(const Graphics::Rect& rect,
                             float width,
                             float cornerRadius,

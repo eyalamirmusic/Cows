@@ -14,7 +14,8 @@ struct ControlEvent final
         Moo,
         Restart,
         Look,
-        Zoom
+        Zoom,
+        Pause
     };
 
     Kind kind;

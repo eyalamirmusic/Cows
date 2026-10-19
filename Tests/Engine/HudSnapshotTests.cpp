@@ -60,6 +60,9 @@ auto tHudDrawsControlsAndFooter = test("HudSnapshot/controlsAndFooter") = []
 
     check(anyDrawn(image, controls.stickHome, 70.f));
     check(anyDrawn(image, controls.mooCenter, 32.f));
+    check(anyDrawn(image, controls.backCenter, 32.f));
+    check(!isClearColor(
+        image.at((int) controls.backCenter.x, (int) controls.backCenter.y)));
     check(!isClearColor(
         image.at((int) controls.jumpCenter.x, (int) controls.jumpCenter.y + 30)));
     check(anyDrawn(image, {width * 0.5f, height - 20.f}, 12.f));

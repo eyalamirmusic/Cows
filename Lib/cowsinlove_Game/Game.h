@@ -75,16 +75,6 @@ private:
     void animate(float delta, bool walking);
 };
 
-enum class EscapeAction
-{
-    Swallow,
-    CloseEditor,
-    OpenMenu,
-    PassOn
-};
-
-EscapeAction escapeAction(Game::State state, bool dressing, bool swinging);
-
 // Not Game::State: that stays Menu while Start swings the camera down into play.
 enum class InputRecipient
 {
@@ -95,6 +85,16 @@ enum class InputRecipient
 
 InputRecipient
     getInputRecipient(Game::State state, bool dressing, bool startingPlay);
+
+enum class EscapeAction
+{
+    Swallow,
+    CloseEditor,
+    OpenMenu,
+    PassOn
+};
+
+EscapeAction escapeAction(InputRecipient recipient, bool swinging);
 
 enum class Hints
 {

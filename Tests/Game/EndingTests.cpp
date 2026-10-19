@@ -79,25 +79,30 @@ auto tFooter = test("Ending/footerText") = []
                   "wasd / hjkl / arrows to walk  -  space to jump  -  m to "
                   "moo  -  drag to look  -  q to quit",
                   "you found her  -  q to quit"},
-        Expected {Hints::Touch,
-                  "find her  -  drag to look  -  moo for a hint",
-                  "you found her"},
+        Expected {
+            Hints::Touch,
+            "find her  -  drag to look  -  moo for a hint  -  back for the menu",
+            "you found her"},
         Expected {Hints::Xbox,
                   "left stick to walk  -  A to jump  -  X to moo  -  right "
-                  "stick to look",
-                  "you found her  -  A for another meadow"},
+                  "stick to look  -  "
+                  "menu to pause",
+                  "you found her  -  A for another meadow  -  menu to pause"},
         Expected {Hints::PlayStation,
                   "left stick to walk  -  cross to jump  -  square to moo  -  "
-                  "right stick to look",
-                  "you found her  -  cross for another meadow"},
+                  "right stick to look  -  "
+                  "options to pause",
+                  "you found her  -  cross for another meadow  -  options to pause"},
         Expected {Hints::Nintendo,
                   "left stick to walk  -  B to jump  -  Y to moo  -  right "
-                  "stick to look",
-                  "you found her  -  B for another meadow"},
+                  "stick to look  -  "
+                  "+ to pause",
+                  "you found her  -  B for another meadow  -  + to pause"},
         Expected {Hints::Gamepad,
                   "left stick to walk  -  A to jump  -  X to moo  -  right "
-                  "stick to look",
-                  "you found her  -  A for another meadow"},
+                  "stick to look  -  "
+                  "start to pause",
+                  "you found her  -  A for another meadow  -  start to pause"},
     };
 
     for (const auto& expected: cases)

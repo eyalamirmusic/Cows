@@ -141,6 +141,7 @@ CowsApp::CowsApp()
     dressEditor.setRows(makeDressRows(savedSettings.skin));
     dressEditor.topClearance = titlebarClearance();
     menu.topClearance = dressEditor.topClearance;
+    touchControls.topClearance = dressEditor.topClearance;
     dressEditor.onRowValueStepped = [this](int rowIndex, int steps)
     { dressCow(stepSkinItemChoice(savedSettings.skin, rowIndex, steps)); };
     dressEditor.onDone = [this] { scene.closeEditor(); };

@@ -103,8 +103,11 @@ under `Apps/CowsInLove/`.
     `RootView` (q quits; Esc goes to `onEscape` first, quitting when it
     declines)
   - `UI/TouchControls` — on-screen stick, Moo / Jump / Again, drag to look,
-    pinch to zoom; reports everything through one `onControl` callback as a
-    `ControlEvent` (`UI/ControlEvent.h`), and shows Again when `showAgain`;
+    pinch to zoom, and a back arrow in the top-left corner (under
+    `topClearance`, in Searching and Found alike) that pauses into the menu;
+    reports everything through one `onControl` callback as a
+    `ControlEvent` (`UI/ControlEvent.h`: steer, jump, moo, restart, look,
+    zoom or pause), and shows Again when `showAgain`;
     a `View` for input only, drawn by `draw(Hud&)`; eacp's `View` touch
     events feed it multi-touch and its safe area places it. `touchScreen`
     (iOS, Android) decides whether it is on screen at all
@@ -275,7 +278,8 @@ under `Apps/CowsInLove/`.
   Enter / Space / arrows / A D and the controller's South / Start / stick /
   D-pad; Start swings the camera behind the cow over 1.1 s with an ease-out
   while the menu fades and the title slides up, then play starts (`playPose`);
-  Esc and the controller's Start swing back. Dress Your Cow and Settings swing
+  Esc, Android's back, the controller's Start and the touch back arrow swing back,
+  even while Start's swing is still under way. Dress Your Cow and Settings swing
   round to the cow (`editorPose`) and hand keys and the controller to that
   `Editor` (`openEditor(which)`); the camera orbits freely there (drag, right
   stick, touch drag), and Done, Esc and the controller's East / Start swing

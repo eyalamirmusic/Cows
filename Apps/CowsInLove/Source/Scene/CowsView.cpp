@@ -706,6 +706,13 @@ float CowsView::editorOpacity() const
 
 void CowsView::openMenu(bool swing)
 {
+    if (isSwingingIntoPlay())
+    {
+        swingTo(SwingGoal::Menu);
+        onStateChanged();
+        return;
+    }
+
     if (game.state == Game::State::Menu)
         return;
 
@@ -732,10 +739,14 @@ void CowsView::startGame()
     onStateChanged();
 }
 
+bool CowsView::isSwingingIntoPlay() const
+{
+    return swinging && swingGoal == SwingGoal::Play;
+}
+
 InputRecipient CowsView::getInputRecipient() const
 {
-    auto swingingIntoPlay = swinging && swingGoal == SwingGoal::Play;
-    return Cows::getInputRecipient(game.state, dressing, swingingIntoPlay);
+    return Cows::getInputRecipient(game.state, dressing, isSwingingIntoPlay());
 }
 
 void CowsView::swingTo(SwingGoal goal)
@@ -778,7 +789,7 @@ void CowsView::wear(const CowSkin& skin)
 
 bool CowsView::escape()
 {
-    switch (escapeAction(game.state, dressing, swinging))
+    switch (escapeAction(getInputRecipient(), swinging))
     {
         case EscapeAction::Swallow:
             return true;
@@ -938,6 +949,9 @@ void CowsView::control(const ControlEvent& event)
         case ControlEvent::Kind::Zoom:
             camera.zoom(event.x);
             break;
+        case ControlEvent::Kind::Pause:
+            openMenu();
+            break;
     }
 }
 
@@ -957,6 +971,12 @@ void CowsView::usePad(const PadControls& pad, float delta)
     if (pad.active)
         useHints(padHints(pad.family));
 
+    if (pad.startPressed && getInputRecipient() == InputRecipient::Play)
+    {
+        openMenu();
+        return;
+    }
+
     if (game.state == Game::State::Menu)
     {
         if (dressing)
@@ -964,12 +984,6 @@ void CowsView::usePad(const PadControls& pad, float delta)
         else
             useMenuPad(pad);
 
-        return;
-    }
-
-    if (pad.startPressed)
-    {
-        openMenu();
         return;
     }
 

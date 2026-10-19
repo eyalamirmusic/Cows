@@ -36,7 +36,8 @@ constexpr auto searchingKeysText =
     "wasd / hjkl / arrows to walk  -  space to jump  -  m to "
     "moo  -  drag to look  -  q to quit";
 constexpr auto foundKeysText = "you found her  -  q to quit";
-constexpr auto searchingTouchText = "find her  -  drag to look  -  moo for a hint";
+constexpr auto searchingTouchText =
+    "find her  -  drag to look  -  moo for a hint  -  back for the menu";
 constexpr auto foundTouchText = "you found her";
 constexpr auto fellText = "back on your feet  -  mind the edge";
 constexpr auto menuKeysText = "enter to start  -  q to quit";
@@ -47,6 +48,7 @@ struct PadLabels final
     std::string jump;
     std::string moo;
     std::string back;
+    std::string pause;
 };
 
 PadLabels padLabels(Hints hints)
@@ -54,20 +56,22 @@ PadLabels padLabels(Hints hints)
     switch (hints)
     {
         case Hints::PlayStation:
-            return {"cross", "square", "circle"};
+            return {"cross", "square", "circle", "options"};
         case Hints::Nintendo:
-            return {"B", "Y", "A"};
+            return {"B", "Y", "A", "+"};
+        case Hints::Xbox:
+            return {"A", "X", "B", "menu"};
         default:
             break;
     }
 
-    return {"A", "X", "B"};
+    return {"A", "X", "B", "start"};
 }
 
 std::string searchingPadText(const PadLabels& labels)
 {
     return "left stick to walk  -  " + labels.jump + " to jump  -  " + labels.moo
-           + " to moo  -  right stick to look";
+           + " to moo  -  right stick to look  -  " + labels.pause + " to pause";
 }
 
 std::string menuText(Hints hints)
@@ -80,7 +84,8 @@ std::string menuText(Hints hints)
 
 std::string foundPadText(const PadLabels& labels)
 {
-    return "you found her  -  " + labels.jump + " for another meadow";
+    return "you found her  -  " + labels.jump + " for another meadow  -  "
+           + labels.pause + " to pause";
 }
 
 std::string searchingText(Hints hints)
@@ -288,18 +293,18 @@ bool Game::justFell() const
     return state == State::Searching && sinceFell < fellTime;
 }
 
-EscapeAction escapeAction(Game::State state, bool dressing, bool swinging)
+EscapeAction escapeAction(InputRecipient recipient, bool swinging)
 {
+    if (recipient == InputRecipient::Play)
+        return EscapeAction::OpenMenu;
+
     if (swinging)
         return EscapeAction::Swallow;
 
-    if (dressing)
+    if (recipient == InputRecipient::Editor)
         return EscapeAction::CloseEditor;
 
-    if (state == Game::State::Menu)
-        return EscapeAction::PassOn;
-
-    return EscapeAction::OpenMenu;
+    return EscapeAction::PassOn;
 }
 
 InputRecipient

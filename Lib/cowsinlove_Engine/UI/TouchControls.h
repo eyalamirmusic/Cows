@@ -39,6 +39,7 @@ struct TouchControls final : Graphics::View
         Jump,
         Moo,
         Again,
+        Back,
         Look
     };
 
@@ -58,6 +59,7 @@ struct TouchControls final : Graphics::View
     void returnKeyFocus();
 
     void drawStick(Hud& hud) const;
+    void drawBackButton(Hud& hud) const;
     void drawButton(Hud& hud,
                     Graphics::Point center,
                     float radius,
@@ -67,12 +69,15 @@ struct TouchControls final : Graphics::View
     std::function<void(const ControlEvent&)> onControl = [](const ControlEvent&) {};
 
     bool showAgain = false;
+    // For a title bar the safe area does not count (macTitleBarClearance on macOS).
+    float topClearance = 0.f;
     Vector<Pointer> pointers;
     Graphics::Point stickHome;
     Graphics::Point stickCenter;
     Graphics::Point knob;
     Graphics::Point jumpCenter;
     Graphics::Point mooCenter;
+    Graphics::Point backCenter;
     static constexpr auto labelFamily = "Menlo";
     static constexpr auto smallLabelSize = 14.f;
     static constexpr auto largeLabelSize = 17.f;

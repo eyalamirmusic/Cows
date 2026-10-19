@@ -1,6 +1,7 @@
 #include "UI/TouchControls.h"
 #include "UI/FontCache.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace Cows
@@ -18,6 +19,11 @@ constexpr auto mooRadius = 30.f;
 constexpr auto mooOffsetX = -64.f;
 constexpr auto mooOffsetY = -66.f;
 constexpr auto touchSlop = 12.f;
+constexpr auto backRadius = mooRadius;
+constexpr auto backArrowHalfLength = 10.f;
+constexpr auto backArrowHeadSize = 8.f;
+constexpr auto backArrowWidth = 3.f;
+constexpr auto backShadowOffset = 1.f;
 constexpr auto stickReach = 0.45f;
 constexpr auto deadZone = 0.12f;
 
@@ -57,6 +63,8 @@ void TouchControls::resized()
     jumpCenter = {bounds.w - safeArea.right - margin - jumpRadius,
                   bottomLine - jumpRadius};
     mooCenter = {jumpCenter.x + mooOffsetX, jumpCenter.y + mooOffsetY};
+    backCenter = {safeArea.left + margin + backRadius,
+                  std::max(safeArea.top, topClearance) + margin + backRadius};
 
     if (!pressed(Role::Stick))
         stickCenter = knob = stickHome;
@@ -64,6 +72,9 @@ void TouchControls::resized()
 
 TouchControls::Role TouchControls::roleAt(Point position) const
 {
+    if (position.distanceTo(backCenter) < backRadius + touchSlop)
+        return Role::Back;
+
     auto bounds = getLocalBounds();
     auto onJump = position.distanceTo(jumpCenter) < jumpRadius + touchSlop;
 
@@ -115,6 +126,13 @@ void TouchControls::pointerDown(int id, Point position)
     pointerUp(id);
 
     auto role = roleAt(position);
+
+    if (role == Role::Back)
+    {
+        onControl({ControlEvent::Kind::Pause});
+        return;
+    }
+
     pointers.add(Pointer {id, role, position});
 
     switch (role)
@@ -131,6 +149,7 @@ void TouchControls::pointerDown(int id, Point position)
         case Role::Again:
             onControl({ControlEvent::Kind::Restart});
             break;
+        case Role::Back:
         case Role::Look:
             break;
     }
@@ -200,6 +219,8 @@ void TouchControls::releaseStick()
 
 void TouchControls::draw(Hud& hud) const
 {
+    drawBackButton(hud);
+
     if (showAgain)
     {
         drawButton(hud, jumpCenter, jumpRadius, "Again", pressed(Role::Again));
@@ -216,6 +237,30 @@ void TouchControls::drawStick(Hud& hud) const
     strokeRing(hud, stickCenter, ringRadius);
     hud.fillDisc(knob, knobRadius, pressed(Role::Stick) ? pressedFill : knobFill);
     strokeRing(hud, knob, knobRadius);
+}
+
+void TouchControls::drawBackButton(Hud& hud) const
+{
+    strokeRing(hud, backCenter, backRadius);
+
+    auto drawArrow = [&](Point offset, float width, const Graphics::Color& color)
+    {
+        auto tip = Point {backCenter.x - backArrowHalfLength + offset.x,
+                          backCenter.y + offset.y};
+        auto tail = Point {backCenter.x + backArrowHalfLength + offset.x,
+                           backCenter.y + offset.y};
+        auto upperBarb =
+            Point {tip.x + backArrowHeadSize, tip.y - backArrowHeadSize};
+        auto lowerBarb =
+            Point {tip.x + backArrowHeadSize, tip.y + backArrowHeadSize};
+
+        hud.drawLine(tail, tip, width, color);
+        hud.drawLine(tip, upperBarb, width, color);
+        hud.drawLine(tip, lowerBarb, width, color);
+    };
+
+    drawArrow({backShadowOffset, backShadowOffset}, backArrowWidth, shadowColor);
+    drawArrow({}, backArrowWidth, lineColor);
 }
 
 void TouchControls::drawButton(

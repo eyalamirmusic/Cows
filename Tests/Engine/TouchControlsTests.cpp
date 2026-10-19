@@ -39,6 +39,9 @@ struct Phone final
                 case ControlEvent::Kind::Zoom:
                     zoom = event.x;
                     break;
+                case ControlEvent::Kind::Pause:
+                    ++pauses;
+                    break;
             }
         };
         controls.setBounds({0.f, 0.f, 400.f, 800.f});
@@ -51,6 +54,7 @@ struct Phone final
     int jumps = 0;
     int moos = 0;
     int restarts = 0;
+    int pauses = 0;
     float stickAhead = 0.f;
     float stickTurn = 0.f;
     float lookX = 0.f;
@@ -89,6 +93,50 @@ auto tRoleAtOnceFound = test("TouchControls/roleAtOnceFound") = []
     check(controls.roleAt(controls.jumpCenter) == Role::Again);
     check(controls.roleAt(controls.mooCenter) == Role::Look);
     check(controls.roleAt(leftLow) == Role::Look);
+};
+
+auto tRoleAtBackCorner = test("TouchControls/roleAtBackCorner") = []
+{
+    auto phone = Phone {};
+    auto& controls = phone.controls;
+    auto corner = controls.backCenter;
+
+    check(corner.x < controls.stickHome.x);
+    check(corner.y < controls.mooCenter.y);
+    check(controls.roleAt(corner) == Role::Back);
+
+    controls.showAgain = true;
+    check(controls.roleAt(corner) == Role::Back);
+    check(controls.roleAt(controls.jumpCenter) == Role::Again);
+};
+
+auto tBackClearsTheTitleBar = test("TouchControls/backClearsTheTitleBar") = []
+{
+    constexpr auto titleBar = 28.f;
+    auto phone = Phone {};
+    auto& controls = phone.controls;
+    auto below = controls.backCenter;
+
+    controls.topClearance = titleBar;
+    controls.resized();
+
+    check(same(controls.backCenter, {below.x, below.y + titleBar}));
+};
+
+auto tBackTapPausesWithoutLooking =
+    test("TouchControls/backTapPausesWithoutLooking") = []
+{
+    auto phone = Phone {};
+    auto& controls = phone.controls;
+    auto corner = controls.backCenter;
+
+    controls.pointerDown(1, corner);
+    controls.pointerMoved(1, {corner.x + 40.f, corner.y + 40.f});
+    controls.pointerUp(1);
+
+    check(phone.pauses == 1);
+    check(phone.lookX == 0.f && phone.lookY == 0.f);
+    check(controls.pointers.empty());
 };
 
 auto tButtonsFireOnDown = test("TouchControls/buttonsFireOnDown") = []

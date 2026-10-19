@@ -24,6 +24,10 @@ struct Hud final
                     float radius,
                     float width,
                     const Graphics::Color& color);
+    void drawLine(Graphics::Point start,
+                  Graphics::Point end,
+                  float width,
+                  const Graphics::Color& color);
     void strokeRoundedRect(const Graphics::Rect& rect,
                            float width,
                            float cornerRadius,

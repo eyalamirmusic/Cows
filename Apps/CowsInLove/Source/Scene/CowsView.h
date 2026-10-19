@@ -70,6 +70,7 @@ struct CowsView final : GPUView
     void control(const ControlEvent& event);
     void openMenu(bool swing = true);
     void startGame();
+    bool isSwingingIntoPlay() const;
     InputRecipient getInputRecipient() const;
     void openEditor(Editor& which);
     void swingTo(SwingGoal goal);
