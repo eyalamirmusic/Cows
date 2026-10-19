@@ -4,7 +4,7 @@
 # 1280x800, high quality) and, while each is on screen, captures CPU and GPU
 # package power and per-process energy with powermetrics, which is why it needs
 # root. The app itself runs as the invoking user. One file per scenario goes to
-# docs/perf/data/power-<scenario>-<HHMMSS>.txt. PERF_BUILD picks the build
+# $COWS_PERF_DIR (default /tmp/cows-perf)/power-<scenario>-<HHMMSS>.txt. PERF_BUILD picks the build
 # directory (default build-release), or PERF_APP an app bundle anywhere.
 set -euo pipefail
 
@@ -22,7 +22,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 build="${PERF_BUILD:-build-release}"
 app="${PERF_APP:-$root/$build/Apps/CowsInLove/Cows In Love.app}"
 bin="$app/Contents/MacOS/Cows In Love"
-out="$root/docs/perf/data"
+out="${COWS_PERF_DIR:-/tmp/cows-perf}"
 user="${SUDO_USER:?run through sudo so the app can run as you}"
 warmup=5
 mkdir -p "$out"

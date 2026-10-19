@@ -18,14 +18,14 @@ Cows is a 3D GPU recreation of the "cows in love" terminal animation
 (`ssh ssh.cowsinlove.com`), built on [eacp](https://github.com/eyalamirmusic/eacp)
 and its shader EDSL. Game-independent code lives in static libraries under
 `Lib/`; each app under `Apps/` links them. Today there is one app target, `Cows`,
-under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
+under `Apps/CowsInLove/`.
 
 - `Lib/cowsinlove_Layout` — a flexbox-lite, GPU-free and game-free (for eacp
   to take): `Layout/Tree` (`Flex::Tree` of `Node`s — Across/Down, `Size::fit`,
   `grow`, `fixed`, `share`, padding, gap, alignment, text leaves measured
   through a caller's `Measure`, shared `column`s — resolved to whole-point
   rects with `overflow` per node) and `Layout/FitToSize` (`largestPointSize`
-  on a `fontSizeStep` grid). See `docs/structure.md`
+  on a `fontSizeStep` grid)
 - `Lib/cowsinlove_MeshLoader/MeshLoader/MeshBlob` — `readMeshBlob` reads
   the binary mesh blobs the Blender scripts write (format in
   `tools/blender/README.md`) into `MeshGroup`s, one per material;
@@ -192,7 +192,7 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
     top there; `ceilingAt` is the lowest bottom over the feet, which `Game`
     keeps her jump `playerHeight` short of; `clearReach` clips the camera's
     line (a floating ramp counts as a slab a step deep)
-  - `Levels/` — level generation (see `docs/structure.md`): `Region` (an xz
+  - `Levels/` — level generation: `Region` (an xz
     rectangle), `Layout` (the seeded draws, hiding places, `hasRoom`,
     `chooseHideout`), `Biome` (`meadowBiome`, `populate`), `Segments/`
     (`Segment` and `MeadowSegment`, `JumpLineSegment`, `RavineSegment`,
@@ -285,7 +285,7 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   time the five scenarios and compare two builds; `tools/perf-sample.sh` takes
   `sample` call graphs that `tools/perf-sample-top.py` reduces to on-CPU
   frames; `tools/powermetrics.sh` captures power that `tools/perf-power.py`
-  reads. `docs/perf/2026-10-18-audit.md` is the audit they were built for
+  reads
 - `tools/Art` — `CowsArt`, a macOS tool that renders the icon, key art, logo
   and store screenshots from the game's own views (`CowsArt screens <dir>
   [menu|dress|settings|about]` renders those screens at sixteen phone,
