@@ -5,6 +5,8 @@
 #include "UI/Hud.h"
 #include "UI/MenuStyle.h"
 
+#include <algorithm>
+#include <array>
 #include <functional>
 #include <optional>
 #include <string>
@@ -24,6 +26,21 @@ inline int wrapChoiceIndex(int index, int numChoices)
 {
     auto remainder = index % numChoices;
     return remainder < 0 ? remainder + numChoices : remainder;
+}
+
+// The entry `steps` along from the first one `isCurrent` picks, wrapping round
+// either end: a Settings row's < >. It goes by position in the table, so the
+// row's order is the table's, whatever the enum's is.
+template <typename Entry, std::size_t numEntries, typename IsCurrent>
+const Entry& stepThroughEntries(const std::array<Entry, numEntries>& entries,
+                                IsCurrent isCurrent,
+                                int steps)
+{
+    auto current = std::ranges::find_if(entries, isCurrent);
+    // A Settings table holds a handful of entries, so positions fit an int.
+    auto currentIndex = static_cast<int>(current - entries.begin());
+    auto numChoices = static_cast<int>(numEntries);
+    return entries[wrapChoiceIndex(currentIndex + steps, numChoices)];
 }
 
 // Rows in the start menu's style over the live scene, for choosing one of

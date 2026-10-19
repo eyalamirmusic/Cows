@@ -4,38 +4,25 @@
 
 #include <eacp/Core/Utils/Environment.h>
 
+#include <algorithm>
 #include <cctype>
 
 namespace Cows
 {
 namespace
 {
-// The choices list Auto first, then the tiers in order.
-constexpr auto firstTierChoiceIndex = 1;
-
-constexpr bool qualitiesAreInEnumOrder()
+const QualityAndLabel* findQuality(Quality quality)
 {
-    for (auto index = 0; index < numQualityLevels; ++index)
-        if (static_cast<int>(qualitiesAndLabels[index].quality) != index)
-            return false;
-
-    for (auto index = 0; index < numQualityChoices; ++index)
-        if (static_cast<int>(qualityChoicesAndLabels[index].choice) != index)
-            return false;
-
-    return numQualityChoices == numQualityLevels + firstTierChoiceIndex;
+    auto entry =
+        std::ranges::find(qualitiesAndLabels, quality, &QualityAndLabel::quality);
+    return entry == qualitiesAndLabels.end() ? nullptr : &*entry;
 }
 
-static_assert(qualitiesAreInEnumOrder());
-
-int getQualityIndex(Quality quality)
+const QualityChoiceAndLabel* findQualityChoice(QualityChoice choice)
 {
-    return static_cast<int>(quality);
-}
-
-int getQualityChoiceIndex(QualityChoice choice)
-{
-    return static_cast<int>(choice);
+    auto entry = std::ranges::find(
+        qualityChoicesAndLabels, choice, &QualityChoiceAndLabel::choice);
+    return entry == qualityChoicesAndLabels.end() ? nullptr : &*entry;
 }
 
 std::string lowercaseWithoutSpaces(std::string_view name)
@@ -91,8 +78,8 @@ QualitySettings getSettingsForQuality(Quality quality)
 
 std::string getQualityName(Quality quality)
 {
-    const auto& entry = qualitiesAndLabels[getQualityIndex(quality)];
-    return std::string {entry.label};
+    auto entry = findQuality(quality);
+    return entry == nullptr ? std::string {} : std::string {entry->label};
 }
 
 std::optional<Quality> parseQualityName(std::string_view name)
@@ -111,30 +98,30 @@ std::optional<Quality> parseQualityName(std::string_view name)
 
 std::string getQualityChoiceLabel(QualityChoice choice)
 {
-    const auto& entry = qualityChoicesAndLabels[getQualityChoiceIndex(choice)];
-    return std::string {entry.label};
+    auto entry = findQualityChoice(choice);
+    return entry == nullptr ? std::string {} : std::string {entry->label};
 }
 
 QualityChoice stepQualityChoice(QualityChoice choice, int steps)
 {
-    auto steppedIndex =
-        wrapChoiceIndex(getQualityChoiceIndex(choice) + steps, numQualityChoices);
-    return qualityChoicesAndLabels[steppedIndex].choice;
+    auto isCurrent = [choice](const QualityChoiceAndLabel& entry)
+    { return entry.choice == choice; };
+    return stepThroughEntries(qualityChoicesAndLabels, isCurrent, steps).choice;
 }
 
 std::optional<Quality> getChosenQuality(QualityChoice choice)
 {
-    if (choice == QualityChoice::Auto)
-        return std::nullopt;
-
-    auto qualityIndex = getQualityChoiceIndex(choice) - firstTierChoiceIndex;
-    return qualitiesAndLabels[qualityIndex].quality;
+    auto entry = findQualityChoice(choice);
+    return entry == nullptr ? std::nullopt : entry->quality;
 }
 
 QualityChoice getQualityChoiceFor(Quality quality)
 {
-    auto choiceIndex = getQualityIndex(quality) + firstTierChoiceIndex;
-    return qualityChoicesAndLabels[choiceIndex].choice;
+    for (const auto& entry: qualityChoicesAndLabels)
+        if (entry.quality == quality)
+            return entry.choice;
+
+    return QualityChoice::Auto;
 }
 
 std::optional<Quality> chooseQualityToUse(std::optional<Quality> forced,
@@ -157,18 +144,14 @@ std::optional<Quality> readQualityFromEnvironment()
 
 QualityPreference replaceUnknownValuesWithDefaults(QualityPreference preference)
 {
-    auto choiceIndex = getQualityChoiceIndex(preference.chosen);
-
-    if (choiceIndex < 0 || choiceIndex >= numQualityChoices)
+    if (findQualityChoice(preference.chosen) == nullptr)
         preference.chosen = QualityChoice::Auto;
 
-    if (preference.measured.has_value())
-    {
-        auto qualityIndex = getQualityIndex(*preference.measured);
+    auto measuredIsUnknown = preference.measured.has_value()
+                             && findQuality(*preference.measured) == nullptr;
 
-        if (qualityIndex < 0 || qualityIndex >= numQualityLevels)
-            preference.measured.reset();
-    }
+    if (measuredIsUnknown)
+        preference.measured.reset();
 
     return preference;
 }

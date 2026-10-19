@@ -27,14 +27,12 @@ struct QualityAndLabel final
     std::string_view label;
 };
 
-// Every tier in enum order, with the label COWS_QUALITY and the log use.
+// Every tier, with the label COWS_QUALITY and the log use.
 constexpr auto qualitiesAndLabels = std::array {
     QualityAndLabel {Quality::Low, "low"},
     QualityAndLabel {Quality::Medium, "medium"},
     QualityAndLabel {Quality::High, "high"},
 };
-
-constexpr auto numQualityLevels = static_cast<int>(qualitiesAndLabels.size());
 
 // Every knob a tier turns, in one place.
 struct QualitySettings final
@@ -76,17 +74,17 @@ struct QualityChoiceAndLabel final
 {
     QualityChoice choice;
     std::string_view label;
+    // The tier it picks; none for Auto.
+    std::optional<Quality> quality;
 };
 
-// Every choice in enum order, with the label the Settings row shows.
+// Every choice in the Settings row's order, with the label it shows.
 constexpr auto qualityChoicesAndLabels = std::array {
-    QualityChoiceAndLabel {QualityChoice::Auto, "Auto"},
-    QualityChoiceAndLabel {QualityChoice::Low, "Low"},
-    QualityChoiceAndLabel {QualityChoice::Medium, "Medium"},
-    QualityChoiceAndLabel {QualityChoice::High, "High"},
+    QualityChoiceAndLabel {QualityChoice::Auto, "Auto", std::nullopt},
+    QualityChoiceAndLabel {QualityChoice::Low, "Low", Quality::Low},
+    QualityChoiceAndLabel {QualityChoice::Medium, "Medium", Quality::Medium},
+    QualityChoiceAndLabel {QualityChoice::High, "High", Quality::High},
 };
-
-constexpr auto numQualityChoices = static_cast<int>(qualityChoicesAndLabels.size());
 
 std::string getQualityChoiceLabel(QualityChoice choice);
 

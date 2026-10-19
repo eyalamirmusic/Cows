@@ -408,9 +408,11 @@ C++ files.
   `getQualityChoiceLabel`, `parseFrameRateName`, `readFrameRateFromEnvironment`,
   `replaceUnknownValuesWithDefaults`; not `frameRateRow`, `frameRateNamed`,
   `withKnownValue`.
-- Casts go in named temporaries (`auto choiceIndex = static_cast<int>(choice);`),
-  never nested inline. Stepping an enum is a helper next to it
-  (`stepFrameRate(rate, steps)`), not arithmetic at the call site.
+- Casts go in named temporaries (`auto numRows = static_cast<int>(rows.size());`),
+  never nested inline. An enum is never cast to an index: look it up in its
+  table (`frameRatesAndLabels`), whose order is the row's. Stepping an enum is
+  a helper next to it (`stepFrameRate(rate, steps)`, through
+  `stepThroughEntries`), not arithmetic at the call site.
 - No magic indices: dispatch on a row's or item's name, not `row == 1`.
 
 ## Dead code

@@ -24,7 +24,7 @@ struct FrameRateAndLabel final
     std::string_view label;
 };
 
-// Every frame rate in enum order, with the label the Settings row shows. A new
+// Every frame rate in the Settings row's order, with the label it shows. A new
 // rate is one line here and one in the enum.
 constexpr auto frameRatesAndLabels = std::array {
     FrameRateAndLabel {FrameRate::Auto, "Auto"},
@@ -32,7 +32,6 @@ constexpr auto frameRatesAndLabels = std::array {
     FrameRateAndLabel {FrameRate::Max, "Max"},
 };
 
-constexpr auto numFrameRates = static_cast<int>(frameRatesAndLabels.size());
 constexpr auto menuFramesPerSecond = 60;
 constexpr auto noFrameRateCap = 0;
 

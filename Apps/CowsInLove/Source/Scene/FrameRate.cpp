@@ -4,23 +4,13 @@
 
 #include <eacp/Core/Utils/Environment.h>
 
+#include <algorithm>
 #include <cctype>
 
 namespace Cows
 {
 namespace
 {
-constexpr bool frameRatesAreInEnumOrder()
-{
-    for (auto index = 0; index < numFrameRates; ++index)
-        if (static_cast<int>(frameRatesAndLabels[index].rate) != index)
-            return false;
-
-    return true;
-}
-
-static_assert(frameRatesAreInEnumOrder());
-
 std::string makeLowercase(std::string_view text)
 {
     auto lowercase = std::string {};
@@ -34,18 +24,13 @@ std::string makeLowercase(std::string_view text)
 
     return lowercase;
 }
-
-int getFrameRateIndex(FrameRate rate)
-{
-    return static_cast<int>(rate);
-}
 } // namespace
 
 FrameRate stepFrameRate(FrameRate rate, int steps)
 {
-    auto steppedIndex =
-        wrapChoiceIndex(getFrameRateIndex(rate) + steps, numFrameRates);
-    return frameRatesAndLabels[steppedIndex].rate;
+    auto isCurrent = [rate](const FrameRateAndLabel& entry)
+    { return entry.rate == rate; };
+    return stepThroughEntries(frameRatesAndLabels, isCurrent, steps).rate;
 }
 
 std::optional<FrameRate> parseFrameRateName(std::string_view name)
@@ -77,8 +62,9 @@ int getFrameRateCap(FrameRate rate, bool menusHaveInputAndCameraIsStill)
 
 FrameRate replaceUnknownValuesWithDefaults(FrameRate rate)
 {
-    auto index = getFrameRateIndex(rate);
-    auto isKnown = index >= 0 && index < numFrameRates;
+    auto entry =
+        std::ranges::find(frameRatesAndLabels, rate, &FrameRateAndLabel::rate);
+    auto isKnown = entry != frameRatesAndLabels.end();
     return isKnown ? rate : FrameRate::Auto;
 }
 } // namespace Cows
