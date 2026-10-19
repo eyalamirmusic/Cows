@@ -64,23 +64,39 @@ inline Vector<EditorRow> makeDressRows(const CowSkin& skin)
 inline EditorRow
     makeQualityRow(QualityChoice chosen, Quality measured, bool measuring)
 {
-    auto row = EditorRow {qualityRowName, {}, (int) chosen};
+    auto row = EditorRow {};
+    row.name = qualityRowName;
 
-    for (auto index = 0; index < numQualityChoices; ++index)
-        row.choices.add(getQualityChoiceLabel((QualityChoice) index));
+    for (const auto& entry: qualityChoicesAndLabels)
+    {
+        if (entry.choice == chosen)
+            row.choice = row.choices.size();
+
+        row.choices.add(std::string {entry.label});
+    }
 
     if (chosen == QualityChoice::Auto && !measuring)
-        row.choices[0] =
-            autoPrefix + getQualityChoiceLabel((QualityChoice) ((int) measured + 1));
+    {
+        auto measuredChoice = getQualityChoiceFor(measured);
+        row.choices[0] = autoPrefix + getQualityChoiceLabel(measuredChoice);
+    }
 
     return row;
 }
+
+// Settings' frame rate row: Auto, 60, Max.
 inline EditorRow makeFrameRateRow(FrameRate chosen)
 {
-    auto row = EditorRow {frameRateRowName, {}, (int) chosen};
+    auto row = EditorRow {};
+    row.name = frameRateRowName;
 
-    for (auto index = 0; index < numFrameRates; ++index)
-        row.choices.add(getFrameRateLabel((FrameRate) index));
+    for (const auto& entry: frameRatesAndLabels)
+    {
+        if (entry.rate == chosen)
+            row.choice = row.choices.size();
+
+        row.choices.add(std::string {entry.label});
+    }
 
     return row;
 }

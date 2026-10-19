@@ -83,3 +83,11 @@ auto tToUse = test("Quality/forcedThenChosenThenMeasured") = []
     check(chooseQualityToUse(none, QualityChoice::Auto, low) == Quality::Low);
     check(!chooseQualityToUse(none, QualityChoice::Auto, none).has_value());
 };
+
+auto tQualityStepping = test("Quality/steppingWrapsRoundBothEnds") = []
+{
+    check(stepQualityChoice(QualityChoice::Auto, 1) == QualityChoice::Low);
+    check(stepQualityChoice(QualityChoice::High, 1) == QualityChoice::Auto);
+    check(stepQualityChoice(QualityChoice::Auto, -1) == QualityChoice::High);
+    check(getQualityChoiceFor(Quality::Medium) == QualityChoice::Medium);
+};

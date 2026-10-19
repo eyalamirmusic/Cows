@@ -91,6 +91,21 @@ float titlebarClearance()
 {
     return Platform::isMac() ? macTitleBarClearance : 0.f;
 }
+
+bool rowsOfferTheSameChoices(const Vector<EditorRow>& shownRows,
+                             const Vector<EditorRow>& wantedRows)
+{
+    if (shownRows.size() != wantedRows.size())
+        return false;
+
+    auto numRows = static_cast<int>(wantedRows.size());
+
+    for (auto index = 0; index < numRows; ++index)
+        if (shownRows[index].choices != wantedRows[index].choices)
+            return false;
+
+    return true;
+}
 } // namespace
 
 CowsApp::CowsApp()
@@ -102,7 +117,7 @@ CowsApp::CowsApp()
     scene.menu = &menu;
 
     showMainMenu();
-    menu.onChoose = [this](int index)
+    menu.onChoose = [this](int itemIndex)
     {
         if (showingAbout)
         {
@@ -110,13 +125,15 @@ CowsApp::CowsApp()
             return;
         }
 
-        if (index == 0)
+        const auto& chosenLabel = menu.items[itemIndex].label;
+
+        if (chosenLabel == startLabel)
             scene.startGame();
-        else if (index == 1)
+        else if (chosenLabel == dressLabel)
             scene.openEditor(dressEditor);
-        else if (index == 2)
+        else if (chosenLabel == settingsLabel)
             scene.openEditor(settingsPanel);
-        else
+        else if (chosenLabel == aboutLabel)
             showAbout();
     };
 
@@ -124,8 +141,8 @@ CowsApp::CowsApp()
     dressEditor.setRows(makeDressRows(savedSettings.skin));
     dressEditor.topClearance = titlebarClearance();
     menu.topClearance = dressEditor.topClearance;
-    dressEditor.onRowValueStepped = [this](int row, int by)
-    { dressCow(stepSkinItemChoice(savedSettings.skin, row, by)); };
+    dressEditor.onRowValueStepped = [this](int rowIndex, int steps)
+    { dressCow(stepSkinItemChoice(savedSettings.skin, rowIndex, steps)); };
     dressEditor.onDone = [this] { scene.closeEditor(); };
     dressEditor.onControl = [this](const ControlEvent& event)
     {
@@ -135,19 +152,15 @@ CowsApp::CowsApp()
 
     settingsPanel.setTitle(settingsTitle);
     settingsPanel.topClearance = dressEditor.topClearance;
-    settingsPanel.onRowValueStepped = [this](int row, int by)
+    settingsPanel.onRowValueStepped = [this](int rowIndex, int steps)
     {
-        if (row == 1)
-        {
-            chooseFrameRate(
-                (FrameRate) (((int) savedSettings.frameRate + by + numFrameRates)
-                             % numFrameRates));
-            return;
-        }
+        const auto& steppedRowName = settingsPanel.rows[rowIndex].name;
 
-        auto next = ((int) scene.qualityPreference.chosen + by + numQualityChoices)
-                    % numQualityChoices;
-        scene.chooseQuality((QualityChoice) next);
+        if (steppedRowName == frameRateRowName)
+            chooseFrameRate(stepFrameRate(savedSettings.frameRate, steps));
+        else if (steppedRowName == qualityRowName)
+            scene.chooseQuality(
+                stepQualityChoice(scene.qualityPreference.chosen, steps));
     };
     settingsPanel.onDone = [this] { scene.closeEditor(); };
     settingsPanel.onControl = dressEditor.onControl;
@@ -188,14 +201,14 @@ CowsApp::CowsApp()
     };
     scene.onStateChanged = [this]
     {
-        auto owner = scene.getInputRecipient();
+        auto recipient = scene.getInputRecipient();
         touchControls.showAgain = scene.game.state == Game::State::Found;
-        menu.setShowing(owner == InputRecipient::Menu);
+        menu.setShowing(recipient == InputRecipient::Menu);
         menu.hovered = -1;
         menu.pressed = -1;
         for (auto* each: {&dressEditor, &settingsPanel})
         {
-            each->setShowing(owner == InputRecipient::Editor
+            each->setShowing(recipient == InputRecipient::Editor
                              && scene.editor == each);
             each->hovered = {};
             each->pressed = {};
@@ -303,16 +316,20 @@ void CowsApp::showSettings()
                                  scene.quality,
                                  scene.measuring,
                                  scene.frameRate);
-    auto& shown = settingsPanel.rows;
+    auto& shownRows = settingsPanel.rows;
 
-    if (shown.size() != rows.size() || shown[0].choices != rows[0].choices)
+    // Auto's label names the measured tier, so the choices themselves change
+    // once it is measured; then the rows are laid out again.
+    if (!rowsOfferTheSameChoices(shownRows, rows))
     {
         settingsPanel.setRows(rows);
         return;
     }
 
-    for (auto index = 0; index < (int) rows.size(); ++index)
-        shown[index].choice = rows[index].choice;
+    auto numRows = static_cast<int>(rows.size());
+
+    for (auto index = 0; index < numRows; ++index)
+        shownRows[index].choice = rows[index].choice;
 }
 
 void CowsApp::showSkinInDressEditor()

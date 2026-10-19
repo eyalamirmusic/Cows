@@ -1,43 +1,66 @@
 #include "FrameRate.h"
 
+#include "UI/Editor.h"
+
 #include <eacp/Core/Utils/Environment.h>
 
 #include <cctype>
 
 namespace Cows
 {
-std::string getFrameRateLabel(FrameRate rate)
+namespace
 {
-    switch (rate)
+constexpr bool frameRatesAreInEnumOrder()
+{
+    for (auto index = 0; index < numFrameRates; ++index)
+        if (static_cast<int>(frameRatesAndLabels[index].rate) != index)
+            return false;
+
+    return true;
+}
+
+static_assert(frameRatesAreInEnumOrder());
+
+std::string makeLowercase(std::string_view text)
+{
+    auto lowercase = std::string {};
+
+    for (auto character: text)
     {
-        case FrameRate::Auto:
-            return "Auto";
-        case FrameRate::Sixty:
-            return "60";
-        case FrameRate::Max:
-            return "Max";
+        auto asUnsigned = static_cast<unsigned char>(character);
+        auto lowered = std::tolower(asUnsigned);
+        lowercase += static_cast<char>(lowered);
     }
 
-    return "Auto";
+    return lowercase;
+}
+
+int getFrameRateIndex(FrameRate rate)
+{
+    return static_cast<int>(rate);
+}
+} // namespace
+
+std::string getFrameRateLabel(FrameRate rate)
+{
+    const auto& entry = frameRatesAndLabels[getFrameRateIndex(rate)];
+    return std::string {entry.label};
+}
+
+FrameRate stepFrameRate(FrameRate rate, int steps)
+{
+    auto steppedIndex =
+        wrapChoiceIndex(getFrameRateIndex(rate) + steps, numFrameRates);
+    return frameRatesAndLabels[steppedIndex].rate;
 }
 
 std::optional<FrameRate> parseFrameRateName(std::string_view name)
 {
-    auto lower = std::string {};
+    auto lowercaseName = makeLowercase(name);
 
-    for (auto character: name)
-        lower += (char) std::tolower((unsigned char) character);
-
-    for (auto rate: {FrameRate::Auto, FrameRate::Sixty, FrameRate::Max})
-    {
-        auto label = getFrameRateLabel(rate);
-
-        for (auto& character: label)
-            character = (char) std::tolower((unsigned char) character);
-
-        if (lower == label)
-            return rate;
-    }
+    for (const auto& entry: frameRatesAndLabels)
+        if (makeLowercase(entry.label) == lowercaseName)
+            return entry.rate;
 
     return std::nullopt;
 }
@@ -47,24 +70,21 @@ std::optional<FrameRate> readFrameRateFromEnvironment()
     return parseFrameRateName(eacp::getEnvValue("COWS_FPS"));
 }
 
-int getFrameRateCap(FrameRate rate, bool menusHaveInput)
+int getFrameRateCap(FrameRate rate, bool menusHaveInputAndCameraIsStill)
 {
-    switch (rate)
-    {
-        case FrameRate::Auto:
-            return menusHaveInput ? menuFramesPerSecond : 0;
-        case FrameRate::Sixty:
-            return menuFramesPerSecond;
-        case FrameRate::Max:
-            return 0;
-    }
+    auto alwaysSixty = rate == FrameRate::Sixty;
+    auto sixtyInTheMenus = rate == FrameRate::Auto && menusHaveInputAndCameraIsStill;
 
-    return 0;
+    if (alwaysSixty || sixtyInTheMenus)
+        return menuFramesPerSecond;
+
+    return noFrameRateCap;
 }
 
 FrameRate replaceUnknownValuesWithDefaults(FrameRate rate)
 {
-    auto index = (int) rate;
-    return index < 0 || index >= numFrameRates ? FrameRate::Auto : rate;
+    auto index = getFrameRateIndex(rate);
+    auto isKnown = index >= 0 && index < numFrameRates;
+    return isKnown ? rate : FrameRate::Auto;
 }
 } // namespace Cows

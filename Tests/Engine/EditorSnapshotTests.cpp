@@ -246,7 +246,7 @@ void checkEveryShape(const std::string& title, const Vector<EditorRow>& rows)
     }
 }
 
-Vector<EditorRow> makeSettingsRows()
+Vector<EditorRow> makeExampleSettingsRows()
 {
     auto rows = Vector<EditorRow> {};
     rows.add({"Quality", {"Auto: High", "Low", "Medium", "High"}});
@@ -272,7 +272,7 @@ auto tSettingsShapes = test("EditorLayout/settingsHoldAtEveryShape") = []
     if (!hasDevice())
         return;
 
-    checkEveryShape("Settings", makeSettingsRows());
+    checkEveryShape("Settings", makeExampleSettingsRows());
 };
 
 auto tSettingsShot = test("EditorSnapshot/settings") = []
@@ -282,8 +282,8 @@ auto tSettingsShot = test("EditorSnapshot/settings") = []
 
     auto editor = Editor {};
     editor.setTitle("Settings");
-    editor.setRows(makeSettingsRows());
-    editor.topClearance = 28.f;
+    editor.setRows(makeExampleSettingsRows());
+    editor.topClearance = macTitleBarClearance;
 
     auto image = editorShot(editor, 1280.f, 800.f, "engine-editor-settings");
     check(image.isValid());

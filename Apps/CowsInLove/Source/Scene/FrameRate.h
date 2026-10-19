@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -17,18 +18,39 @@ enum class FrameRate
     Max
 };
 
-constexpr auto numFrameRates = 3;
+struct FrameRateAndLabel final
+{
+    FrameRate rate;
+    std::string_view label;
+};
+
+// Every frame rate in enum order, with the label the Settings row shows. A new
+// rate is one line here and one in the enum.
+constexpr auto frameRatesAndLabels = std::array {
+    FrameRateAndLabel {FrameRate::Auto, "Auto"},
+    FrameRateAndLabel {FrameRate::Sixty, "60"},
+    FrameRateAndLabel {FrameRate::Max, "Max"},
+};
+
+constexpr auto numFrameRates = static_cast<int>(frameRatesAndLabels.size());
 constexpr auto menuFramesPerSecond = 60;
+constexpr auto noFrameRateCap = 0;
 
 std::string getFrameRateLabel(FrameRate rate);
 
-// COWS_FPS=auto|60|max: that rate whatever Settings says.
+// `rate` moved `steps` along the list, wrapping round: the Settings row's < >.
+FrameRate stepFrameRate(FrameRate rate, int steps);
+
+// Reads a label, in any case, back as its rate. Used for COWS_FPS=auto|60|max;
+// settings.json goes through Miro's enumerator names instead.
 std::optional<FrameRate> parseFrameRateName(std::string_view name);
+
+// COWS_FPS: that rate whatever Settings says.
 std::optional<FrameRate> readFrameRateFromEnvironment();
 
-// The cap to hand GPUView::setMaxFps, 0 for none.
-int getFrameRateCap(FrameRate rate, bool menusHaveInput);
+// The cap to hand GPUView::setMaxFps, noFrameRateCap for none.
+int getFrameRateCap(FrameRate rate, bool menusHaveInputAndCameraIsStill);
 
-// `rate`, or Auto when it names no rate.
+// `rate`, or Auto when it is outside the enum (a hand-edited settings.json).
 FrameRate replaceUnknownValuesWithDefaults(FrameRate rate);
 } // namespace Cows

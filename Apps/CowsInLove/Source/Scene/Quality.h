@@ -4,6 +4,7 @@
 
 #include <Miro/Reflect.h>
 
+#include <array>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -20,7 +21,20 @@ enum class Quality
     High
 };
 
-constexpr auto numQualityLevels = 3;
+struct QualityAndName final
+{
+    Quality quality;
+    std::string_view name;
+};
+
+// Every tier in enum order, with the name COWS_QUALITY and the log use.
+constexpr auto qualitiesAndNames = std::array {
+    QualityAndName {Quality::Low, "low"},
+    QualityAndName {Quality::Medium, "medium"},
+    QualityAndName {Quality::High, "high"},
+};
+
+constexpr auto numQualityLevels = static_cast<int>(qualitiesAndNames.size());
 
 // Every knob a tier turns, in one place.
 struct QualitySettings final
@@ -58,10 +72,32 @@ enum class QualityChoice
     High
 };
 
-constexpr auto numQualityChoices = 4;
+struct QualityChoiceAndLabel final
+{
+    QualityChoice choice;
+    std::string_view label;
+};
+
+// Every choice in enum order, with the label the Settings row shows.
+constexpr auto qualityChoicesAndLabels = std::array {
+    QualityChoiceAndLabel {QualityChoice::Auto, "Auto"},
+    QualityChoiceAndLabel {QualityChoice::Low, "Low"},
+    QualityChoiceAndLabel {QualityChoice::Medium, "Medium"},
+    QualityChoiceAndLabel {QualityChoice::High, "High"},
+};
+
+constexpr auto numQualityChoices = static_cast<int>(qualityChoicesAndLabels.size());
 
 std::string getQualityChoiceLabel(QualityChoice choice);
+
+// `choice` moved `steps` along the list, wrapping round: the Settings row's < >.
+QualityChoice stepQualityChoice(QualityChoice choice, int steps);
+
+// The tier a choice picks; none for Auto.
 std::optional<Quality> getChosenQuality(QualityChoice choice);
+
+// The choice that picks `quality`.
+QualityChoice getQualityChoiceFor(Quality quality);
 
 // The tier to draw at: `forced` (COWS_QUALITY), else the player's choice, else
 // the measured tier; none means it is still to be measured.

@@ -7,16 +7,16 @@ using namespace Cows;
 
 auto tAutoCapsTheMenus = test("FrameRate/autoIsSixtyInTheMenusOnly") = []
 {
-    check(getFrameRateCap(FrameRate::Auto, true) == 60);
-    check(getFrameRateCap(FrameRate::Auto, false) == 0);
+    check(getFrameRateCap(FrameRate::Auto, true) == menuFramesPerSecond);
+    check(getFrameRateCap(FrameRate::Auto, false) == noFrameRateCap);
 };
 
 auto tFixedRates = test("FrameRate/sixtyAndMaxHoldEverywhere") = []
 {
     for (auto menus: {true, false})
     {
-        check(getFrameRateCap(FrameRate::Sixty, menus) == 60);
-        check(getFrameRateCap(FrameRate::Max, menus) == 0);
+        check(getFrameRateCap(FrameRate::Sixty, menus) == menuFramesPerSecond);
+        check(getFrameRateCap(FrameRate::Max, menus) == noFrameRateCap);
     }
 };
 
@@ -38,7 +38,20 @@ auto tLabels = test("FrameRate/labelsForTheSettingsRow") = []
 
 auto tUnknown = test("FrameRate/unknownValuesAreAuto") = []
 {
-    check(replaceUnknownValuesWithDefaults((FrameRate) 7) == FrameRate::Auto);
-    check(replaceUnknownValuesWithDefaults((FrameRate) -1) == FrameRate::Auto);
+    constexpr auto pastTheEnd = 7;
+    constexpr auto beforeTheStart = -1;
+    auto pastTheEndRate = static_cast<FrameRate>(pastTheEnd);
+    auto beforeTheStartRate = static_cast<FrameRate>(beforeTheStart);
+
+    check(replaceUnknownValuesWithDefaults(pastTheEndRate) == FrameRate::Auto);
+    check(replaceUnknownValuesWithDefaults(beforeTheStartRate) == FrameRate::Auto);
     check(replaceUnknownValuesWithDefaults(FrameRate::Max) == FrameRate::Max);
+};
+
+auto tStepping = test("FrameRate/steppingWrapsRoundBothEnds") = []
+{
+    check(stepFrameRate(FrameRate::Auto, 1) == FrameRate::Sixty);
+    check(stepFrameRate(FrameRate::Max, 1) == FrameRate::Auto);
+    check(stepFrameRate(FrameRate::Auto, -1) == FrameRate::Max);
+    check(stepFrameRate(FrameRate::Sixty, 4) == FrameRate::Max);
 };

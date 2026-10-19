@@ -18,6 +18,14 @@ struct EditorRow final
     int choice = 0;
 };
 
+// The choice a row lands on when stepping takes it to `index`, wrapping round
+// past either end of its `numChoices`.
+inline int wrapChoiceIndex(int index, int numChoices)
+{
+    auto remainder = index % numChoices;
+    return remainder < 0 ? remainder + numChoices : remainder;
+}
+
 // Rows in the start menu's style over the live scene, for choosing one of
 // several things per row: "Hat  <  Top Hat  >", then Done. They sit to the
 // right on a wide screen and at the bottom of a tall one, as a table: the
@@ -126,7 +134,8 @@ struct Editor final : Graphics::View
     void act(Target target);
     void returnKeyFocus();
 
-    std::function<void(int row, int by)> onRowValueStepped = [](int, int) {};
+    // A row's < or > (or its value, or a key) moved its choice `steps` along.
+    std::function<void(int rowIndex, int steps)> onRowValueStepped = [](int, int) {};
     std::function<void()> onDone = [] {};
     std::function<void(const ControlEvent&)> onControl = [](const ControlEvent&) {};
 

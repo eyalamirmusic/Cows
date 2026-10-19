@@ -1,5 +1,7 @@
 #include "Quality.h"
 
+#include "UI/Editor.h"
+
 #include <eacp/Core/Utils/Environment.h>
 
 #include <cctype>
@@ -8,15 +10,50 @@ namespace Cows
 {
 namespace
 {
+// The choices list Auto first, then the tiers in order.
+constexpr auto firstTierChoiceIndex = 1;
+
+constexpr bool qualitiesAreInEnumOrder()
+{
+    for (auto index = 0; index < numQualityLevels; ++index)
+        if (static_cast<int>(qualitiesAndNames[index].quality) != index)
+            return false;
+
+    for (auto index = 0; index < numQualityChoices; ++index)
+        if (static_cast<int>(qualityChoicesAndLabels[index].choice) != index)
+            return false;
+
+    return numQualityChoices == numQualityLevels + firstTierChoiceIndex;
+}
+
+static_assert(qualitiesAreInEnumOrder());
+
+int getQualityIndex(Quality quality)
+{
+    return static_cast<int>(quality);
+}
+
+int getQualityChoiceIndex(QualityChoice choice)
+{
+    return static_cast<int>(choice);
+}
+
 std::string lowercaseWithoutSpaces(std::string_view name)
 {
-    auto lower = std::string {};
+    auto lowercase = std::string {};
 
     for (auto character: name)
-        if (!std::isspace((unsigned char) character))
-            lower += (char) std::tolower((unsigned char) character);
+    {
+        auto asUnsigned = static_cast<unsigned char>(character);
 
-    return lower;
+        if (std::isspace(asUnsigned))
+            continue;
+
+        auto lowered = std::tolower(asUnsigned);
+        lowercase += static_cast<char>(lowered);
+    }
+
+    return lowercase;
 }
 
 } // namespace
@@ -54,48 +91,35 @@ QualitySettings getSettingsForQuality(Quality quality)
 
 std::string getQualityName(Quality quality)
 {
-    switch (quality)
-    {
-        case Quality::Low:
-            return "low";
-        case Quality::Medium:
-            return "medium";
-        case Quality::High:
-            return "high";
-    }
-
-    return "high";
+    const auto& entry = qualitiesAndNames[getQualityIndex(quality)];
+    return std::string {entry.name};
 }
 
 std::optional<Quality> parseQualityName(std::string_view name)
 {
-    auto lower = lowercaseWithoutSpaces(name);
+    auto lowercaseName = lowercaseWithoutSpaces(name);
 
-    if (lower == "mid")
+    if (lowercaseName == "mid")
         return Quality::Medium;
 
-    for (auto quality: {Quality::Low, Quality::Medium, Quality::High})
-        if (lower == getQualityName(quality))
-            return quality;
+    for (const auto& entry: qualitiesAndNames)
+        if (lowercaseName == entry.name)
+            return entry.quality;
 
     return std::nullopt;
 }
 
 std::string getQualityChoiceLabel(QualityChoice choice)
 {
-    switch (choice)
-    {
-        case QualityChoice::Auto:
-            return "Auto";
-        case QualityChoice::Low:
-            return "Low";
-        case QualityChoice::Medium:
-            return "Medium";
-        case QualityChoice::High:
-            return "High";
-    }
+    const auto& entry = qualityChoicesAndLabels[getQualityChoiceIndex(choice)];
+    return std::string {entry.label};
+}
 
-    return "Auto";
+QualityChoice stepQualityChoice(QualityChoice choice, int steps)
+{
+    auto steppedIndex =
+        wrapChoiceIndex(getQualityChoiceIndex(choice) + steps, numQualityChoices);
+    return qualityChoicesAndLabels[steppedIndex].choice;
 }
 
 std::optional<Quality> getChosenQuality(QualityChoice choice)
@@ -103,7 +127,14 @@ std::optional<Quality> getChosenQuality(QualityChoice choice)
     if (choice == QualityChoice::Auto)
         return std::nullopt;
 
-    return (Quality) ((int) choice - 1);
+    auto qualityIndex = getQualityChoiceIndex(choice) - firstTierChoiceIndex;
+    return qualitiesAndNames[qualityIndex].quality;
+}
+
+QualityChoice getQualityChoiceFor(Quality quality)
+{
+    auto choiceIndex = getQualityIndex(quality) + firstTierChoiceIndex;
+    return qualityChoicesAndLabels[choiceIndex].choice;
 }
 
 std::optional<Quality> chooseQualityToUse(std::optional<Quality> forced,
@@ -126,16 +157,16 @@ std::optional<Quality> readQualityFromEnvironment()
 
 QualityPreference replaceUnknownValuesWithDefaults(QualityPreference preference)
 {
-    auto choice = (int) preference.chosen;
+    auto choiceIndex = getQualityChoiceIndex(preference.chosen);
 
-    if (choice < 0 || choice >= numQualityChoices)
+    if (choiceIndex < 0 || choiceIndex >= numQualityChoices)
         preference.chosen = QualityChoice::Auto;
 
     if (preference.measured.has_value())
     {
-        auto tier = (int) *preference.measured;
+        auto qualityIndex = getQualityIndex(*preference.measured);
 
-        if (tier < 0 || tier >= numQualityLevels)
+        if (qualityIndex < 0 || qualityIndex >= numQualityLevels)
             preference.measured.reset();
     }
 
