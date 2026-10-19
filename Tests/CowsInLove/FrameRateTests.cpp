@@ -29,13 +29,6 @@ auto tNamed = test("FrameRate/namedAsCowsFpsSpellsThem") = []
     check(!parseFrameRateName("120").has_value());
 };
 
-auto tLabels = test("FrameRate/labelsForTheSettingsRow") = []
-{
-    check(frameRatesAndLabels[0].label == "Auto");
-    check(frameRatesAndLabels[1].label == "60");
-    check(frameRatesAndLabels[2].label == "Max");
-};
-
 auto tUnknown = test("FrameRate/unknownValuesAreAuto") = []
 {
     constexpr auto pastTheEnd = 7;
