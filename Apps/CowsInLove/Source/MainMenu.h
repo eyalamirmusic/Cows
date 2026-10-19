@@ -23,8 +23,6 @@ constexpr auto qualityRowName = "Quality";
 constexpr auto frameRateRowName = "Frame rate";
 constexpr auto autoPrefix = "Auto: ";
 
-// The start menu's choices, Start the biggest and About the smallest, and the
-// screens behind them; CowsApp shows them and CowsArt renders them.
 inline Vector<MenuItem> makeMainMenuItems()
 {
     auto items = Vector<MenuItem> {};
@@ -40,7 +38,6 @@ inline std::string getVersionText()
     return std::string {"Version " COWS_APP_VERSION " (Build " COWS_APP_BUILD ")"};
 }
 
-// About: Back, with the version over it.
 inline Vector<MenuItem> makeAboutItems()
 {
     auto items = Vector<MenuItem> {};
@@ -48,7 +45,6 @@ inline Vector<MenuItem> makeAboutItems()
     return items;
 }
 
-// Dress Your Cow: a row per item class, on what `skin` wears.
 inline Vector<EditorRow> makeDressRows(const CowSkin& skin)
 {
     auto rows = Vector<EditorRow> {};

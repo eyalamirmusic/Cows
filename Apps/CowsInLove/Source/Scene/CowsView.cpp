@@ -34,8 +34,7 @@ const auto searchLeastWidth = OrbitCamera {}.leastWidth;
 constexpr auto startYaw = -halfPi;
 constexpr auto chaseRate = 4.f;
 constexpr auto eyeMargin = 0.3f;
-// Where on her the camera's target is pulled down to when it would be in a
-// roof or a loft over her, so the eye is clipped from inside them.
+// Under a roof the target drops to here, so the eye is not clipped inside it.
 constexpr auto bodyHeight = 0.6f;
 constexpr auto nearestEye = 0.6f;
 constexpr auto eyeReturnRate = 3.f;
@@ -66,11 +65,9 @@ constexpr auto dressLength = 0.6f;
 constexpr auto editorHeight = 1.4f;
 constexpr auto editorDistance = 7.5f;
 constexpr auto editorTurn = 0.3f;
-// Seen from her side in the editor she is longer than she is from the front.
 constexpr auto editorCowWidth = 3.2f;
 constexpr auto tallEditorCowShare = 0.7f;
-// Upright, the cow's band is high on the screen, which lowers the camera
-// into the grass unless it looks down more.
+// Upright, the camera sinks into the grass unless it looks down more.
 constexpr auto tallEditorPitch = 0.3f;
 
 constexpr auto fullScreenTriangle = std::to_array<CornerVertex>({
@@ -193,11 +190,6 @@ float startTime()
     return 0.f;
 }
 
-// What COWS_PROFILE runs vary, one at a time, to find what a frame costs:
-// COWS_BLADES caps the blades drawn per tile, COWS_MSAA, COWS_RENDER_SCALE and
-// COWS_SHADOW and COWS_DETAIL override the tier's sample count, render scale,
-// shadow map side and mesh detail, and COWS_SKIP names parts of the frame left out (sky, ground,
-// objects, grass, glow, hud, shadows).
 struct ProfileSettings final
 {
     bool skips(std::string_view part) const
@@ -247,8 +239,7 @@ Graphics::Color displayColor(const Vec3& linear)
     return {encode(linear.x), encode(linear.y), encode(linear.z)};
 }
 
-// The centre of `area`, -1 to 1 across `bounds`, y up.
-Graphics::Point centreOnScreen(Graphics::Rect area, Graphics::Rect bounds)
+Graphics::Point centreInClipSpace(Graphics::Rect area, Graphics::Rect bounds)
 {
     return {2.f * (area.x + area.w * 0.5f) / bounds.w - 1.f,
             1.f - 2.f * (area.y + area.h * 0.5f) / bounds.h};
@@ -604,8 +595,6 @@ CameraPose CowsView::editorPose() const
                       hatClearance});
 }
 
-// Whether the window or the editor's shape changed since the camera last
-// framed the cow for it, which leaves her where the old cowArea was.
 bool CowsView::editorFramingChanged() const
 {
     if (editor == nullptr)
@@ -627,8 +616,6 @@ void CowsView::frameEditor()
     editorFramedAspect = viewAspect;
 }
 
-// The pose moved back until the cow, with room for a hat above her, fills her
-// share of `area`, then slid so she stands at its centre.
 CameraPose CowsView::framedCow(CameraPose pose,
                                Graphics::Rect area,
                                Graphics::Rect bounds,
@@ -645,7 +632,8 @@ CameraPose CowsView::framedCow(CameraPose pose,
     auto fitted = std::max(distanceToFit(menuCowHeight + above, heightShare, fov),
                            distanceToFit(framing.cowWidth, widthShare, fov));
     pose.distance = std::clamp(fitted, nearestMenu, farthestMenu);
-    return placeTargetOnScreen(pose, centreOnScreen(area, bounds), fov, viewAspect);
+    return placeTargetOnScreen(
+        pose, centreInClipSpace(area, bounds), fov, viewAspect);
 }
 
 CameraPose CowsView::playPose() const

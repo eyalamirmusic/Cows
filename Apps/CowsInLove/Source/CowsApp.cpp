@@ -20,7 +20,7 @@ struct WindowSize final
     int height = defaultHeight;
 };
 
-// COWS_WINDOW=<width>x<height> in points, else the default.
+// COWS_WINDOW=<width>x<height>, in points.
 WindowSize firstWindowSize()
 {
     auto value = getEnvValue("COWS_WINDOW");
