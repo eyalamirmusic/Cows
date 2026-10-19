@@ -4,7 +4,6 @@
 
 namespace Cows
 {
-// A round obstacle, standing `top` high.
 struct Collider final
 {
     Maths::Vec2 center;
@@ -12,10 +11,7 @@ struct Collider final
     float top = 100.f;
 };
 
-// A solid box, `half` its size on each axis, standing on the ground or, with
-// `bottom` set, floating above it (a loft, a lintel, a roof): anything
-// whose feet are below `bottom` passes under it. A ramp when `rise` is set,
-// its top climbing from the ground to `top` along it.
+// Feet below `bottom` pass under it; with `rise` set it ramps up to `top`.
 struct Block final
 {
     float heightAt(Maths::Vec2 point) const;

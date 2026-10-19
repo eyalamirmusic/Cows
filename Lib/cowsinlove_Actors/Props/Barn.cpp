@@ -10,10 +10,7 @@ namespace Cows
 {
 namespace
 {
-// The barn's bones, which its mesh (tools/blender/barn.py, exported to
-// Resources/barn.mesh) and its collision share: these must match the numbers
-// at the top of barn.py. In barn space the front, with the big doors, faces
-// -z; `quarterTurns` turns it.
+// Must match the numbers at the top of tools/blender/barn.py; the front faces -z.
 constexpr auto barnHalfWidth = 8.f;
 constexpr auto barnHalfDepth = 11.f;
 constexpr auto barnWallThickness = 0.3f;
@@ -25,21 +22,13 @@ constexpr auto barnDoorThickness = 0.15f;
 constexpr auto barnTrimWidth = 0.25f;
 constexpr auto barnTrimDepth = 0.06f;
 
-// The doors stand open, each leaf folded back flat against the front wall
-// beside the doorway's trim.
 constexpr auto barnDoorLeafWidth = barnDoorHalfWidth + 0.1f;
 
-// The gambrel roof: a steep pitch from the eaves to the break, a shallow one
-// from there to the ridge. Its top is where she walks; it reaches past the
-// walls by the overhangs, the eaves' on the same slope as the pitch.
 constexpr auto barnRoofBreakX = 4.8f;
 constexpr auto barnRoofBreakHeight = 8.6f;
 constexpr auto barnEavesOverhang = 0.4f;
 constexpr auto barnGableOverhang = 0.5f;
 
-// The hay loft: a floor across the front of the barn over the doorway, open
-// to the meadow through the hay door in the gable, reached by a ramp from the
-// back of the floor forward up the +x wall.
 constexpr auto barnLoftHeight = 5.f;
 constexpr auto barnLoftThickness = 0.3f;
 constexpr auto barnLoftDepth = 8.f;
@@ -48,16 +37,11 @@ constexpr auto barnRampFootZ = 6.f;
 constexpr auto barnLoftPostX = 3.f;
 constexpr auto barnLoftPostRadius = 0.2f;
 
-// The hay door, as wide as the doorway under it, from the loft's floor up;
-// its leaves stand open square to the gable.
 constexpr auto barnHayDoorTop = 8.4f;
 constexpr auto barnHayLeafWidth = barnDoorHalfWidth;
 
-// How far in from the front wall she hides, just inside the hay door.
 constexpr auto barnLoftSpotInset = 1.4f;
 
-// Open stalls along the -x wall in front of the loft: low partitions out from
-// the wall, a feed trough against it in the first.
 constexpr std::array<float, 4> barnStallZs {-8.5f, -5.5f, -2.5f, 0.5f};
 constexpr auto barnStallDepth = 2.4f;
 constexpr auto barnStallHeight = 1.2f;
@@ -66,24 +50,19 @@ constexpr auto barnTroughWidth = 0.8f;
 constexpr auto barnTroughLength = 1.6f;
 constexpr auto barnTroughHeight = 0.8f;
 
-// Hay bales, stacked into the climb up the -x wall outside and on the loft.
 constexpr auto barnBaleWidth = 1.3f;
 constexpr auto barnBaleHeight = 0.7f;
 constexpr auto barnBaleLength = 2.5f;
 
-// The climb to the roof: a ramp from the front along the -x wall, then stacks
-// of bales two wide, each a jump above the last, the highest just under the
-// eaves' edge.
+// Each stack a jump above the last, the highest just under the eaves' edge.
 constexpr auto barnClimbFront = -10.f;
 constexpr auto barnClimbRampLength = 5.f;
 constexpr auto barnClimbRampLayers = 3;
 constexpr std::array<int, 4> barnClimbLayers {3, 5, 7, 8};
 
-// One stack of bales in the loft's -x front corner.
 constexpr auto barnLoftStackLayers = 2;
 
-// The cupola on the ridge, towards the back, leaving the rest of the ridge to
-// walk along.
+// Towards the back, leaving the rest of the ridge to walk along.
 constexpr auto barnCupolaZ = 7.5f;
 constexpr auto barnCupolaHalf = 0.7f;
 constexpr auto barnCupolaTop = 13.2f;
@@ -106,7 +85,6 @@ Vec2 turned(Vec2 offset, int quarterTurns)
     return offset;
 }
 
-// The roof's height over `x` across the barn, along its top.
 float roofHeightAt(float x)
 {
     auto across = std::abs(x);
@@ -140,16 +118,12 @@ constexpr auto loftEdge = -barnHalfDepth + barnLoftDepth;
 constexpr auto frontInside = -barnHalfDepth + barnWallThickness;
 constexpr auto roofReach = barnHalfWidth + barnEavesOverhang;
 constexpr auto roofDepth = barnHalfDepth + barnGableOverhang;
-// The two upper pitches reach a little past the ridge, so a point on it is
-// on both.
+// So a point on the ridge is on both upper pitches.
 constexpr auto ridgeOverlap = 0.05f;
 constexpr auto upperSlope = (barnRidge - barnRoofBreakHeight) / barnRoofBreakX;
 constexpr auto climbOut = barnHalfWidth + 2.f * barnBaleWidth;
-// How far short of the loft the ramp's top spot stands.
 constexpr auto rampTopInset = 0.5f;
 
-// An axis-aligned piece of the barn in barn space, from corner to corner:
-// standing on the ground or floating from `bottom`, a ramp along `rise`.
 struct Piece final
 {
     Vec2 from;
@@ -200,10 +174,7 @@ struct Placer final
     int quarterTurns = 0;
 };
 
-// The walls stand as high as the roof over them, in two steps under each
-// gable, so nothing stands up out of the roof and nothing inside can be
-// jumped over: the side walls up to the eaves' edge, the gables to the roof
-// at their outer edge under each pitch.
+// Up to the roof over them: nothing pokes through it, nothing inside is jumped.
 void addWalls(const Placer& place)
 {
     auto front = -barnHalfDepth;
@@ -357,7 +328,6 @@ void addMeshes(Scenery& scenery, Vec2 center, int quarterTurns)
             makeInstance(model, matte(part.color, barnSoftness, barnGloss)));
 }
 
-// The heading that faces along `direction` in barn space, turned.
 float facing(Vec2 direction, int quarterTurns)
 {
     auto turnedDirection = turned(direction, quarterTurns);

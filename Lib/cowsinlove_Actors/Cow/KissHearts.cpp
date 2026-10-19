@@ -17,8 +17,7 @@ constexpr auto fewestHearts = 10;
 constexpr auto mostHearts = 17;
 constexpr auto spawnSpread = 0.9f;
 
-// The lips meet a moment before the sway's closest point; the hearts go with
-// the lips.
+// The lips meet just before the sway's closest point; the hearts go with them.
 constexpr auto burstLead = 0.35f;
 
 constexpr auto heartColors =

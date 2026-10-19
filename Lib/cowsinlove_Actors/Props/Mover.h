@@ -5,9 +5,7 @@
 
 namespace Cows
 {
-// The model that lays makeBarrel's frame (along y from 0 to 1, half a unit in
-// radius) on its side `radius` and `length` big, its middle over `at` on the
-// ground at `lift`, its axis across `heading`, `roll` turned about it.
+// Lays makeBarrel's frame (y 0 to 1, radius 0.5) on its side across `heading`.
 Maths::Mat4 lyingDrum(Maths::Vec2 at,
                       float lift,
                       float heading,
@@ -15,9 +13,7 @@ Maths::Mat4 lyingDrum(Maths::Vec2 at,
                       float radius,
                       float length);
 
-// A drum lying on its side that rolls back and forth between `from` and `to`
-// on the ground at `lift`, once each `period` seconds, `phase` of the way
-// through at zero, drawn as its `parts`. Its collider follows it.
+// `period` in seconds; `phase` is the share of a period done at zero.
 struct Mover final
 {
     struct Part final
