@@ -1,7 +1,6 @@
 # AGENTS.md
 
 This file guides coding agents (and people) working in this repository.
-`CLAUDE.md` is one line, `@AGENTS.md`, so Claude Code loads this file.
 
 ## Git Rules
 

@@ -124,7 +124,7 @@ for f in tracked:
     if re.match(r"Lib/[^/]+/Resources/", f) and f.endswith((".ttf", ".f32", ".png", ".wav")) \
             and os.path.basename(f) not in cmake:
         print(f"resource not embedded: {f}")
-callers = [f for f in tracked if re.match(r"(justfile|CMakeLists\.txt|(?:CLAUDE|AGENTS)\.md|Deploy/|\.github/|tools/|Apps/.*CMakeLists\.txt)", f)]
+callers = [f for f in tracked if re.match(r"(justfile|CMakeLists\.txt|AGENTS\.md|Deploy/|\.github/|tools/|Apps/.*CMakeLists\.txt)", f)]
 text = {f: open(f, errors="replace").read() for f in callers if os.path.isfile(f)}
 for f in tracked:
     if re.match(r"tools/[^/]+\.(sh|py|ps1|bat)$", f) and f != "tools/dead-code.sh":
