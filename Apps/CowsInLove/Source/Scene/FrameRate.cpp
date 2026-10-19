@@ -41,12 +41,6 @@ int getFrameRateIndex(FrameRate rate)
 }
 } // namespace
 
-std::string getFrameRateLabel(FrameRate rate)
-{
-    const auto& entry = frameRatesAndLabels[getFrameRateIndex(rate)];
-    return std::string {entry.label};
-}
-
 FrameRate stepFrameRate(FrameRate rate, int steps)
 {
     auto steppedIndex =

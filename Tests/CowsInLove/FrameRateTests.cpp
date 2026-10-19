@@ -31,9 +31,9 @@ auto tNamed = test("FrameRate/namedAsCowsFpsSpellsThem") = []
 
 auto tLabels = test("FrameRate/labelsForTheSettingsRow") = []
 {
-    check(getFrameRateLabel(FrameRate::Auto) == "Auto");
-    check(getFrameRateLabel(FrameRate::Sixty) == "60");
-    check(getFrameRateLabel(FrameRate::Max) == "Max");
+    check(frameRatesAndLabels[0].label == "Auto");
+    check(frameRatesAndLabels[1].label == "60");
+    check(frameRatesAndLabels[2].label == "Max");
 };
 
 auto tUnknown = test("FrameRate/unknownValuesAreAuto") = []

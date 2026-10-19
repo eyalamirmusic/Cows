@@ -36,8 +36,6 @@ constexpr auto numFrameRates = static_cast<int>(frameRatesAndLabels.size());
 constexpr auto menuFramesPerSecond = 60;
 constexpr auto noFrameRateCap = 0;
 
-std::string getFrameRateLabel(FrameRate rate);
-
 // `rate` moved `steps` along the list, wrapping round: the Settings row's < >.
 FrameRate stepFrameRate(FrameRate rate, int steps);
 
