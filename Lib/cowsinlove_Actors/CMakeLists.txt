@@ -1,6 +1,5 @@
 add_library(cowsinlove_Actors STATIC
         Animation/Choreography.cpp
-        Cow/Cow.cpp
         Cow/CowSkin.cpp
         Cow/HeartMesh.cpp
         Cow/KissHearts.cpp
@@ -21,6 +20,10 @@ add_library(cowsinlove_Actors STATIC
         Props/Rock.cpp
         Props/Tree.cpp
         Sky/SkyDecor.cpp)
+
+if (NOT COWS_HOT_RELOAD_COW)
+    target_sources(cowsinlove_Actors PRIVATE Cow/Cow.cpp)
+endif ()
 
 target_include_directories(cowsinlove_Actors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(cowsinlove_Actors PUBLIC cowsinlove_Engine cowsinlove_AudioEngine cowsinlove_MeshLoader Miro)

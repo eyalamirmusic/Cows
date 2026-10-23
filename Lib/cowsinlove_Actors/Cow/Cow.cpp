@@ -224,7 +224,7 @@ Vec3 tailRoot()
     return tailPivot + hanging * tailUnderHide;
 }
 
-Vector<CowPart> makeCowParts()
+EACP_HOT_RELOAD_EXPORT Vector<CowPart> makeCowParts()
 {
     auto parts = Vector<CowPart> {};
 

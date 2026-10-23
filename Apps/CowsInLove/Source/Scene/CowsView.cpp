@@ -784,7 +784,15 @@ void CowsView::closeEditor()
 
 void CowsView::wear(const CowSkin& skin)
 {
-    playerParts = makeCowParts(skin);
+    playerParts = cowParts;
+    addHat(playerParts, skin.hat);
+    addPants(playerParts, skin.pants);
+}
+
+void CowsView::replaceCowParts(Vector<CowPart> parts, const CowSkin& skin)
+{
+    cowParts = std::move(parts);
+    wear(skin);
 }
 
 bool CowsView::escape()

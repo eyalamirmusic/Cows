@@ -3,10 +3,19 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 device := "D731347C-AC33-53DD-814A-1B1E4ED47AC7"
 
 # EACP=$HOME/Code/eacp builds against a local eacp.
-macos:
-    [[ -f build/CMakeCache.txt ]] || cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug ${EACP:+-DCPM_eacp_SOURCE=$EACP}
-    cmake --build build
-    open "build/Apps/CowsInLove/Cows In Love.app"
+# Configures dir once, then builds it. Extra args go to CMake.
+build dir type *args:
+    [[ -f {{dir}}/CMakeCache.txt ]] || cmake -G Ninja -B {{dir}} -DCMAKE_BUILD_TYPE={{type}} {{args}} ${EACP:+-DCPM_eacp_SOURCE=$EACP}
+    cmake --build {{dir}}
+
+app := "Apps/CowsInLove/Cows In Love.app"
+
+macos: (build "build" "Debug")
+    open "build/{{app}}"
+
+# Dev only, macOS and Linux: edit Lib/cowsinlove_Actors/Cow/Cow.cpp and save.
+hotreload: (build "build-hot" "Debug" "-DCOWS_HOT_RELOAD_COW=ON")
+    "build-hot/{{app}}/Contents/MacOS/Cows In Love"
 
 sim-ios shot="":
     tools/ios.sh sim {{shot}}
@@ -29,8 +38,7 @@ shot out="":
 devices:
     xcrun devicectl list devices
 
-test:
-    cmake --build build
+test: (build "build" "Debug")
     ctest --test-dir build --output-on-failure
 
 store-art:
@@ -97,9 +105,7 @@ release-mas *args:
     {{asc}} tools/release-mas.sh {{args}}
 
 # scenario: S1 menu, S2 editor, S3 play, S4 walking, S5 ending.
-perf scenario label runs="10":
-    [[ -f build-release/CMakeCache.txt ]] || cmake -G Ninja -B build-release -DCMAKE_BUILD_TYPE=Release ${EACP:+-DCPM_eacp_SOURCE=$EACP}
-    cmake --build build-release
+perf scenario label runs="10": (build "build-release" "Release")
     tools/perf.sh {{scenario}} {{label}} {{runs}}
 
 perf-compare a b:

@@ -11,6 +11,7 @@ set(COWS_VERSION
 
 eacp_add_app(Cows
         Source/Main.cpp
+        Source/Reloadable.cpp
         Source/CowsApp.cpp
         Source/Settings.cpp
         Source/Stages.cpp
@@ -64,6 +65,14 @@ set_target_properties(Cows PROPERTIES
 # Finder and Launchpad show a Mac app's file name.
 if (APPLE AND NOT IOS)
     set_target_properties(Cows PROPERTIES OUTPUT_NAME "${COWS_DISPLAY_NAME}")
+endif ()
+
+set(cow_model_directory ${CMAKE_SOURCE_DIR}/Lib/cowsinlove_Actors/Cow)
+target_compile_definitions(Cows PRIVATE COWS_COW_MODEL_SOURCE_DIRECTORY="${cow_model_directory}")
+
+if (COWS_HOT_RELOAD_COW)
+    eacp_add_hot_reload(Cows MODULE CowsCowModel
+            SOURCES ${cow_model_directory}/Cow.cpp HOT_RELOAD ON)
 endif ()
 
 eacp_set_gui_subsystem(Cows)

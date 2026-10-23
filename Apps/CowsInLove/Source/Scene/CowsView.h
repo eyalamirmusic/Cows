@@ -76,6 +76,7 @@ struct CowsView final : GPUView
     void swingTo(SwingGoal goal);
     void closeEditor();
     void wear(const CowSkin& skin);
+    void replaceCowParts(Vector<CowPart> parts, const CowSkin& skin);
     bool escape();
     void swingCamera(float delta);
     float menuOpacity() const;

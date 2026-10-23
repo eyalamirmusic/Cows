@@ -112,6 +112,9 @@ CowsApp::CowsApp()
     : scene {savedSettings.quality, Stages {firstStage()}, firstSeed()}
     , window {root, windowOptions()}
 {
+    cowModel.onReloaded = [this]
+    { scene.replaceCowParts(makeLiveCowParts(), savedSettings.skin); };
+
     root.addSubview(scene);
     scene.gameInput = &gameInput;
     scene.menu = &menu;
