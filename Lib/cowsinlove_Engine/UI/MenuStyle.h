@@ -25,7 +25,8 @@ Flex::Measure menuMeasure(Hud& hud);
 
 struct ScreenFrame final
 {
-    // Less the safe area, topClearance and the footer's strip (Footer::reserveFor).
+    // Less the safe area, topClearance and the footer's strip (Footer::reserveFor),
+    // the larger side inset taken on both sides so it stays centred on screen.
     Graphics::Rect contentArea() const;
 
     Graphics::Rect bounds;

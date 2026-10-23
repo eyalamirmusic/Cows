@@ -71,10 +71,11 @@ Graphics::Rect ScreenFrame::contentArea() const
 {
     auto top = std::max(safe.top, topClearance);
     auto bottom = bounds.h - safe.bottom - Footer::reserveFor(bounds.w);
+    auto largerSideInset = std::max(safe.left, safe.right);
 
-    return {safe.left,
+    return {largerSideInset,
             top,
-            std::max(bounds.w - safe.left - safe.right, 0.f),
+            std::max(bounds.w - 2.f * largerSideInset, 0.f),
             std::max(bottom - top, 0.f)};
 }
 
