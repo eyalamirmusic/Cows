@@ -112,8 +112,8 @@ Each release:
 ```bash
 just release-ios --upload
 ```
-This archives Release (iPhone and iPad, iOS 15+; portrait on iPhone, any
-orientation on iPad), exports with `ExportOptions.plist` (app-store-connect,
+This archives Release (iPhone and iPad, iOS 15+; iPhone in portrait and
+landscape, iPad in any orientation), exports with `ExportOptions.plist` (app-store-connect,
 symbols uploaded) and uploads. Without
 `--upload` the .ipa lands in `Deploy/Apple-iOS/out/` for Transporter. Then
 pick the build on the version page and **Submit for Review**. Without the

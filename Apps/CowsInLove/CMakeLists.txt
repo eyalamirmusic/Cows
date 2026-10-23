@@ -43,7 +43,12 @@ if (IOS)
             UIInterfaceOrientationPortraitUpsideDown
             UIInterfaceOrientationLandscapeLeft
             UIInterfaceOrientationLandscapeRight)
+    set(iphone_orientations
+            UIInterfaceOrientationPortrait
+            UIInterfaceOrientationLandscapeLeft
+            UIInterfaceOrientationLandscapeRight)
     eacp_add_plist_entries(Cows
+            UISupportedInterfaceOrientations "${iphone_orientations}"
             UISupportedInterfaceOrientations~ipad "${ipad_orientations}")
 
     set(ios_resources Resources/Assets.xcassets Resources/PrivacyInfo.xcprivacy)
