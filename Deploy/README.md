@@ -18,7 +18,9 @@ Deploy/
     ExportOptions.plist   App Store Connect export (team filled in by the script)
     Metadata/             app-store.md (every App Store Connect field),
                           privacy-policy.md
-    Screenshots/          iPhone-6.9 (1320x2868), iPhone-6.5 (1284x2778)
+    Screenshots/          iPhone-6.9 (1320x2868), iPhone-6.5 (1284x2778);
+                          iPad-13 (2064x2752) required but not made
+                          yet: CowsArt has no iPad store size
     out/                  archive and .ipa (gitignored)
   Steam/
     scripts/              app_build.vdf, depot_build_{windows,macos}.vdf
@@ -110,8 +112,9 @@ Each release:
 ```bash
 just release-ios --upload
 ```
-This archives Release (iPhone-only, iOS 15+), exports with
-`ExportOptions.plist` (app-store-connect, symbols uploaded) and uploads. Without
+This archives Release (iPhone and iPad, iOS 15+; iPhone in portrait and
+landscape, iPad in any orientation), exports with `ExportOptions.plist` (app-store-connect,
+symbols uploaded) and uploads. Without
 `--upload` the .ipa lands in `Deploy/Apple-iOS/out/` for Transporter. Then
 pick the build on the version page and **Submit for Review**. Without the
 vault, `COWS_TEAM=<team id> tools/release-ios.sh --upload` signs and uploads

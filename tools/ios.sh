@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
-# Usage: [COWS_TEAM=id] [COWS_DEVICE=udid] tools/ios.sh sim [shot.png] | device
+# Usage: [COWS_SIM="iPad Pro 11-inch (M5)"] [COWS_TEAM=id] [COWS_DEVICE=udid] tools/ios.sh sim [shot.png] | device
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 
 bundle_id="${COWS_BUNDLE_ID:-com.cowsinlove.play}"
-sim_name="Cows iPhone"
-sim_type="iPhone 17"
-sim_runtime="com.apple.CoreSimulator.SimRuntime.iOS-26-5"
+sim_type="${COWS_SIM:-iPhone 17}"
+sim_name="Cows $sim_type"
 device="${COWS_DEVICE:-D731347C-AC33-53DD-814A-1B1E4ED47AC7}"
 sign_in="Sign into Xcode > Settings > Accounts with an Apple ID, then rerun"
+
+find_newest_runtime_for_device_type() {
+    xcrun simctl list -j | python3 -c '
+import json, sys
+listing = json.load(sys.stdin)
+names = {t["name"]: t["identifier"] for t in listing["devicetypes"]}
+wanted = names.get(sys.argv[1], sys.argv[1])
+runtimes = [r for r in listing["runtimes"] if r["isAvailable"] and r["platform"] == "iOS"
+            and any(t["identifier"] == wanted for t in r["supportedDeviceTypes"])]
+version = lambda r: [int(p) for p in r["version"].split(".")]
+print(max(runtimes, key=version)["identifier"] if runtimes else "")
+' "$1"
+}
 
 run_sim() {
     local shot="${1:-}"
@@ -31,11 +43,16 @@ for devices in json.load(sys.stdin)["devices"].values():
         if d["name"] == name and d["isAvailable"]:
             print(d["udid"]); raise SystemExit
 ' "$sim_name")"
-    [[ -n "$udid" ]] || udid="$(xcrun simctl create "$sim_name" "$sim_type" "$sim_runtime")"
+    if [[ -z "$udid" ]]; then
+        local runtime
+        runtime="$(find_newest_runtime_for_device_type "$sim_type")"
+        [[ -n "$runtime" ]] || { echo "No installed iOS runtime has \"$sim_type\"" >&2; exit 1; }
+        udid="$(xcrun simctl create "$sim_name" "$sim_type" "$runtime")"
+    fi
 
     xcrun simctl boot "$udid" 2>/dev/null || true
     xcrun simctl bootstatus "$udid" -b >/dev/null
-    open -a Simulator
+    open -a Simulator 2>/dev/null || true
 
     xcrun simctl install "$udid" build-ios/Apps/CowsInLove/Debug-iphonesimulator/Cows.app
     xcrun simctl terminate "$udid" "$bundle_id" 2>/dev/null || true
@@ -96,5 +113,5 @@ run_device() {
 case "${1:-}" in
     sim) run_sim "${2:-}" ;;
     device) run_device ;;
-    *) echo "usage: tools/ios.sh sim [shot.png] | tools/ios.sh device" >&2; exit 1 ;;
+    *) echo "usage: [COWS_SIM=\"<device type>\"] tools/ios.sh sim [shot.png] | tools/ios.sh device" >&2; exit 1 ;;
 esac

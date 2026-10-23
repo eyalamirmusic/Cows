@@ -38,6 +38,19 @@ if (IOS)
             UIRequiresFullScreen TRUE
             UIStatusBarHidden TRUE)
 
+    set(ipad_orientations
+            UIInterfaceOrientationPortrait
+            UIInterfaceOrientationPortraitUpsideDown
+            UIInterfaceOrientationLandscapeLeft
+            UIInterfaceOrientationLandscapeRight)
+    set(iphone_orientations
+            UIInterfaceOrientationPortrait
+            UIInterfaceOrientationLandscapeLeft
+            UIInterfaceOrientationLandscapeRight)
+    eacp_add_plist_entries(Cows
+            UISupportedInterfaceOrientations "${iphone_orientations}"
+            UISupportedInterfaceOrientations~ipad "${ipad_orientations}")
+
     set(ios_resources Resources/Assets.xcassets Resources/PrivacyInfo.xcprivacy)
     target_sources(Cows PRIVATE ${ios_resources})
     set_source_files_properties(${ios_resources} PROPERTIES
@@ -56,7 +69,7 @@ target_link_libraries(Cows PRIVATE cowsinlove_Game)
 set_target_properties(Cows PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_COPYRIGHT "${COWS_COPYRIGHT}"
-        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1"
+        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
         XCODE_ATTRIBUTE_SKIP_INSTALL NO
         XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${COWS_MAC_ENTITLEMENTS}")
