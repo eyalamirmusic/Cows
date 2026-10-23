@@ -14,11 +14,13 @@ void Hud::begin(Frame& frame, RenderPass& passToUse, int samples)
         builtForSamples = samples;
     }
 
+    shapes->setPassHasDepthAttachment(true);
     shapes->setLogicalSize(size);
     shapes->setPixelScale(scale);
     shapes->begin(passToUse);
 
     text.setSampleCount(samples);
+    text.setPassHasDepthAttachment(true);
     text.setViewport(size, scale);
     text.begin();
 
