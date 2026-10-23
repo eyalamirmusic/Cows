@@ -366,11 +366,16 @@ the top `CMakeLists.txt`, for Clang and GCC; MSVC does not fuse): a seed must
 generate the same level on every platform, and FMA changes the low bits the level
 generator's placement hinges on. `LevelGeneratorTests` checks the hashes.
 
-iOS: `tools/ios.sh sim [shot.png]` builds `build-ios/` and runs it on the "Cows iPhone"
-simulator; `tools/ios.sh device` signs with `COWS_TEAM` (default: Jamie's Personal Team) and runs it on the phone.
+iOS: `tools/ios.sh sim [shot.png]` builds `build-ios/` and runs it on the
+simulator "Cows <type>", where `COWS_SIM` names the device type (default
+"iPhone 17"; any name `xcrun simctl list devicetypes` shows, such as
+"iPad Pro 11-inch (M5)"), made on the newest installed runtime that has that
+type; `tools/ios.sh device` signs with `COWS_TEAM` (default:
+Jamie's Personal Team) and runs it on the phone.
 
 Shortcuts in the `justfile`: `just macos`, `just sim-ios [shot.png]`,
-`just ios [udid]` (defaults to pond), `just shot`, `just devices`, `just test`.
+`just sim-ipad [shot.png]`, `just ios [udid]` (defaults to pond), `just shot`,
+`just devices`, `just test`.
 
 ## Rendering Rule
 

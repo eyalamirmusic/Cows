@@ -11,6 +11,9 @@ macos:
 sim-ios shot="":
     tools/ios.sh sim {{shot}}
 
+sim-ipad shot="":
+    COWS_SIM="iPad Pro 11-inch (M5)" tools/ios.sh sim {{shot}}
+
 # COWS_CONFIG=Release for a Release build.
 sim-android shot="":
     tools/android.sh sim {{shot}}
