@@ -1,5 +1,5 @@
-#include "Cow/Cow.h"
-#include "Animation/Choreography.h"
+#include "Cow.h"
+#include "../Animation/Choreography.h"
 #include "Render/Palette.h"
 
 #include <cmath>

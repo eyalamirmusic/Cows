@@ -1,3 +1,4 @@
+
 add_library(cowsinlove_Actors STATIC
         Animation/Choreography.cpp
         Cow/CowSkin.cpp
@@ -21,9 +22,7 @@ add_library(cowsinlove_Actors STATIC
         Props/Tree.cpp
         Sky/SkyDecor.cpp)
 
-if (NOT COWS_HOT_RELOAD_COW)
-    target_sources(cowsinlove_Actors PRIVATE Cow/Cow.cpp)
-endif ()
+target_compile_definitions(cowsinlove_Actors PUBLIC COWS_COW_MODEL_SOURCE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/Cow")
 
 target_include_directories(cowsinlove_Actors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(cowsinlove_Actors PUBLIC cowsinlove_Engine cowsinlove_AudioEngine cowsinlove_MeshLoader Miro)
@@ -39,3 +38,6 @@ res_embed_add(cowsinlove_Actors
         FILES Resources/barn.mesh Resources/bale.mesh
         NAMESPACE Models
         CATEGORY Models)
+
+eacp_add_hot_reload(cowsinlove_Actors MODULE ReloadedCows
+        SOURCES Cow/Cow.cpp HOT_RELOAD ${COWS_HOT_RELOAD_COW})
