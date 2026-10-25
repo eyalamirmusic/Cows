@@ -268,7 +268,7 @@ CowsView::CowsView(const QualityPreference& preference,
     , qualityPreference(preference)
     , shapes(makeContentMesh)
     , ground(makePlane(groundSize))
-    , cowParts(makeCowParts())
+    , cowParts(cowModel->makeParts())
     , playerParts(cowParts)
     , cows(makeCouple())
     , elapsed(startTime())

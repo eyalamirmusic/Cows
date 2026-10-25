@@ -1,4 +1,5 @@
 #include "Cow/Cow.h"
+#include "Cow/CowModel.h"
 #include "Animation/Choreography.h"
 #include "Render/Palette.h"
 
@@ -348,5 +349,9 @@ Vec3 Cow::contact(const CowPose& pose) const
 {
     auto at = pose.world.column(3);
     return {at.x, at.z, 1.f - 0.5f * pose.hop};
+}
+Vector<CowPart> CowModel::makeParts() const
+{
+    return makeCowParts();
 }
 } // namespace Cows

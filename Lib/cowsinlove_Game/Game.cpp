@@ -22,8 +22,6 @@ constexpr auto playerRadius = 1.f;
 constexpr auto playerHeight = 1.5f;
 constexpr auto foundDistance = 4.5f;
 constexpr auto foundClimb = 1.5f;
-constexpr auto gravity = 30.f;
-constexpr auto jumpSpeed = 12.f;
 constexpr auto coldDistance = 80.f;
 constexpr auto warmDistance = 5.f;
 constexpr auto coldBeat = 0.8f;
@@ -194,10 +192,10 @@ void Game::update(float delta, float ahead, float turn, bool jump)
     }
 
     if (jump && grounded)
-        verticalSpeed = jumpSpeed;
+        verticalSpeed = jumpPhysics.launchSpeedMetresPerSecond;
 
     auto feetBefore = player.y;
-    verticalSpeed -= gravity * delta;
+    verticalSpeed -= jumpPhysics.gravityMetresPerSecondSquared * delta;
     player.y += verticalSpeed * delta;
 
     auto headroom = level.ceilingAt(ground(player), feetBefore) - playerHeight;
@@ -270,6 +268,11 @@ float Game::warmth() const
 {
     return std::clamp(
         (coldDistance - distance()) / (coldDistance - warmDistance), 0.f, 1.f);
+}
+
+void Game::setJumpPhysics(const JumpPhysics& physics)
+{
+    jumpPhysics = physics;
 }
 
 float Game::endingSeconds() const

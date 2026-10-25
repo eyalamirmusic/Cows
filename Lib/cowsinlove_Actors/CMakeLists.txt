@@ -1,6 +1,7 @@
 add_library(cowsinlove_Actors STATIC
         Animation/Choreography.cpp
         Cow/Cow.cpp
+        Cow/CowPhysics.cpp
         Cow/CowSkin.cpp
         Cow/HeartMesh.cpp
         Cow/KissHearts.cpp

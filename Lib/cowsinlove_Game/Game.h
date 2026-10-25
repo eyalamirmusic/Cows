@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Cow/CowPhysics.h"
 #include "Level.h"
 
 #include <cstdint>
@@ -36,6 +37,8 @@ struct Game final
 
     float endingSeconds() const;
 
+    void setJumpPhysics(const JumpPhysics& physics);
+
     // Turned so the player's cow faces +x.
     Maths::Mat4 stage() const;
 
@@ -53,6 +56,7 @@ struct Game final
     Maths::Vec3 player;
     float playerHeading = 0.f;
     float verticalSpeed = 0.f;
+    JumpPhysics jumpPhysics = getJumpPhysics();
     bool grounded = true;
     float bounce = 0.f;
     float hopClock = 0.f;

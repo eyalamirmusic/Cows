@@ -37,7 +37,6 @@ struct CowsApp final
     bool showingAbout = false;
     Graphics::Window window;
     Graphics::GameInput gameInput {window};
-    Plugins::HotReloadedModule cowModel {Plugins::hotReloadTarget()};
-    Plugins::Reloadable<&makeCowParts> makeLiveCowParts {cowModel};
+    Plugins::HotReloadedModule reloadedModule {Plugins::hotReloadTarget()};
 };
 } // namespace Cows

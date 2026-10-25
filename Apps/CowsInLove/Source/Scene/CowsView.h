@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cow/Cow.h"
+#include "Cow/CowModel.h"
 #include "Cow/CowSkin.h"
 #include "Game.h"
 #include "Stages.h"
@@ -173,6 +174,7 @@ struct CowsView final : GPUView
     TitleShader menuTitleShader;
     GlowShader glowShader;
 
+    Plugins::Reloadable<CowModel> cowModel;
     Vector<CowPart> cowParts;
     Vector<CowPart> playerParts;
     Vector<Cow> cows;
