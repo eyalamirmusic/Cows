@@ -5,7 +5,7 @@ namespace Cows
 {
 namespace
 {
-constexpr auto jumpHeightMetres = 20.4f;
+constexpr auto jumpHeightMetres = 2.4f;
 constexpr auto jumpAirTimeSeconds = 3.2f;
 
 // Constant acceleration, symmetric arc: v = g T / 2 and h = v T / 4, so v = 4h / T.
