@@ -369,6 +369,10 @@ generator's placement hinges on. `LevelGeneratorTests` checks the hashes.
 iOS: `tools/ios.sh sim [shot.png]` builds `build-ios/` and runs it on the "Cows iPhone"
 simulator; `tools/ios.sh device` signs with `COWS_TEAM` (default: Jamie's Personal Team) and runs it on the phone.
 
+`just hotreload` (`-DCOWS_HOT_RELOAD_COW=ON`, `build-hot`) rebuilds and reloads
+`Cow/Cow.cpp`'s `makeCowParts` while the app runs, through eacp's
+`Plugins::Reloadable` in `CowsApp`.
+
 Shortcuts in the `justfile`: `just macos`, `just sim-ios [shot.png]`,
 `just ios [udid]` (defaults to pond), `just shot`, `just devices`, `just test`.
 

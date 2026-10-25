@@ -2,8 +2,6 @@
 
 #include "Render/Instances.h"
 
-#include <eacp/Core/Plugins/PluginExport.h>
-
 #include <array>
 
 namespace Cows
@@ -25,12 +23,8 @@ struct CowPart final
     float spotScale = 1.f;
 };
 
-// Standing on y = 0, facing +x. The module's entry point; eacp silences this
-// warning on the app and the module only, not on the library the header is in.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
-EACP_HOT_RELOAD_EXPORT Vector<CowPart> makeCowParts();
-#pragma clang diagnostic pop
+// Standing on y = 0, facing +x.
+Vector<CowPart> makeCowParts();
 
 enum class LegPair
 {

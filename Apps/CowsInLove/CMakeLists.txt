@@ -11,7 +11,6 @@ set(COWS_VERSION
 
 eacp_add_app(Cows
         Source/Main.cpp
-        Source/Reloadable.cpp
         Source/CowsApp.cpp
         Source/Settings.cpp
         Source/Stages.cpp
@@ -66,6 +65,9 @@ set_target_properties(Cows PROPERTIES
 if (APPLE AND NOT IOS)
     set_target_properties(Cows PROPERTIES OUTPUT_NAME "${COWS_DISPLAY_NAME}")
 endif ()
+
+eacp_add_hot_reload(Cows MODULE ReloadedCows LIBRARY cowsinlove_Actors
+        SOURCES Cow/Cow.cpp HOT_RELOAD ${COWS_HOT_RELOAD_COW})
 
 eacp_set_gui_subsystem(Cows)
 set_default_target_setting(Cows)

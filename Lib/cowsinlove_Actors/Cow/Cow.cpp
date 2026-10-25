@@ -1,5 +1,5 @@
-#include "Cow.h"
-#include "../Animation/Choreography.h"
+#include "Cow/Cow.h"
+#include "Animation/Choreography.h"
 #include "Render/Palette.h"
 
 #include <cmath>
@@ -224,7 +224,7 @@ Vec3 tailRoot()
     return tailPivot + hanging * tailUnderHide;
 }
 
-EACP_HOT_RELOAD_EXPORT Vector<CowPart> makeCowParts()
+Vector<CowPart> makeCowParts()
 {
     auto parts = Vector<CowPart> {};
 

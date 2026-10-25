@@ -6,8 +6,10 @@
 #include "UI/Editor.h"
 #include "UI/Menu.h"
 #include "UI/Overlay.h"
-#include "Reloadable.h"
 #include "UI/TouchControls.h"
+
+#include <eacp/Core/Plugins/HotReload.h>
+#include <eacp/Core/Plugins/Reloadable.h>
 
 namespace Cows
 {
@@ -35,7 +37,7 @@ struct CowsApp final
     bool showingAbout = false;
     Graphics::Window window;
     Graphics::GameInput gameInput {window};
-    HotReloadedModule cowModel {COWS_COW_MODEL_SOURCE_DIRECTORY};
-    Reloadable<&makeCowParts> makeLiveCowParts {cowModel, "makeCowParts"};
+    Plugins::HotReloadedModule cowModel {Plugins::hotReloadTarget()};
+    Plugins::Reloadable<&makeCowParts> makeLiveCowParts {cowModel};
 };
 } // namespace Cows
