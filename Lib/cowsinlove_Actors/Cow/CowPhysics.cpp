@@ -6,7 +6,7 @@ namespace Cows
 namespace
 {
 constexpr auto jumpHeightMetres = 2.4f;
-constexpr auto jumpAirTimeSeconds = 3.2f;
+constexpr auto jumpAirTimeSeconds = 0.8f;
 
 // Constant acceleration, symmetric arc: v = g T / 2 and h = v T / 4, so v = 4h / T.
 float launchSpeedFor(float heightMetres, float airTimeSeconds)
