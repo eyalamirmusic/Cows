@@ -110,6 +110,11 @@ Vec2 ground(Vec3 point)
 
 } // namespace
 
+Game::Game(const JumpPhysics& jumpPhysicsToUse)
+    : jumpPhysics(jumpPhysicsToUse)
+{
+}
+
 void Game::reset(std::uint32_t newSeed)
 {
     seed = newSeed;

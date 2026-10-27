@@ -2,6 +2,7 @@
 #include "Cow/Cow.h"
 #include "Cow/Wardrobe.h"
 #include "Snapshot.h"
+#include "TestCow.h"
 
 #include <NanoTest/NanoTest.h>
 
@@ -52,8 +53,14 @@ int posedCount(const Cow& cow, const Vector<CowPart>& parts, const CowPose& pose
 {
     auto batch = SurfaceBatch {};
     auto glows = Vector<GlowInstance> {};
-    cow.addTo(batch, glows, parts, pose);
+    getCowModelForTests().addPosedCowTo(batch, glows, cow, parts, pose);
     return instanceCount(batch);
+}
+
+CowPose standingStill(const Cow& cow)
+{
+    return getCowModelForTests().makeRoamingPose(
+        cow, {}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f);
 }
 
 bool isCowColour(const Graphics::Color& color)
@@ -64,14 +71,25 @@ bool isCowColour(const Graphics::Color& color)
 }
 } // namespace
 
+auto tFactoryMakesTheCow = test("Cow/theFactoryMakesTheCow") = []
+{
+    const auto& model = getCowModelForTests();
+    auto jump = model.getJumpPhysics();
+
+    check(std::abs(jump.launchSpeedMetresPerSecond - 12.f) < 1e-4f);
+    check(std::abs(jump.gravityMetresPerSecondSquared - 30.f) < 1e-4f);
+    check(model.makeParts().size() == 33);
+};
+
 auto tFreePoseFinite = test("Cow/freePoseIsFinite") = []
 {
+    const auto& model = getCowModelForTests();
     auto cow = Cow {};
 
     for (auto seconds = 0.f; seconds < 6.f; seconds += 0.37f)
     {
-        auto pose = cow.freePose(
-            {3.f, 0.f, -2.f}, seconds, seconds, 1.f, seconds, seconds, 1.f);
+        auto pose = model.makeRoamingPose(
+            cow, {3.f, 0.f, -2.f}, seconds, seconds, 1.f, seconds, seconds, 1.f);
         check(finite(pose.world));
         check(std::isfinite(pose.hop) && std::isfinite(pose.beat));
     }
@@ -79,19 +97,21 @@ auto tFreePoseFinite = test("Cow/freePoseIsFinite") = []
 
 auto tKissPoseFinite = test("Cow/kissPoseIsFinite") = []
 {
+    const auto& model = getCowModelForTests();
+
     for (auto side: {-1.f, 1.f})
     {
         auto cow = Cow {side, {}};
 
         for (auto kiss = 0; kiss < 3; ++kiss)
         {
-            auto pose = cow.pose(Choreography::kissTime(kiss));
+            auto pose = model.makeEndingPose(cow, Choreography::kissTime(kiss), {});
             check(finite(pose.world));
             check(std::isfinite(pose.lean));
 
             auto batch = SurfaceBatch {};
             auto glows = Vector<GlowInstance> {};
-            cow.addTo(batch, glows, makeCowParts(), pose);
+            model.addPosedCowTo(batch, glows, cow, model.makeParts(), pose);
             check(finite(batch));
         }
     }
@@ -99,18 +119,21 @@ auto tKissPoseFinite = test("Cow/kissPoseIsFinite") = []
 
 auto tConstantInstances = test("Cow/instanceCountIsConstant") = []
 {
+    const auto& model = getCowModelForTests();
     auto cow = Cow {};
-    auto parts = makeCowParts();
+    auto parts = model.makeParts();
     auto expected = (int) parts.size();
 
     check(expected > 0);
 
     for (auto seconds = 0.f; seconds < 12.f; seconds += 0.53f)
     {
-        check(posedCount(cow, parts, cow.pose(seconds)) == expected);
+        check(posedCount(cow, parts, model.makeEndingPose(cow, seconds, {}))
+              == expected);
         check(posedCount(cow,
                          parts,
-                         cow.freePose({}, 1.f, seconds, 0.5f, seconds, seconds, 1.f))
+                         model.makeRoamingPose(
+                             cow, {}, 1.f, seconds, 0.5f, seconds, seconds, 1.f))
               == expected);
     }
 };
@@ -120,12 +143,11 @@ auto tCowSnapshot = test("Cow/snapshot") = []
     if (!hasDevice())
         return;
 
+    const auto& model = getCowModelForTests();
     auto cow = Cow {};
     auto view = SnapshotView {cowMeshes(1.f)};
-    cow.addTo(view.batch,
-              view.glows,
-              makeCowParts(),
-              cow.freePose({}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f));
+    model.addPosedCowTo(
+        view.batch, view.glows, cow, model.makeParts(), standingStill(cow));
     view.camera.target = {0.f, 1.6f, 0.f};
     view.camera.yaw = 0.35f;
     view.camera.pitch = 0.15f;
@@ -174,12 +196,11 @@ int eyePixels(const Graphics::Image& image)
 
 Graphics::Image cowSeenFrom(float distance, const std::string& name)
 {
+    const auto& model = getCowModelForTests();
     auto cow = Cow {};
     auto view = SnapshotView {cowMeshes(1.f)};
-    cow.addTo(view.batch,
-              view.glows,
-              makeCowParts(),
-              cow.freePose({}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f));
+    model.addPosedCowTo(
+        view.batch, view.glows, cow, model.makeParts(), standingStill(cow));
     view.camera.target = {1.2f, 1.6f, 0.f};
     view.camera.yaw = 1.15f;
     view.camera.pitch = 0.05f;

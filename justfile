@@ -13,7 +13,7 @@ app := "Apps/CowsInLove/Cows In Love.app"
 macos: (build "build" "Debug")
     open "build/{{app}}"
 
-# Dev only, macOS and Linux: edit Lib/cowsinlove_Actors/Cow/Cow.cpp or CowPhysics.cpp and save.
+# Dev only, macOS and Linux: edit a source in Apps/CowsInLove/ReloadedCow and save.
 hotreload: (build "build-hot" "Debug" "-DCOWS_HOT_RELOAD_COW=ON")
     "build-hot/{{app}}/Contents/MacOS/Cows In Love"
 

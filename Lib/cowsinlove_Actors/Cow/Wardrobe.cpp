@@ -668,9 +668,9 @@ std::function<MeshData(Shape)> cowMeshes(float detail)
     return [detail](Shape shape) { return makeCowMeshAt(shape, detail); };
 }
 
-Vector<CowPart> makeCowParts(const CowSkin& skin)
+Vector<CowPart> makeDressedCowParts(const CowModel& model, const CowSkin& skin)
 {
-    auto parts = makeCowParts();
+    auto parts = model.makeParts();
     addHat(parts, skin.hat);
     addPants(parts, skin.pants);
     return parts;

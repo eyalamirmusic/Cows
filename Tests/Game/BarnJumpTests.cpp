@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "Props/Barn.h"
+#include "TestCow.h"
 
 #include <NanoTest/NanoTest.h>
 
@@ -35,7 +36,7 @@ Vec2 ahead(float heading)
 
 Game inBarn(Vec2 at)
 {
-    auto game = Game {};
+    auto game = Game {getCowModelForTests().getJumpPhysics()};
     game.reset(3);
     game.start();
     game.level = Level {};

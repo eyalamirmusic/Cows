@@ -11,6 +11,6 @@ nano_add_executable(ActorsTests
             SkyTests.cpp
             WardrobeTests.cpp
             ../Support/TestMain.cpp
-        TARGETS cowsinlove_Actors cowsinlove_TestSupport)
+        TARGETS cowsinlove_Actors cowsinlove_TestSupport cowsinlove_TestCow)
 
 set_default_target_setting(ActorsTests)

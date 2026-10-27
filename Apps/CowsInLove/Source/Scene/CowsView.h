@@ -29,6 +29,8 @@
 #include "UI/Editor.h"
 #include "UI/Menu.h"
 
+#include <eacp/Core/Plugins/Reloadable.h>
+
 #include <array>
 #include <functional>
 #include <optional>
@@ -77,7 +79,8 @@ struct CowsView final : GPUView
     void swingTo(SwingGoal goal);
     void closeEditor();
     void wear(const CowSkin& skin);
-    void replaceCowParts(Vector<CowPart> parts, const CowSkin& skin);
+    Plugins::ReloadableOptions makeCowReloadOptions();
+    void replaceCowModelFromReloadedCode();
     bool escape();
     void swingCamera(float delta);
     float menuOpacity() const;
@@ -119,6 +122,7 @@ struct CowsView final : GPUView
     void measureQuality();
 
     void gatherInstances(float seconds);
+    void addPosedCows(float seconds);
     Maths::Vec3 groundFocus() const;
     void setSceneUniforms(SceneUniforms& uniforms,
                           const Maths::Mat4& viewProjection);
@@ -139,6 +143,8 @@ struct CowsView final : GPUView
                    const Maths::Mat4& cullWith,
                    FrameProfile::Pass counted = FrameProfile::Pass::Scene);
 
+    Plugins::Reloadable cowCode {makeCowReloadOptions()};
+    OwningPointer<CowModel> cowModel = cowCode.create<CowModel>();
     Stages stages;
     Game game;
     Input input;
@@ -174,7 +180,6 @@ struct CowsView final : GPUView
     TitleShader menuTitleShader;
     GlowShader glowShader;
 
-    Plugins::Reloadable<CowModel> cowModel;
     Vector<CowPart> cowParts;
     Vector<CowPart> playerParts;
     Vector<Cow> cows;
@@ -229,5 +234,6 @@ struct CowsView final : GPUView
     Hints pointerHints = Hints::Keys;
     Hints hints = Hints::Keys;
     bool framedPortrait = false;
+    CowSkin wornSkin;
 };
 } // namespace Cows

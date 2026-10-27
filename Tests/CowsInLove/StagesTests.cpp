@@ -20,7 +20,7 @@ Level levelOf(const Stages& stages)
 auto tMeadow = test("Stages/levelIsAMeadow") = []
 {
     auto stages = Stages {};
-    auto game = Game {};
+    auto game = Game {neitherJumpingNorFalling};
     game.makeLevel = stages.level();
     game.reset(anySeed);
     check(!game.level.colliders.empty());

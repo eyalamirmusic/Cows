@@ -129,6 +129,18 @@ RenderPipelineDescriptor glowPipeline(int samples)
     return descriptor;
 }
 
+// With no cow (a hot-reload module that failed to load), she stands still until a
+// build loads and onReloaded hands the game her jump.
+JumpPhysics getJumpPhysicsOrStandStill(const CowModel* model)
+{
+    return model != nullptr ? model->getJumpPhysics() : neitherJumpingNorFalling;
+}
+
+Vector<CowPart> makePartsOrNone(const CowModel* model)
+{
+    return model != nullptr ? model->makeParts() : Vector<CowPart> {};
+}
+
 Vector<Cow> makeCouple()
 {
     auto cows = Vector<Cow> {};
@@ -265,10 +277,11 @@ CowsView::CowsView(const QualityPreference& preference,
                    Stages stagesToPlay,
                    std::uint32_t firstSeed)
     : stages(std::move(stagesToPlay))
+    , game(getJumpPhysicsOrStandStill(cowModel))
     , qualityPreference(preference)
     , shapes(makeContentMesh)
     , ground(makePlane(groundSize))
-    , cowParts(cowModel->makeParts())
+    , cowParts(makePartsOrNone(cowModel))
     , playerParts(cowParts)
     , cows(makeCouple())
     , elapsed(startTime())
@@ -784,15 +797,30 @@ void CowsView::closeEditor()
 
 void CowsView::wear(const CowSkin& skin)
 {
+    wornSkin = skin;
     playerParts = cowParts;
     addHat(playerParts, skin.hat);
     addPants(playerParts, skin.pants);
 }
 
-void CowsView::replaceCowParts(Vector<CowPart> parts, const CowSkin& skin)
+Plugins::ReloadableOptions CowsView::makeCowReloadOptions()
 {
-    cowParts = std::move(parts);
-    wear(skin);
+    auto options = Plugins::ReloadableOptions {};
+    options.callOnReloadedAtCreation = false;
+    options.onReloaded = [this] { replaceCowModelFromReloadedCode(); };
+    return options;
+}
+
+void CowsView::replaceCowModelFromReloadedCode()
+{
+    cowModel = cowCode.create<CowModel>();
+
+    if (!cowModel)
+        return;
+
+    cowParts = cowModel->makeParts();
+    wear(wornSkin);
+    game.setJumpPhysics(cowModel->getJumpPhysics());
 }
 
 bool CowsView::escape()
@@ -1315,26 +1343,42 @@ void CowsView::gatherInstances(float seconds)
     heartBatch.clear();
     glows.clear();
 
+    addPosedCows(seconds);
+
+    auto origin = groundFocus();
+    SkyDecor::addSun(backdropBatch, glows, seconds, origin);
+    SkyDecor::addClouds(backdropBatch, seconds, origin);
+    SkyDecor::addHills(backdropBatch, origin);
+}
+
+void CowsView::addPosedCows(float seconds)
+{
+    if (!cowModel)
+        return;
+
+    const auto& model = *cowModel;
     auto poses = std::array<CowPose, 2> {};
 
     if (game.getStateBehindMenu() == Game::State::Searching)
     {
         auto warmth = game.warmth();
-        poses[0] = cows[0].freePose(game.player,
-                                    game.playerHeading,
-                                    game.hopClock,
-                                    game.bounce,
-                                    seconds,
-                                    game.beatClock,
-                                    0.6f + 1.4f * warmth);
+        poses[0] = model.makeRoamingPose(cows[0],
+                                         game.player,
+                                         game.playerHeading,
+                                         game.hopClock,
+                                         game.bounce,
+                                         seconds,
+                                         game.beatClock,
+                                         0.6f + 1.4f * warmth);
         poses[0].moo = mooShape(game.sinceMoo);
-        poses[1] = cows[1].freePose(game.partner,
-                                    game.partnerHeading,
-                                    game.hopClock,
-                                    0.f,
-                                    seconds,
-                                    game.beatClock,
-                                    2.f * warmth * warmth);
+        poses[1] = model.makeRoamingPose(cows[1],
+                                         game.partner,
+                                         game.partnerHeading,
+                                         game.hopClock,
+                                         0.f,
+                                         seconds,
+                                         game.beatClock,
+                                         2.f * warmth * warmth);
         poses[1].moo = mooShape(game.sinceMoo - mooAnswerDelay);
         addAnswerFlare();
     }
@@ -1344,7 +1388,7 @@ void CowsView::gatherInstances(float seconds)
         auto stage = game.stage();
 
         for (auto index = 0; index < 2; ++index)
-            poses[index] = cows[index].pose(ending, stage);
+            poses[index] = model.makeEndingPose(cows[index], ending, stage);
 
         addKissHearts(
             heartBatch, glows, ending, transformPoint(stage, Ending::kissPoint));
@@ -1352,18 +1396,13 @@ void CowsView::gatherInstances(float seconds)
 
     for (auto index = 0; index < 2; ++index)
     {
-        cows[index].addTo(
-            cowBatch, glows, index == 0 ? playerParts : cowParts, poses[index]);
-        contacts[index] = cows[index].contact(poses[index]);
+        const auto& parts = index == 0 ? playerParts : cowParts;
+        model.addPosedCowTo(cowBatch, glows, cows[index], parts, poses[index]);
+        contacts[index] = model.getContactShadow(poses[index]);
 
         if (poses[index].world.column(3).y > contactReach)
             contacts[index].z = 0.f;
     }
-
-    auto origin = groundFocus();
-    SkyDecor::addSun(backdropBatch, glows, seconds, origin);
-    SkyDecor::addClouds(backdropBatch, seconds, origin);
-    SkyDecor::addHills(backdropBatch, origin);
 }
 
 Vec3 CowsView::groundFocus() const

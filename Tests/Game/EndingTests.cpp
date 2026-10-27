@@ -1,6 +1,7 @@
 #include "Cow/Moo.h"
 #include "Ending.h"
 #include "Props/Barn.h"
+#include "TestCow.h"
 
 #include <NanoTest/NanoTest.h>
 
@@ -13,7 +14,7 @@ namespace
 {
 Game foundGame(float sinceFound)
 {
-    auto game = Game {};
+    auto game = Game {neitherJumpingNorFalling};
     game.reset(3);
     game.state = Game::State::Found;
     game.sinceFound = sinceFound;
@@ -107,7 +108,7 @@ auto tFooter = test("Ending/footerText") = []
 
     for (const auto& expected: cases)
     {
-        auto game = Game {};
+        auto game = Game {neitherJumpingNorFalling};
         game.reset(3);
         game.start();
         check(footerText(game, "hint", expected.hints) == expected.searching);
@@ -137,7 +138,7 @@ auto tFoundStart = test("Ending/foundStartIsFoundAlongTheStagesHeading") = []
 
     for (auto heading: {std::optional<float> {}, std::optional {intoTheLoft}})
     {
-        auto game = Game {};
+        auto game = Game {getCowModelForTests().getJumpPhysics()};
         game.reset(3);
         game.start();
         game.level = Level {};

@@ -119,13 +119,15 @@ under `Apps/CowsInLove/`.
   collision shape and behaviour. Links Engine and AudioEngine.
   - `Animation/Choreography` — every timing of the original (sway/kiss, hops,
     heartbeat, sun pulse, title wave)
-  - `Cow/Cow` — the cow model (parts on bones) and its animation;
-    `Cow/CowPhysics` — `getJumpPhysics`, the launch speed and gravity worked
-    out from the jump's height and airtime, which `Game` starts from;
-    `Cow/CowModel` — `CowModel`, a `Plugins::Reloadable` whose `makeParts`
-    and `getJumpPhysics` (`EACP_RELOADABLE`, defined in `Cow.cpp` and
-    `CowPhysics.cpp` over the free functions) run the hot-reload module's
-    latest code; `CowsView` owns one;
+  - `Cow/Cow` — what the rest of the game shares about the cow: `CowPart` on
+    its `Bone`, `CowPose`, `Cow` (its side and spot seed), and the body the
+    parts sit on and the clothes are cut from (`torsoPlacement`,
+    `legPlacements`, `tailRoot`, `hoofTop`, the tail's pivot and swing);
+    `Cow/CowPhysics` — `JumpPhysics`, the launch speed and gravity;
+    `Cow/CowModel` — `CowModel`, the interface to the cow's parts
+    (`makeParts`), jump (`getJumpPhysics`) and animation (`makeEndingPose`,
+    `makeRoamingPose`, `addPosedCowTo`, `getContactShadow`), all of it in the
+    app's `ReloadedCow` library and made only by its `makeCowModel`;
     `Cow/HeartMesh` — puffy heart; `Cow/KissHearts` — the heart burst at each
     kiss (stateless); `Cow/Moo` — the recorded moo and her answer, embedded
     from `Resources/moo.f32` (see `Resources/CREDITS.md`)
@@ -146,7 +148,7 @@ under `Apps/CowsInLove/`.
     body at the hips) for the back legs, or for both pairs the belly (the
     lower half, cut level at the girth with a band along it; `makePantsMesh`), and the legs' capsules
     widened into sleeves with a cuff above the hoof; `makeCowMesh` for
-    `ShapeMeshes`, and `makeCowParts(skin)`
+    `ShapeMeshes`, and `makeDressedCowParts(model, skin)`
   - `Sky/SkyDecor` — sun, clouds, hills
   - `Props/Collision` — `Collider` and `Block`; `Props/Scenery` — the batch,
     colliders and blocks props are added to; `Props/Props` — seeded draws,
@@ -216,7 +218,7 @@ under `Apps/CowsInLove/`.
   Links World.
   - `Game` — state machine (`Menu` first, then `Searching` and `Found`;
     `start()` leaves the menu, `openMenu()` pauses into it, `getStateBehindMenu()` is the
-    state behind it; a `reset` from play skips the menu), player movement (one world unit is a metre; the jump is set by its height and airtime in `Cow/CowPhysics`), found test, moo cooldown, the moo
+    state behind it; a `reset` from play skips the menu), player movement (one world unit is a metre; `Game` is built from a `JumpPhysics`, the `CowModel`'s, and `setJumpPhysics` takes a reloaded one; `neitherJumpingNorFalling` for a game that never jumps), found test, moo cooldown, the moo
     hint, the level's clock (`seconds`, driving its movers), the checkpoint and
     respawn below `killDepth` (`sinceFell`), `footerText` (for a `Hints`), and
     `getInputRecipient` (an `InputRecipient`, worked out from the state, an
@@ -313,7 +315,9 @@ under `Apps/CowsInLove/`.
   for the app's content; run with `ctest --test-dir build` or `just test`.
   `Tests/Support` holds the shared `TestMain` and `SnapshotView`, which draws a
   `SurfaceBatch` (plus anything in `drawOpaque`) off-screen and saves
-  `docs/shots/tests/<name>.png`; snapshot tests skip without a GPU
+  `docs/shots/tests/<name>.png`; snapshot tests skip without a GPU;
+  `cowsinlove_TestCow` (`getCowModelForTests`) compiles in `ReloadedCow`'s
+  objects and makes the cow through `makeCowModel`, as the app does
 
 `COWS_TIME=<seconds>` starts the clock there and `COWS_FREEZE=1` stops it (the
 camera's swing between screens still runs), for
@@ -375,13 +379,23 @@ generator's placement hinges on. `LevelGeneratorTests` checks the hashes.
 iOS: `tools/ios.sh sim [shot.png]` builds `build-ios/` and runs it on the "Cows iPhone"
 simulator; `tools/ios.sh device` signs with `COWS_TEAM` (default: Jamie's Personal Team) and runs it on the phone.
 
-`just hotreload` (`-DCOWS_HOT_RELOAD_COW=ON`, `build-hot`) rebuilds `Cow/Cow.cpp`
-and `Cow/CowPhysics.cpp` into a module while the app runs; each reload moves
-`CowsView`'s `CowModel` onto the fresh code, and `CowsApp` pulls its parts into
-the scene and its jump into `Game::setJumpPhysics`. Edit function bodies only:
-a changed header is refused (undo it or restart), and a struct that cannot be
-swapped stops the app with its name. Call `CowModel`'s methods through a
-reference: clang binds a call on a named object or member to the app's copy.
+`Apps/CowsInLove/ReloadedCow` is the cow's code: `ReloadedCowModel`, its parts
+(`CowParts.cpp`), jump (`CowJump.cpp`) and animation (`CowAnimation.cpp`), and
+`makeCowModel` (`CowModelFactory.cpp`, `EACP_RELOADABLE`). `eacp_add_hot_reload`
+makes it a static library linked into the app; nothing else links it, and
+`CowsArt` and `cowsinlove_TestCow` compile in its objects
+(`$<TARGET_OBJECTS:ReloadedCow>`) and make the cow through a plain
+`Plugins::Reloadable`. `CowsView` declares its `Plugins::Reloadable` and the
+`CowModel` it makes before `game`, which is built from the model's jump, and
+the cow's parts from its `makeParts` (no cow, from a module that failed to
+load: `neitherJumpingNorFalling` and no parts). `onReloaded` runs only after a
+reload (`callOnReloadedAtCreation` off): it replaces the model and takes its
+parts (worn with `wornSkin`) and its jump (`Game::setJumpPhysics`). `just hotreload` (`-DCOWS_HOT_RELOAD_COW=ON`,
+`build-hot`; `EACP=$HOME/Code/eacp` for the local eacp) makes it a module,
+rebuilt on every save of its four sources while the app runs. The body
+(`Cow/Cow.cpp`) stays in `cowsinlove_Actors`, shared with the clothes, so it
+does not reload. Edit function bodies only: a changed header (`CowPart`,
+`CowModel`, `ReloadedCowModel`) is not caught, so restart after one.
 
 Shortcuts in the `justfile`: `just macos`, `just sim-ios [shot.png]`,
 `just ios [udid]` (defaults to pond), `just shot`, `just devices`, `just test`.

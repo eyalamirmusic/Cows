@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "TestCow.h"
 
 #include <NanoTest/NanoTest.h>
 
@@ -21,7 +22,7 @@ bool near(float a, float b, float margin = 1e-3f)
 
 Game openField()
 {
-    auto game = Game {};
+    auto game = Game {getCowModelForTests().getJumpPhysics()};
     game.reset(3);
     game.start();
     game.level = Level {};
@@ -182,7 +183,7 @@ auto tEndingClock = test("Game/endingSecondsFollowSinceFound") = []
 
 auto tMenuFirst = test("Game/startsInTheMenuAndStartMovesOn") = []
 {
-    auto game = Game {};
+    auto game = Game {neitherJumpingNorFalling};
     game.reset(3);
     check(game.state == Game::State::Menu);
     check(game.getStateBehindMenu() == Game::State::Searching);

@@ -66,8 +66,7 @@ if (APPLE AND NOT IOS)
     set_target_properties(Cows PROPERTIES OUTPUT_NAME "${COWS_DISPLAY_NAME}")
 endif ()
 
-eacp_add_hot_reload(Cows MODULE ReloadedCows LIBRARY cowsinlove_Actors
-        SOURCES Cow/Cow.cpp Cow/CowPhysics.cpp HOT_RELOAD ${COWS_HOT_RELOAD_COW})
+add_subdirectory(ReloadedCow)
 
 eacp_set_gui_subsystem(Cows)
 set_default_target_setting(Cows)

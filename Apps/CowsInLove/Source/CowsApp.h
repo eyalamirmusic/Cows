@@ -8,9 +8,6 @@
 #include "UI/Overlay.h"
 #include "UI/TouchControls.h"
 
-#include <eacp/Core/Plugins/HotReload.h>
-#include <eacp/Core/Plugins/Reloadable.h>
-
 namespace Cows
 {
 struct CowsApp final
@@ -37,6 +34,5 @@ struct CowsApp final
     bool showingAbout = false;
     Graphics::Window window;
     Graphics::GameInput gameInput {window};
-    Plugins::HotReloadedModule reloadedModule {Plugins::hotReloadTarget()};
 };
 } // namespace Cows

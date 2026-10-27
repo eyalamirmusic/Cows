@@ -1,5 +1,4 @@
-#include "Cow/CowPhysics.h"
-#include "Cow/CowModel.h"
+#include "ReloadedCowModel.h"
 
 namespace Cows
 {
@@ -21,14 +20,9 @@ float gravityFor(float heightMetres, float airTimeSeconds)
 }
 } // namespace
 
-JumpPhysics getJumpPhysics()
+JumpPhysics ReloadedCowModel::getJumpPhysics() const
 {
     return {launchSpeedFor(jumpHeightMetres, jumpAirTimeSeconds),
             gravityFor(jumpHeightMetres, jumpAirTimeSeconds)};
-}
-
-JumpPhysics CowModel::getJumpPhysics() const
-{
-    return Cows::getJumpPhysics();
 }
 } // namespace Cows

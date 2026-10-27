@@ -1,5 +1,6 @@
 #include "Cow/Wardrobe.h"
 #include "Snapshot.h"
+#include "TestCow.h"
 
 #include <NanoTest/NanoTest.h>
 
@@ -35,12 +36,22 @@ Vector<CowPart> hatParts(Hat hat)
     addHat(parts, hat);
     return parts;
 }
+
+Vector<CowPart> makeTestCowPartsWearing(const CowSkin& skin)
+{
+    return makeDressedCowParts(getCowModelForTests(), skin);
+}
+
+int countBareCowParts()
+{
+    return getCowModelForTests().makeParts().size();
+}
 } // namespace
 
 auto tNoHat = test("Wardrobe/noHatIsTheBareCow") = []
 {
     check(hatParts(Hat::None).empty());
-    check(makeCowParts(CowSkin {}).size() == makeCowParts().size());
+    check(makeTestCowPartsWearing(CowSkin {}).size() == countBareCowParts());
 };
 
 auto tHatsOnHead = test("Wardrobe/everyHatSitsOnTheHead") = []
@@ -49,8 +60,8 @@ auto tHatsOnHead = test("Wardrobe/everyHatSitsOnTheHead") = []
     {
         auto parts = hatParts(hat);
         check(!parts.empty());
-        check(makeCowParts(wearing(hat)).size()
-              == makeCowParts().size() + parts.size());
+        check(makeTestCowPartsWearing(wearing(hat)).size()
+              == countBareCowParts() + parts.size());
 
         for (const auto& part: parts)
         {
@@ -84,11 +95,13 @@ struct Shot final
 
 void shoot(const CowSkin& skin, const Shot& shot, const std::string& name)
 {
+    const auto& model = getCowModelForTests();
     auto cow = Cow {};
     auto view = SnapshotView {cowMeshes(1.f)};
-    auto pose = cow.freePose({}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f);
+    auto pose = model.makeRoamingPose(cow, {}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f);
     pose.lean = shot.lean;
-    cow.addTo(view.batch, view.glows, makeCowParts(skin), pose);
+    model.addPosedCowTo(
+        view.batch, view.glows, cow, makeTestCowPartsWearing(skin), pose);
     view.camera.target = shot.target;
     view.camera.yaw = shot.yaw;
     view.camera.pitch = shot.pitch;
@@ -124,8 +137,8 @@ auto tPantsOnBody = test("Wardrobe/pantsSitOnTheBody") = []
     addPants(both, Pants::BothLegs);
     addPants(back, Pants::BackLegs);
     check(both.size() > back.size());
-    check(makeCowParts(dressed(Hat::Crown, Pants::BothLegs)).size()
-          == makeCowParts(wearing(Hat::Crown)).size() + both.size());
+    check(makeTestCowPartsWearing(dressed(Hat::Crown, Pants::BothLegs)).size()
+          == makeTestCowPartsWearing(wearing(Hat::Crown)).size() + both.size());
 };
 
 auto tHatSnapshots = test("Wardrobe/snapshots") = []

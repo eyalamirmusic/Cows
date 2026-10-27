@@ -2,6 +2,7 @@
 #include "Levels/LevelGenerator.h"
 #include "Fixtures.h"
 #include "Props/Bale.h"
+#include "TestCow.h"
 
 #include <NanoTest/NanoTest.h>
 
@@ -27,7 +28,7 @@ Level levelWithAGap()
 
 Game gameOn(const Level& level)
 {
-    auto game = Game {};
+    auto game = Game {getCowModelForTests().getJumpPhysics()};
     game.makeLevel = [level](std::uint32_t) { return level; };
     game.reset(3);
     game.start();

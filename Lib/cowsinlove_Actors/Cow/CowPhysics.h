@@ -8,6 +8,6 @@ struct JumpPhysics final
     float gravityMetresPerSecondSquared = 0.f;
 };
 
-// Standing on y = 0 in metres: how high she jumps and how long she is in the air.
-JumpPhysics getJumpPhysics();
+// Stays where she stands: no launch and no gravity.
+inline constexpr auto neitherJumpingNorFalling = JumpPhysics {};
 } // namespace Cows

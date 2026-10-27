@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cow/Cow.h"
+#include "Cow/CowModel.h"
 #include "Cow/CowSkin.h"
 #include "Render/Mesh.h"
 
@@ -16,5 +17,5 @@ MeshData makePantsMesh(Shape shape, float detail = 1.f);
 
 std::function<MeshData(Shape)> cowMeshes(float detail);
 
-Vector<CowPart> makeCowParts(const CowSkin& skin);
+Vector<CowPart> makeDressedCowParts(const CowModel& model, const CowSkin& skin);
 } // namespace Cows

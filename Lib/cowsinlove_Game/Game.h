@@ -17,6 +17,8 @@ struct Game final
         Found
     };
 
+    explicit Game(const JumpPhysics& jumpPhysicsToUse);
+
     void reset(std::uint32_t newSeed);
 
     void start();
@@ -56,7 +58,7 @@ struct Game final
     Maths::Vec3 player;
     float playerHeading = 0.f;
     float verticalSpeed = 0.f;
-    JumpPhysics jumpPhysics = getJumpPhysics();
+    JumpPhysics jumpPhysics;
     bool grounded = true;
     float bounce = 0.f;
     float hopClock = 0.f;

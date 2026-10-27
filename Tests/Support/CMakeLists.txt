@@ -13,3 +13,10 @@ target_include_directories(cowsinlove_TestFixtures PUBLIC ${CMAKE_CURRENT_SOURCE
 target_link_libraries(cowsinlove_TestFixtures PUBLIC cowsinlove_World)
 
 set_default_target_setting(cowsinlove_TestFixtures)
+
+add_library(cowsinlove_TestCow STATIC TestCow.cpp $<TARGET_OBJECTS:ReloadedCow>)
+
+target_include_directories(cowsinlove_TestCow PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(cowsinlove_TestCow PUBLIC cowsinlove_Actors)
+
+set_default_target_setting(cowsinlove_TestCow)

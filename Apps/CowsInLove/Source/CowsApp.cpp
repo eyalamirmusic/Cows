@@ -112,12 +112,6 @@ CowsApp::CowsApp()
     : scene {savedSettings.quality, Stages {firstStage()}, firstSeed()}
     , window {root, windowOptions()}
 {
-    reloadedModule.onReloaded = [this]
-    {
-        scene.replaceCowParts(scene.cowModel->makeParts(), savedSettings.skin);
-        scene.game.setJumpPhysics(scene.cowModel->getJumpPhysics());
-    };
-
     root.addSubview(scene);
     scene.gameInput = &gameInput;
     scene.menu = &menu;
