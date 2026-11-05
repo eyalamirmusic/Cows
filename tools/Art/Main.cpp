@@ -1,5 +1,6 @@
 #include "Ending.h"
 #include "LogoView.h"
+#include "Props/Barn.h"
 #include "Screenshots.h"
 #include "Scene/CowsView.h"
 
@@ -67,7 +68,7 @@ void playEnding(CowsView& view, float sinceFound)
 {
     auto& game = view.game;
     view.frozen = true;
-    game.player = game.partner + Vec3 {Ending::foundStartGap, 0.f, 0.f};
+    game.player = Ending::foundStart(game);
     game.update(step, 0.f, 0.f, false);
 
     while (game.sinceFound < sinceFound)
@@ -194,6 +195,197 @@ void renderAll()
     saveLogo("logo", 2560, 1440);
 }
 
+// A seed whose hideout is a barn's ridge, so the meadow has room for one.
+constexpr auto barnSeed = 10u;
+constexpr auto barnRoom = 30.f;
+constexpr auto settleSteps = 240;
+constexpr auto barnShotWidth = 960;
+constexpr auto barnShotHeight = 600;
+
+// Far above anything: floorAt from here is the highest surface over a point.
+constexpr auto sky = 1000.f;
+// How far she walks in from the doorway, and along the loft towards its wall.
+constexpr auto inFromTheDoor = 7.f;
+constexpr auto alongTheLoft = 5.5f;
+
+struct NamedSpot final
+{
+    std::string name;
+    Vec3 at;
+};
+
+struct BarnLook final
+{
+    std::string name;
+    float yaw = 0.f;
+    float pitch = 0.3f;
+};
+
+// The level with everything near `center` taken away and a barn, unturned,
+// put there.
+void standBarnAt(Level& level, Vec2 center)
+{
+    clearAroundStage(level, {center.x, 0.f, center.y}, barnRoom);
+
+    auto far = [&](Vec2 at) { return distance(at, center) > barnRoom; };
+    auto blocks = Vector<Cows::Block> {};
+    auto colliders = Vector<Collider> {};
+
+    for (const auto& block: level.blocks)
+        if (far(block.center))
+            blocks.add(block);
+
+    for (const auto& collider: level.colliders)
+        if (far(collider.center))
+            colliders.add(collider);
+
+    level.blocks = blocks;
+    level.colliders = colliders;
+    addBarn(level, center, 0);
+}
+
+// Over the barn's floor and under its roof.
+bool insideBarn(const Level& level, Vec3 eye)
+{
+    const auto& floor = level.clearings.back();
+    auto at = Vec2 {eye.x, eye.z};
+    auto offset = absolute(at - floor.center);
+    return offset.x < floor.half.x && offset.y < floor.half.y
+           && eye.y < level.floorAt(at, sky);
+}
+
+Vec3 stepped(const BarnSpot& spot, float reach, float feet)
+{
+    return spot.at
+           + Vec3 {std::cos(spot.heading), 0.f, -std::sin(spot.heading)} * reach
+           + Vec3 {0.f, feet - spot.at.y, 0.f};
+}
+
+// Seeds whose hideout is a barn's ridge and its loft, and how far into the
+// ending each is rendered.
+constexpr auto ridgeSeed = 10u;
+constexpr auto loftSeed = 3u;
+constexpr auto endingShown = 4.f;
+
+void renderBarnEnding(const std::string& directory,
+                      const std::string& name,
+                      std::uint32_t seed)
+{
+    auto view = CowsView {{QualityChoice::High, {}}, Stages {}, seed};
+    view.game.start();
+    playEnding(view, endingShown);
+    view.setBounds({0.f, 0.f, (float) barnShotWidth, (float) barnShotHeight});
+    LOG(name, " hiding ", (int) view.game.level.hiding);
+
+    auto image = view.renderToImage(1.f);
+
+    if (image.isValid())
+        image.save(FilePath {directory + "/" + name + ".png"});
+}
+
+struct EndingCase final
+{
+    std::string name;
+    std::uint32_t seed;
+};
+
+// The ending for a seed of each hiding kind, at moments through it: the
+// title rising, risen as the camera settles, and in the hold.
+void renderEndings(const std::string& directory)
+{
+    auto cases = std::initializer_list<EndingCase> {{"roof", 10u},
+                                                    {"stack", 5u},
+                                                    {"grove", 1u},
+                                                    {"hedge", 4u},
+                                                    {"meadow", 9u},
+                                                    {"loft", 3u}};
+    auto moments = std::initializer_list<float> {Ending::titleDelay
+                                                     + Ending::titleRiseTime / 2.f,
+                                                 Ending::settleTime,
+                                                 Ending::loopTime - step};
+
+    for (const auto& ending: cases)
+        for (auto moment: moments)
+        {
+            auto view = CowsView {{QualityChoice::High, {}}, Stages {}, ending.seed};
+            view.game.start();
+            playEnding(view, moment);
+            view.setBounds(
+                {0.f, 0.f, (float) barnShotWidth, (float) barnShotHeight});
+
+            auto name = "ending-" + ending.name + "-"
+                        + std::to_string((int) std::lround(moment * 10.f));
+            LOG(name, " hiding ", (int) view.game.level.hiding);
+            auto image = view.renderToImage(1.f);
+
+            if (image.isValid())
+                image.save(FilePath {directory + "/" + name + ".png"});
+        }
+}
+
+// The player at spots inside the barn with the camera swung where its eye
+// would leave it, each rendered and logged with whether the eye stayed in.
+void renderBarn(const std::string& directory)
+{
+    auto view = CowsView {{QualityChoice::High, {}}, Stages {}, barnSeed};
+    auto& game = view.game;
+    auto center = Vec2 {game.partner.x, game.partner.z};
+    game.start();
+    game.partner = {center.x + barnRoom, 0.f, center.y + barnRoom};
+    standBarnAt(game.level, center);
+    view.setBounds({0.f, 0.f, (float) barnShotWidth, (float) barnShotHeight});
+
+    auto barn = barnSpots(center, 0);
+    auto spots = std::initializer_list<NamedSpot> {
+        {"doorway", barn.doorway.at},
+        {"floor", stepped(barn.doorway, inFromTheDoor, 0.f)},
+        {"under-loft", stepped(barn.loft, 0.f, 0.f)},
+        {"loft", barn.loft.at},
+        {"loft-side", stepped(barn.loft, alongTheLoft, barn.loft.at.y)},
+        {"ramp", barn.rampTop.at}};
+    auto looks = std::initializer_list<BarnLook> {{"east", halfPi},
+                                                  {"west", -halfPi},
+                                                  {"north", 0.f},
+                                                  {"south", pi},
+                                                  {"up", 0.f, 1.2f}};
+
+    for (const auto& spot: spots)
+        for (const auto& look: looks)
+        {
+            game.player = spot.at;
+            game.verticalSpeed = 0.f;
+            view.camera.target = game.player;
+            view.camera.yaw = look.yaw;
+            view.camera.pitch = look.pitch;
+
+            for (auto settle = 0; settle < settleSteps; ++settle)
+            {
+                game.update(step, 0.f, 0.f, false);
+                view.camera.yaw = look.yaw;
+                view.camera.pitch = look.pitch;
+                view.steerCamera(step, step);
+            }
+
+            auto eye = view.camera.eye();
+            auto name = "barn-" + spot.name + "-" + look.name;
+            LOG(name,
+                insideBarn(game.level, eye) ? " inside" : " OUTSIDE",
+                " eye ",
+                eye.x - center.x,
+                " ",
+                eye.y,
+                " ",
+                eye.z - center.y,
+                " feet ",
+                game.player.y);
+
+            auto image = view.renderToImage(1.f);
+
+            if (image.isValid())
+                image.save(FilePath {directory + "/" + name + ".png"});
+        }
+}
+
 void run(const std::string& mode,
          const std::string& directory,
          const std::string& only)
@@ -202,6 +394,14 @@ void run(const std::string& mode,
         renderAll();
     else if (mode == "screens")
         renderScreens(directory, only);
+    else if (mode == "endings")
+        renderEndings(directory);
+    else if (mode == "barn")
+    {
+        renderBarn(directory);
+        renderBarnEnding(directory, "barn-ending-ridge", ridgeSeed);
+        renderBarnEnding(directory, "barn-ending-loft", loftSeed);
+    }
     else if (mode == "steam")
         renderScreenshots(directory, desktopScreen);
     else if (mode == "mac")
@@ -225,6 +425,9 @@ void run(const std::string& mode,
 // CowsArt screens <dir> [menu|dress|settings|about]  those screens (all four
 //                        by default) at a spread of phone, tablet and desktop
 //                        shapes
+// CowsArt barn <dir>     the player inside a barn, the camera swung each way
+//                        its eye could leave it; logs where the eye ended
+// CowsArt endings <dir>  the ending for each hiding kind, at three moments
 // CowsArt steam <dir>    the Steam screenshots, 1920x1080
 // CowsArt mac <dir>      the Mac App Store screenshots, 2880x1800
 // CowsArt ios-6.9 <dir>  the App Store 6.9" iPhone screenshots, 1320x2868

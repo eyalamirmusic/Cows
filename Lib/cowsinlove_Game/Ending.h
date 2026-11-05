@@ -19,11 +19,18 @@ constexpr auto endingDistance = 11.f;
 constexpr auto settleTime = 3.f;
 constexpr auto settleRate = 2.f;
 constexpr auto foundStartGap = 3.f;
+// Where foundStart stands the player when her spot sets no heading: east of
+// her, facing west.
+constexpr auto foundStartHeading = Maths::pi;
 
 // How far the title has risen into place, sinceFound seconds after she is found.
 float titleRise(float sinceFound);
 
 Maths::Mat4 titlePlacement(const Game& game);
+
+// Where the player stands to be found at once: foundStartGap short of her
+// along the heading the stage will face.
+Maths::Vec3 foundStart(const Game& game);
 
 // The ending has played out: start a new search.
 bool loops(const Game& game);

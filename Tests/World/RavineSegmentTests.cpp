@@ -132,7 +132,9 @@ auto tJumpLines = test("RavineSegment/jumpLinesAreJumpableNotSteppable") = []
 
     for (const auto& block: level.blocks)
     {
-        if (block.top == 0.f || block.half.x < 2.f || block.half.y > 1.f)
+        auto barnPart = block.bottom > 0.f || block.top >= 2.f * jumpHeight;
+
+        if (block.top == 0.f || barnPart || block.half.x < 2.f || block.half.y > 1.f)
             continue;
 
         ++lines;

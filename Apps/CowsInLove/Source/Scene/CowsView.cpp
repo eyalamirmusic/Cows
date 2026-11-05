@@ -2,6 +2,7 @@
 #include "Cow/KissHearts.h"
 #include "Cow/Wardrobe.h"
 #include "Ending.h"
+#include "Props/Meshes.h"
 #include "Render/FrameProfile.h"
 #include "Render/Frustum.h"
 #include "Render/Palette.h"
@@ -31,6 +32,12 @@ constexpr auto lookHoldTime = 0.5f;
 constexpr auto searchHeight = 2.2f;
 constexpr auto startYaw = -halfPi;
 constexpr auto chaseRate = 4.f;
+constexpr auto eyeMargin = 0.3f;
+// Where on her the camera's target is pulled down to when it would be in a
+// roof or a loft over her, so the eye is clipped from inside them.
+constexpr auto bodyHeight = 0.6f;
+constexpr auto nearestEye = 0.6f;
+constexpr auto eyeReturnRate = 3.f;
 constexpr auto contactReach = 0.4f;
 constexpr auto flareTime = 2.6f;
 constexpr auto flareHeight = 22.f;
@@ -252,7 +259,7 @@ CowsView::CowsView(const QualityPreference& preference,
                    std::uint32_t firstSeed)
     : stages(std::move(stagesToPlay))
     , qualityPreference(preference)
-    , shapes(makeCowMesh)
+    , shapes(makeContentMesh)
     , ground(makePlane(groundSize))
     , cowParts(makeCowParts())
     , playerParts(cowParts)
@@ -281,7 +288,7 @@ CowsView::CowsView(const QualityPreference& preference,
     camera.target = game.player + Vec3 {0.f, searchHeight, 0.f};
 
     if (!getEnvValue("COWS_FOUND").empty())
-        game.player = game.partner + Vec3 {Ending::foundStartGap, 0.f, 0.f};
+        game.player = Ending::foundStart(game);
 
     input.walkingForward = getEnvValue("COWS_WALK") == "1";
 
@@ -321,7 +328,7 @@ void CowsView::useQuality(Quality chosen)
     setRenderScale(profileSettings().renderScale.value_or(settings.renderScale));
     grassDensity = settings.grass;
     auto detail = profileSettings().meshDetail.value_or(settings.meshDetail);
-    shapes = ShapeMeshes {cowMeshes(detail), detail};
+    shapes = ShapeMeshes {contentMeshes(detail), detail};
     shadowMap.reset();
     shadowMap.emplace(
         profileSettings().shadowResolution.value_or(settings.shadowResolution));
@@ -439,6 +446,9 @@ void CowsView::update(Threads::FrameTime time)
 
 void CowsView::steerCamera(float delta, float wallDelta)
 {
+    if (swinging || game.state == Game::State::Menu)
+        camera.reach = unlimitedReach;
+
     if (swinging)
     {
         swingCamera(wallDelta);
@@ -467,19 +477,38 @@ void CowsView::steerCamera(float delta, float wallDelta)
             camera.turnToward(game.playerHeading + startYaw,
                               std::min(1.f, delta * chaseRate));
 
+        keepEyeClear(delta);
         return;
     }
 
     camera.follow(game.stageCenter + Vec3 {0.f, Ending::endingHeight, 0.f}, delta);
     camera.drift(game.sinceFound);
 
-    if (game.sinceFound > Ending::settleTime)
-        return;
+    if (game.sinceFound <= Ending::settleTime)
+    {
+        auto amount = std::min(1.f, delta * Ending::settleRate);
+        camera.turnToward(game.stageHeading, amount);
+        camera.pitch += (Ending::endingPitch - camera.pitch) * amount;
+        camera.distance += (Ending::endingDistance - camera.distance) * amount;
+    }
 
-    auto amount = std::min(1.f, delta * Ending::settleRate);
-    camera.turnToward(game.stageHeading, amount);
-    camera.pitch += (Ending::endingPitch - camera.pitch) * amount;
-    camera.distance += (Ending::endingDistance - camera.distance) * amount;
+    keepEyeClear(delta);
+}
+
+void CowsView::keepEyeClear(float delta)
+{
+    auto body = game.player + Vec3 {0.f, bodyHeight, 0.f};
+    camera.target = game.level.clearReach(body, camera.target, eyeMargin);
+
+    auto held = camera.reach;
+    camera.reach = unlimitedReach;
+    auto clear = game.level.clearReach(camera.target, camera.eye(), eyeMargin);
+    auto wanted = std::max(length(clear - camera.target), nearestEye);
+
+    camera.reach =
+        wanted < held
+            ? wanted
+            : held + (wanted - held) * std::min(1.f, delta * eyeReturnRate);
 }
 
 CameraPose CowsView::menuPose() const

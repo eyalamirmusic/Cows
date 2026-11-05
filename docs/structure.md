@@ -7,9 +7,11 @@ PNGs to `docs/shots/tests/`.
 
 ```
 Lib/cowsinlove_Layout       <- eacp-graphics       Tree, FitToSize
+Lib/cowsinlove_ObjLoader    <- eacp-core           ObjFile
 Lib/cowsinlove_Engine       <- eacp-gpu, Layout    Render, Camera, UI, Platform
 Lib/cowsinlove_AudioEngine  <- eacp, MakeASound    sample playback
 Lib/cowsinlove_Actors       <- Engine, AudioEngine Animation, Cow, Props, Sky
+                               ObjLoader
 Lib/cowsinlove_World        <- Actors              Level, Terrain, Levels
 Lib/cowsinlove_Game         <- World              Game, Ending, Input, Title
 Apps/CowsInLove             <- Game                CowsApp, Scene
@@ -29,6 +31,9 @@ Lib/
     UI/        Hud (the HUD on the GPU), Overlay (Footer, RootView),
                TouchControls
 
+  cowsinlove_ObjLoader/           ObjFile: an OBJ file's triangles, one group
+                                  per material (the barn's, from Blender)
+
   cowsinlove_AudioEngine/         SamplePlayer: the sample player half of Moo;
                                   output through MakeASound on every platform
 
@@ -40,7 +45,10 @@ Lib/
     Props/     Collision (Collider, Block), Scenery, Props (shared helpers),
                Barn, Tree, Hedge, Bale, Crate, Rock   (split out of Obstacles.cpp),
                Log, Fence, Bridge, Mover (a rolling barrel on a closed-form
-               timeline)
+               timeline); BarnMesh (Resources/barn.obj, modelled in Blender
+               by tools/blender/barn.py, one mesh per material), Meshes
+               (contentMeshes: the cow's and the barn's meshes for
+               ShapeMeshes)
     Sky/       Sun, Clouds, Hills (SkyDecor)
 
   cowsinlove_World/               how actors are laid out and collide

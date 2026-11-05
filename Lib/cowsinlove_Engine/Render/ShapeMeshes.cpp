@@ -38,6 +38,13 @@ MeshData makeSolid(Shape shape,
         case Shape::WizardCone:
         case Shape::WizardBrim:
         case Shape::Star:
+        case Shape::BarnWall:
+        case Shape::BarnTrim:
+        case Shape::BarnRoof:
+        case Shape::BarnWood:
+        case Shape::BarnHay:
+        case Shape::BarnMetal:
+        case Shape::BarnTwine:
             break;
     }
 

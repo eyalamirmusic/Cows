@@ -19,3 +19,14 @@ target_compile_definitions(CowsArt PRIVATE
         COWS_APP_BUILD="${PROJECT_VERSION_TWEAK}")
 
 set_default_target_setting(CowsArt)
+
+# The cow redesign pitch's mockups (docs/design/cow-redesign.md), drawn through
+# the tests' SnapshotView. A prototype; nothing in Lib uses it.
+if (COWS_BUILD_TESTS)
+    add_executable(CowPitch
+            CowPitch/Main.cpp
+            CowPitch/Designs.cpp
+            CowPitch/Refinements.cpp)
+    target_link_libraries(CowPitch PRIVATE cowsinlove_Actors cowsinlove_TestSupport)
+    set_default_target_setting(CowPitch)
+endif ()

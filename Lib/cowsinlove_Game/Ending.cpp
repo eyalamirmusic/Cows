@@ -1,6 +1,7 @@
 #include "Ending.h"
 
 #include <algorithm>
+#include <cmath>
 
 using namespace Maths;
 
@@ -18,6 +19,13 @@ float easeInOut(float amount)
 float titleRise(float sinceFound)
 {
     return std::max(easeInOut((sinceFound - titleDelay) / titleRiseTime), 0.01f);
+}
+
+Vec3 foundStart(const Game& game)
+{
+    auto heading = game.level.hideoutHeading.value_or(foundStartHeading);
+    auto along = Vec3 {std::cos(heading), 0.f, -std::sin(heading)};
+    return game.partner - along * foundStartGap;
 }
 
 Mat4 titlePlacement(const Game& game)

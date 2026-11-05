@@ -18,6 +18,9 @@ constexpr auto turnSpeed = 2.4f;
 constexpr auto backSpeed = 0.5f;
 constexpr auto bounceRate = 8.f;
 constexpr auto playerRadius = 1.f;
+// How tall she stands: a jump under a loft or a roof stops this far short of
+// its underside.
+constexpr auto playerHeight = 1.5f;
 constexpr auto foundDistance = 4.5f;
 constexpr auto foundClimb = 1.5f;
 constexpr auto gravity = 30.f;
@@ -96,11 +99,6 @@ std::string foundText(Hints hints)
         return foundPadText(padLabels(hints));
 
     return hints == Hints::Touch ? foundTouchText : foundKeysText;
-}
-
-float headingToward(Vec2 direction)
-{
-    return std::atan2(-direction.y, direction.x);
 }
 
 Vec2 ground(Vec3 point)
@@ -195,10 +193,21 @@ void Game::update(float delta, float ahead, float turn, bool jump)
     if (jump && grounded)
         verticalSpeed = jumpSpeed;
 
+    auto feetBefore = player.y;
     verticalSpeed -= gravity * delta;
     player.y += verticalSpeed * delta;
 
-    auto floor = level.floorAt(ground(player), player.y);
+    auto headroom = level.ceilingAt(ground(player), feetBefore) - playerHeight;
+
+    if (verticalSpeed > 0.f && player.y > headroom)
+    {
+        player.y = std::max(feetBefore, headroom);
+        verticalSpeed = 0.f;
+    }
+
+    // A fall lands on whatever the feet were above at the start of the step,
+    // however far the step carried them.
+    auto floor = level.floorAt(ground(player), std::max(feetBefore, player.y));
     grounded = player.y <= floor;
 
     if (grounded)
@@ -231,7 +240,7 @@ void Game::update(float delta, float ahead, float turn, bool jump)
     auto between = ground(partner) - ground(player);
     state = State::Found;
     stageCenter = partner;
-    stageHeading = headingToward(normalize(between));
+    stageHeading = level.hideoutHeading.value_or(headingToward(normalize(between)));
     sinceFound = 0.f;
 }
 

@@ -126,7 +126,7 @@ Vec3 OrbitCamera::eye() const
                         std::sin(tilt),
                         std::cos(tilt) * std::cos(turn)};
 
-    return target + offset * distance;
+    return target + offset * std::min(distance, reach);
 }
 
 Vec3 OrbitCamera::forward() const
