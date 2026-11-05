@@ -27,6 +27,11 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   through a caller's `Measure`, shared `column`s — resolved to whole-point
   rects with `overflow` per node) and `Layout/FitToSize` (`largestPointSize`
   on a `fontSizeStep` grid). See `docs/structure.md`
+- `Lib/cowsinlove_ObjLoader/ObjLoader/ObjFile` — `parseObj` reads an OBJ
+  file as Blender exports it (`v`, `vn`, `usemtl`, `f` of v//vn corners)
+  into `ObjGroup`s, one per material, each vertex a distinct position and
+  normal pair; `findGroup`. Links only eacp-core; the game turns groups into
+  `MeshData` where it uses them
 - `Lib/cowsinlove_Engine` — knows nothing about cows. Include with the
   subdirectory: `#include "Render/Mesh.h"`.
   - `Render/Common.h` — `using namespace eacp` and `eacp::GPU`, included by all
@@ -141,15 +146,52 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   - `Props/Barn`, `Tree`, `Hedge`, `Bale`, `Crate`, `Rock`, `Log`, `Fence`,
     `Bridge` — one add function each, taking a `Scenery&` and, where the prop
     is random, a `std::mt19937&`
-  - `Props/Mover` — a barrel rolling to and fro on a closed-form timeline
-    (`positionAt`, `modelAt`) with a collider that follows it;
-    `makeRollingBale` in `Props/Bale`
+  - `Props/Barn` — a gambrel-roofed barn, 16 by 22: open front doors (facing
+    -z in barn space, `quarterTurns` turns it), a hay loft across the back up
+    a railed ramp along the +x wall from a few metres inside, open stalls and
+    a trough along the -x wall, and outside a climb of bale stacks a jump
+    apart up the -x wall onto the roof, whose two pitches (eaves to
+    `barnRoofBreakX` / `barnRoofBreakHeight`, then the ridge) are floating
+    ramp `Block`s she walks on; a cupola at the back of the ridge, leaving
+    its middle clear. The walls stand as high as the roof over them, so
+    nothing inside can be jumped over. `barnSpots` names its places (the
+    ridge and the loft, where she hides; the doorway, the ramp's top, the
+    climb's top) and `barnReach` its size; every dimension lives in
+    `Barn.cpp`, the numbers the mesh shares with the collision repeated at the
+    top of `tools/blender/barn.py` (keep them in step), which models it and exported by `tools/prop-mesh.sh barn` to
+    `Resources/barn.obj` (committed; builds never need Blender), embedded
+    and read once by `Props/PropMeshes` into one mesh per material: the
+    `Shape`s `BarnWall`, `BarnTrim`, `BarnRoof`, `BarnWood`, `BarnHay`,
+    `BarnMetal`, `BarnTwine`, each placed once per barn with its colour. The
+    barn's floor is a `Clearing` (`Props/Scenery`), where `GrassField` grows
+    no grass. `Props/Meshes` — `contentMeshes(detail)` / `makeContentMesh`:
+    the meshes `ShapeMeshes` leaves to the game, the cow's (`cowMeshes`) and
+    the props'. `Props/PropMeshes` — the props modelled in Blender: one
+    table of `Shape` → embedded OBJ file and group (`tools/blender/<prop>.py`,
+    exported by `tools/prop-mesh.sh <prop>` to `Resources/<prop>.obj`, each
+    file read once), so another OBJ prop is its rows there, its `Shape`s and
+    its `res_embed_add` file
+  - `Props/Bale` — the round bale (`tools/blender/bale.py`, under 1,500
+    triangles): a faceted drum with rounded shoulders, domed ends coiled in a
+    spiral, three twine bands and a few loose straws, as `Shape::BaleStraw` and
+    `BaleTwine` in `makeBarrel`'s frame (along y from 0 to 1, half a unit in
+    radius); `baleParts` gives them with their colours, the barn's hay and
+    twine
+  - `Props/Mover` — a drum rolling to and fro on a closed-form timeline
+    (`positionAt`, `modelAt`) with a collider that follows it, drawn as its
+    `parts`; `lyingDrum` lays `makeBarrel`'s frame on its side, for bales
+    and movers alike; `makeRollingBale` in `Props/Bale`
 - `Lib/cowsinlove_World` — how actors are laid out and collided with. Links
   Actors.
   - `Level` — a `Scenery` plus the hideout, `start` / `startHeading`, `gaps`
     (holes in the ground with a floor depth), `movers` (their `moving` batch
     rebuilt by `update(seconds)`), `killDepth` and `criticalPath`;
-    `pushedOut` / `floorAt` / `hasGround` / `overGap` / `isFree`; `stepUp`
+    `pushedOut` / `floorAt` / `hasGround` / `overGap` / `isFree`; `stepUp`.
+    A floating block (`Block::bottom` set: a loft, a lintel, a roof's pitch)
+    is passed under by feet below its bottom and more than a step under its
+    top there; `ceilingAt` is the lowest bottom over the feet, which `Game`
+    keeps her jump `playerHeight` short of; `clearReach` clips the camera's
+    line (a floating ramp counts as a slab a step deep)
   - `Levels/` — level generation (see `docs/structure.md`): `Region` (an xz
     rectangle), `Layout` (the seeded draws, hiding places, `hasRoom`,
     `chooseHideout`), `Biome` (`meadowBiome`, `populate`), `Segments/`
@@ -228,10 +270,13 @@ under `Apps/CowsInLove/`. See `docs/structure.md` for the layering.
   `Editor` (`openEditor(which)`); the camera orbits freely there (drag, right
   stick, touch drag), and Done, Esc and the controller's East / Start swing
   back to the menu. `CowsApp` saves `Settings` on every change
+- `tools/blender` — Blender scripts for meshes (`barn.py`); see its README
 - `tools/Art` — `CowsArt`, a macOS tool that renders the icon, key art, logo
   and store screenshots from the game's own views (`CowsArt screens <dir>
   [menu|dress|settings|about]` renders those screens at sixteen phone,
-  tablet and desktop shapes, logging each one's text size and shape);
+  tablet and desktop shapes, logging each one's text size and shape;
+  `CowsArt barn <dir>` stands her at spots inside a barn with the camera
+  swung each way its eye could leave it, logging where the eye ends up);
   `tools/store-art.sh` and
   `tools/screenshots.sh` drive it. `tools/release-*.sh`, `release-msix.ps1`
   and `steam-upload.sh` build and package each store; `Deploy/README.md` is

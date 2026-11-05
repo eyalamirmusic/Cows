@@ -84,10 +84,19 @@ enum class Shape
     BucketBrim,
     WizardCone,
     WizardBrim,
-    Star
+    Star,
+    BarnWall,
+    BarnTrim,
+    BarnRoof,
+    BarnWood,
+    BarnHay,
+    BarnMetal,
+    BarnTwine,
+    BaleStraw,
+    BaleTwine
 };
 
-constexpr auto shapeCount = 18;
+constexpr auto shapeCount = 27;
 
 // A frame's worth of instances, one list per mesh.
 struct SurfaceBatch final

@@ -45,6 +45,18 @@ auto tRampHeight = test("Collision/rampRisesAlongItsRise") = []
     check(near(turned.heightAt({0.f, -3.5f}), 2.f));
 };
 
+auto tFloatingRamp = test("Collision/floatingRampRisesFromItsBottom") = []
+{
+    auto pitch = Cows::Block {{4.75f, 0.f}, {1.25f, 8.f}, 7.5f, {-1.f, 0.f}, 5.5f};
+
+    check(near(pitch.heightAt({6.f, 0.f}), 5.5f));
+    check(near(pitch.heightAt({4.75f, 0.f}), 6.5f));
+    check(near(pitch.heightAt({3.5f, 0.f}), 7.5f));
+
+    auto loft = Cows::Block {{0.f, 5.f}, {5.7f, 3.f}, 3.6f, {}, 3.3f};
+    check(near(loft.heightAt({0.f, 5.f}), 3.6f));
+};
+
 auto tContains = test("Collision/containsWithMargin") = []
 {
     auto block = Cows::Block {{0.f, 0.f}, {1.f, 1.f}, 1.f, {}};

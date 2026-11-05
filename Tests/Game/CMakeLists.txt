@@ -2,6 +2,7 @@ nano_add_executable(GameTests
         NO_MAIN
         SOURCES
             EndingTests.cpp
+            BarnJumpTests.cpp
             GameTests.cpp
             RespawnTests.cpp
             InputTests.cpp

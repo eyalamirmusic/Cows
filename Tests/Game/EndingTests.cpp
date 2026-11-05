@@ -123,3 +123,27 @@ auto tGamepadHints = test("Ending/isGamepad") = []
     check(isGamepad(Hints::Xbox) && isGamepad(Hints::PlayStation)
           && isGamepad(Hints::Nintendo) && isGamepad(Hints::Gamepad));
 };
+
+auto tFoundStart = test("Ending/foundStartIsFoundAlongTheStagesHeading") = []
+{
+    constexpr auto intoTheLoft = 2.f;
+    constexpr auto frame = 1.f / 60.f;
+
+    for (auto heading: {std::optional<float> {}, std::optional {intoTheLoft}})
+    {
+        auto game = Game {};
+        game.reset(3);
+        game.start();
+        game.level = Level {};
+        game.level.hideoutHeading = heading;
+        game.partner = {5.f, 0.f, 7.f};
+        game.player = Ending::foundStart(game);
+        game.update(frame, 0.f, 0.f, false);
+
+        check(game.state == Game::State::Found);
+        check(std::abs(std::remainder(
+                  game.stageHeading - heading.value_or(Ending::foundStartHeading),
+                  Maths::twoPi))
+              < 1e-4f);
+    }
+};
