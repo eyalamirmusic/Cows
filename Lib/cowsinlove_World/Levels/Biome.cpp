@@ -32,6 +32,7 @@ constexpr auto barnInset = 28.f;
 constexpr auto hideoutTries = 1000;
 constexpr auto groveRing = 3.5f;
 constexpr auto hedgeShelter = 2.6f;
+constexpr auto barnRidgeSpotZ = 0.f;
 
 void plantTree(Level& level, Layout& layout, Vec2 at)
 {
@@ -147,6 +148,21 @@ std::optional<Vec2> hideoutSpot(Layout& layout, const Region& area)
     return std::nullopt;
 }
 
+// On the ridge, facing along it so the ending plays out on the roof's top;
+// and in the loft, facing out of its open side.
+void addBarnHidings(Layout& layout, Vec2 center, int quarterTurns)
+{
+    auto ridge = center + turned({0.f, barnRidgeSpotZ}, quarterTurns);
+    layout.addHiding(Level::Hiding::Roof,
+                     {ridge.x, barnRidge, ridge.y},
+                     headingToward(turned({0.f, 1.f}, quarterTurns)));
+
+    auto loft = center + turned({barnLoftSpotX, barnLoftSpotZ}, quarterTurns);
+    layout.addHiding(Level::Hiding::Loft,
+                     {loft.x, barnLoftHeight, loft.y},
+                     headingToward(turned({-1.f, 0.f}, quarterTurns)));
+}
+
 void addBarns(Level& level, Layout& layout, const Region& region, int barns)
 {
     auto area = region.inset(barnInset);
@@ -155,10 +171,10 @@ void addBarns(Level& level, Layout& layout, const Region& region, int barns)
         return;
     auto count = layout.share(barns, region);
     auto spots = Vector<Vec2> {};
-    auto roof = hideoutSpot(layout, area);
+    auto hideout = hideoutSpot(layout, area);
 
-    if (roof)
-        spots.add(*roof);
+    if (hideout)
+        spots.add(*hideout);
 
     for (auto attempt = 0; attempt < 400 && spots.size() < count; ++attempt)
     {
@@ -174,11 +190,15 @@ void addBarns(Level& level, Layout& layout, const Region& region, int barns)
             spots.add(at);
     }
 
-    if (roof)
-        layout.addHiding(Level::Hiding::Roof, {roof->x, barnRoofHeight, roof->y});
+    for (auto index = 0; index < spots.size(); ++index)
+    {
+        auto quarterTurns = (int) (layout.unit() * 4.f) % 4;
 
-    for (const auto& spot: spots)
-        addBarn(level, spot, (int) (layout.unit() * 4.f) % 4);
+        if (hideout && index == 0)
+            addBarnHidings(layout, spots[index], quarterTurns);
+
+        addBarn(level, spots[index], quarterTurns);
+    }
 }
 
 void addCrates(Level& level, Layout& layout, const Region& region, int crates)

@@ -98,11 +98,6 @@ std::string foundText(Hints hints)
     return hints == Hints::Touch ? foundTouchText : foundKeysText;
 }
 
-float headingToward(Vec2 direction)
-{
-    return std::atan2(-direction.y, direction.x);
-}
-
 Vec2 ground(Vec3 point)
 {
     return {point.x, point.z};
@@ -231,7 +226,7 @@ void Game::update(float delta, float ahead, float turn, bool jump)
     auto between = ground(partner) - ground(player);
     state = State::Found;
     stageCenter = partner;
-    stageHeading = headingToward(normalize(between));
+    stageHeading = level.hideoutHeading.value_or(headingToward(normalize(between)));
     sinceFound = 0.f;
 }
 
