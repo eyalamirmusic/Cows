@@ -5,12 +5,11 @@ using namespace Maths;
 
 namespace Cows
 {
-void addHedgePiece(Scenery& scenery,
-                   std::mt19937& random,
-                   Vec2 at,
-                   float heading,
-                   std::uint32_t color)
+void addHedgePiece(Scenery& scenery, std::mt19937& random, const HedgePiece& piece)
 {
+    auto at = piece.at;
+    auto heading = piece.heading;
+    auto color = piece.color;
     auto height = randomBetween(random, 2.6f, 3.1f);
     auto depth = randomBetween(random, 1.5f, 1.9f);
     auto length = 2.8f;

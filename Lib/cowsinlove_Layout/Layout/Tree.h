@@ -116,6 +116,10 @@ private:
     eacp::Graphics::Point fitOf(NodeId id, const Measure& measure) const;
     void shareColumns();
     void place(NodeId id, eacp::Graphics::Rect area);
+    eacp::Graphics::Point childrenFit(NodeId id) const;
+    float measureLengthsAlongParent(NodeId id, float mainRoom);
+    float growChildren(NodeId id, float room);
+    void placeChildrenInRoom(NodeId id, eacp::Graphics::Rect inner, float used);
     void placeChildren(NodeId id);
 
     eacp::Vector<Entry> entries;

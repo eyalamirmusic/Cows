@@ -11,26 +11,52 @@ namespace Cows
 {
 namespace
 {
-Vec2 pushedOutOf(const Collider& collider, Vec2 point, float radius, float feet)
+constexpr auto smallestPushDistance = 1e-4f;
+constexpr auto onMoverTolerance = 0.01f;
+
+struct Stance final
 {
-    if (collider.top <= feet + maxStepUpHeight)
+    Vec2 at;
+    float feet = 0.f;
+};
+
+struct Body final
+{
+    Stance stance;
+    float radius = 0.f;
+};
+
+Vec2 getDirectionAwayFrom(Vec2 offset)
+{
+    auto gap = length(offset);
+
+    if (gap > smallestPushDistance)
+        return offset / gap;
+
+    return {1.f, 0.f};
+}
+
+Vec2 pushedOutOf(const Collider& collider, const Body& body)
+{
+    auto point = body.stance.at;
+
+    if (collider.top <= body.stance.feet + maxStepUpHeight)
         return point;
 
     auto offset = point - collider.center;
-    auto reach = collider.radius + radius;
+    auto reach = collider.radius + body.radius;
     auto gap = length(offset);
 
     if (gap >= reach)
         return point;
 
-    auto away = gap > 1e-4f ? offset / gap : Vec2 {1.f, 0.f};
-    return collider.center + away * reach;
+    return collider.center + getDirectionAwayFrom(offset) * reach;
 }
 
-bool standsOn(const Collider& collider, Vec2 point, float feet)
+bool standsOn(const Collider& collider, const Stance& stance)
 {
-    return collider.top <= feet + maxStepUpHeight
-           && distance(point, collider.center) < collider.radius;
+    return collider.top <= stance.feet + maxStepUpHeight
+           && distance(stance.at, collider.center) < collider.radius;
 }
 
 bool floats(const Block& block)
@@ -38,10 +64,104 @@ bool floats(const Block& block)
     return block.bottom > 0.f;
 }
 
-bool passesUnder(const Block& block, Vec2 at, float feet)
+bool passesUnder(const Block& block, const Stance& stance)
 {
-    return floats(block) && feet < block.bottom
-           && feet + maxStepUpHeight < block.heightAt(at);
+    if (!floats(block))
+        return false;
+
+    return stance.feet < block.bottom
+           && stance.feet + maxStepUpHeight < block.heightAt(stance.at);
+}
+
+Vec2 pushedOutOfBlockInterior(const Block& block, const Body& body)
+{
+    auto point = body.stance.at;
+    auto inside = point - block.center;
+    auto depth = block.half - absolute(inside);
+
+    if (depth.x < depth.y)
+        point.x =
+            block.center.x + std::copysign(block.half.x + body.radius, inside.x);
+    else
+        point.y =
+            block.center.y + std::copysign(block.half.y + body.radius, inside.y);
+
+    return point;
+}
+
+bool isBlockInTheWay(const Block& block, const Stance& closest)
+{
+    if (passesUnder(block, closest))
+        return false;
+
+    auto canStepOnto = block.heightAt(closest.at) <= closest.feet + maxStepUpHeight;
+    return !canStepOnto;
+}
+
+Vec2 pushedOutOf(const Block& block, const Body& body)
+{
+    auto point = body.stance.at;
+    auto closest = block.closestTo(point);
+
+    if (!isBlockInTheWay(block, {closest, body.stance.feet}))
+        return point;
+
+    auto offset = point - closest;
+    auto gap = length(offset);
+
+    if (gap >= body.radius)
+        return point;
+
+    if (gap > smallestPushDistance)
+        return closest + offset / gap * body.radius;
+
+    return pushedOutOfBlockInterior(block, body);
+}
+
+float getFloorOfCollider(const Collider& collider, const Stance& stance)
+{
+    if (standsOn(collider, stance))
+        return collider.top;
+
+    return -std::numeric_limits<float>::infinity();
+}
+
+float getFloorOfBlock(const Block& block, const Stance& stance)
+{
+    if (!block.contains(stance.at) || passesUnder(block, stance))
+        return -std::numeric_limits<float>::infinity();
+
+    auto height = block.heightAt(stance.at);
+
+    if (height <= stance.feet + maxStepUpHeight)
+        return height;
+
+    return -std::numeric_limits<float>::infinity();
+}
+
+float getDistanceOutsideGap(const Gap& gap, Vec2 point)
+{
+    auto offset = absolute(point - gap.center) - gap.half;
+    return length(Vec2 {std::max(offset.x, 0.f), std::max(offset.y, 0.f)});
+}
+
+const Gap& findNearestGap(const Vector<Gap>& gaps, Vec2 point)
+{
+    auto nearest = gaps.begin();
+    auto closest = 1e30f;
+
+    for (auto gap = gaps.begin(); gap != gaps.end(); ++gap)
+    {
+        auto away = getDistanceOutsideGap(*gap, point);
+
+        if (away < closest)
+        {
+            closest = away;
+            nearest = gap;
+        }
+    }
+
+    return *nearest;
 }
 
 struct HalfSpace final
@@ -78,40 +198,52 @@ std::array<HalfSpace, 6> sidesOf(const Block& block)
     return sides;
 }
 
+struct Clip final
+{
+    float entry = 0.f;
+    float exit = 1.f;
+    bool inside = true;
+    bool missed = false;
+};
+
+void clipAgainstSide(Clip& clip, const HalfSpace& side, Vec3 from, Vec3 direction)
+{
+    auto room = side.offset - dot(side.normal, from);
+    auto closing = dot(side.normal, direction);
+    clip.inside = clip.inside && room >= 0.f;
+
+    if (closing == 0.f)
+    {
+        clip.missed = room < 0.f;
+        return;
+    }
+
+    auto crossing = room / closing;
+
+    if (closing < 0.f)
+        clip.entry = std::max(clip.entry, crossing);
+    else
+        clip.exit = std::min(clip.exit, crossing);
+}
+
 // Cyrus-Beck clipping; nothing when the segment misses or starts inside.
 std::optional<float> entryInto(const Block& block, Vec3 from, Vec3 to)
 {
     auto direction = to - from;
-    auto entry = 0.f;
-    auto exit = 1.f;
-    auto inside = true;
+    auto clip = Clip {};
 
     for (const auto& side: sidesOf(block))
     {
-        auto room = side.offset - dot(side.normal, from);
-        auto closing = dot(side.normal, direction);
-        inside = inside && room >= 0.f;
+        clipAgainstSide(clip, side, from, direction);
 
-        if (closing == 0.f)
-        {
-            if (room < 0.f)
-                return std::nullopt;
-
-            continue;
-        }
-
-        auto crossing = room / closing;
-
-        if (closing < 0.f)
-            entry = std::max(entry, crossing);
-        else
-            exit = std::min(exit, crossing);
+        if (clip.missed)
+            return std::nullopt;
     }
 
-    if (inside || entry > exit)
+    if (clip.inside || clip.entry > clip.exit)
         return std::nullopt;
 
-    return entry;
+    return clip.entry;
 }
 } // namespace
 
@@ -128,46 +260,18 @@ bool Gap::contains(Vec2 point) const
 
 Vec2 Level::pushedOut(Vec2 point, float radius, float feet) const
 {
-    for (auto pass = 0; pass < 2; ++pass)
+    constexpr auto pushPasses = 2;
+
+    for (auto pass = 0; pass < pushPasses; ++pass)
     {
         for (const auto& collider: colliders)
-            point = pushedOutOf(collider, point, radius, feet);
+            point = pushedOutOf(collider, {{point, feet}, radius});
 
         for (const auto& mover: movers)
-            point = pushedOutOf(mover.collider, point, radius, feet);
+            point = pushedOutOf(mover.collider, {{point, feet}, radius});
 
         for (const auto& block: blocks)
-        {
-            auto closest = block.closestTo(point);
-
-            if (passesUnder(block, closest, feet))
-                continue;
-
-            if (block.heightAt(closest) <= feet + maxStepUpHeight)
-                continue;
-
-            auto offset = point - closest;
-            auto gap = length(offset);
-
-            if (gap >= radius)
-                continue;
-
-            if (gap > 1e-4f)
-            {
-                point = closest + offset / gap * radius;
-                continue;
-            }
-
-            auto inside = point - block.center;
-            auto depth = block.half - absolute(inside);
-
-            if (depth.x < depth.y)
-                point.x =
-                    block.center.x + std::copysign(block.half.x + radius, inside.x);
-            else
-                point.y =
-                    block.center.y + std::copysign(block.half.y + radius, inside.y);
-        }
+            point = pushedOutOf(block, {{point, feet}, radius});
     }
 
     return keptInGap(point, radius, feet);
@@ -175,53 +279,33 @@ Vec2 Level::pushedOut(Vec2 point, float radius, float feet) const
 
 Vec2 Level::keptInGap(Vec2 point, float radius, float feet) const
 {
-    if (gaps.empty() || feet + maxStepUpHeight >= 0.f || overGap(point))
+    if (gaps.empty() || feet + maxStepUpHeight >= 0.f)
         return point;
 
-    auto nearest = gaps.begin();
-    auto closest = 1e30f;
+    if (overGap(point))
+        return point;
 
-    for (auto gap = gaps.begin(); gap != gaps.end(); ++gap)
-    {
-        auto offset = absolute(point - gap->center) - gap->half;
-        auto away = length(Vec2 {std::max(offset.x, 0.f), std::max(offset.y, 0.f)});
-
-        if (away < closest)
-        {
-            closest = away;
-            nearest = gap;
-        }
-    }
-
-    auto room = Vec2 {std::max(nearest->half.x - radius, 0.f),
-                      std::max(nearest->half.y - radius, 0.f)};
+    const auto& nearest = findNearestGap(gaps, point);
+    auto room = Vec2 {std::max(nearest.half.x - radius, 0.f),
+                      std::max(nearest.half.y - radius, 0.f)};
     return {
-        std::clamp(point.x, nearest->center.x - room.x, nearest->center.x + room.x),
-        std::clamp(point.y, nearest->center.y - room.y, nearest->center.y + room.y)};
+        std::clamp(point.x, nearest.center.x - room.x, nearest.center.x + room.x),
+        std::clamp(point.y, nearest.center.y - room.y, nearest.center.y + room.y)};
 }
 
 float Level::floorAt(Vec2 point, float feet) const
 {
     auto floor = groundAt(point);
+    auto stance = Stance {point, feet};
 
     for (const auto& collider: colliders)
-        if (standsOn(collider, point, feet))
-            floor = std::max(floor, collider.top);
+        floor = std::max(floor, getFloorOfCollider(collider, stance));
 
     for (const auto& mover: movers)
-        if (standsOn(mover.collider, point, feet))
-            floor = std::max(floor, mover.collider.top);
+        floor = std::max(floor, getFloorOfCollider(mover.collider, stance));
 
     for (const auto& block: blocks)
-    {
-        if (!block.contains(point) || passesUnder(block, point, feet))
-            continue;
-
-        auto height = block.heightAt(point);
-
-        if (height <= feet + maxStepUpHeight)
-            floor = std::max(floor, height);
-    }
+        floor = std::max(floor, getFloorOfBlock(block, stance));
 
     return floor;
 }
@@ -231,7 +315,7 @@ float Level::ceilingAt(Vec2 point, float feet) const
     auto ceiling = std::numeric_limits<float>::infinity();
 
     for (const auto& block: blocks)
-        if (block.contains(point) && passesUnder(block, point, feet))
+        if (block.contains(point) && passesUnder(block, {point, feet}))
             ceiling = std::min(ceiling, block.bottom);
 
     return ceiling;
@@ -285,8 +369,9 @@ bool Level::onMover(Vec2 point, float feet) const
                        movers.end(),
                        [&](const Mover& mover)
                        {
-                           return standsOn(mover.collider, point, feet)
-                                  && std::abs(mover.collider.top - feet) < 0.01f;
+                           return standsOn(mover.collider, {point, feet})
+                                  && std::abs(mover.collider.top - feet)
+                                         < onMoverTolerance;
                        });
 }
 

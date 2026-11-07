@@ -61,6 +61,13 @@ float trigger(const GamepadState& pad, GamepadAxis axis)
 {
     return pad.axis(axis) < deadZone ? 0.f : rescaled(pad.axis(axis));
 }
+bool wasPadUsed(const GamepadState& pad, Point left, Point right)
+{
+    auto sticksMoved = left.length() > 0.f || right.length() > 0.f;
+    auto triggersPulled = trigger(pad, GamepadAxis::RightTrigger) > 0.f
+                          || trigger(pad, GamepadAxis::LeftTrigger) > 0.f;
+    return sticksMoved || triggersPulled || anyButton(pad);
+}
 } // namespace
 
 PadControls readPad(const Graphics::GameInputFrame& frame)
@@ -98,10 +105,7 @@ PadControls readPad(const Graphics::GameInputFrame& frame)
         controls.startPressed |= pad.wasPressed(GamepadButton::Start);
         controls.backPressed |= pad.wasPressed(GamepadButton::East);
 
-        auto used = left.length() > 0.f || right.length() > 0.f || zoomIn > 0.f
-                    || zoomOut > 0.f || anyButton(pad);
-
-        if (used)
+        if (wasPadUsed(pad, left, right))
         {
             controls.active = true;
             controls.family = pad.family();

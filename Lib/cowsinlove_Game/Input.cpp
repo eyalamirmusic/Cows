@@ -1,66 +1,100 @@
 #include "Input.h"
 
 #include <algorithm>
+#include <iterator>
 
 namespace Cows
 {
+namespace
+{
+enum class HeldControl
+{
+    Forward,
+    Back,
+    Left,
+    Right,
+    Jump,
+    None
+};
+
+struct KeyAndControl final
+{
+    std::uint16_t keyCode = 0;
+    HeldControl control = HeldControl::None;
+};
+
+struct WalkAxis final
+{
+    bool positiveKeyHeld = false;
+    bool negativeKeyHeld = false;
+    float stick = 0.f;
+    float pad = 0.f;
+};
+
+float combineWalkAxis(const WalkAxis& axis)
+{
+    auto keys =
+        (axis.positiveKeyHeld ? 1.f : 0.f) - (axis.negativeKeyHeld ? 1.f : 0.f);
+    return std::clamp(keys + axis.stick + axis.pad, -1.f, 1.f);
+}
+} // namespace
+
 void Input::setHeld(std::uint16_t keyCode, bool down)
 {
     using namespace Graphics::KeyCode;
 
-    switch (keyCode)
+    static constexpr KeyAndControl keysAndControls[] = {
+        {W, HeldControl::Forward},
+        {K, HeldControl::Forward},
+        {UpArrow, HeldControl::Forward},
+        {S, HeldControl::Back},
+        {J, HeldControl::Back},
+        {DownArrow, HeldControl::Back},
+        {A, HeldControl::Left},
+        {H, HeldControl::Left},
+        {LeftArrow, HeldControl::Left},
+        {D, HeldControl::Right},
+        {L, HeldControl::Right},
+        {RightArrow, HeldControl::Right},
+        {Space, HeldControl::Jump},
+    };
+
+    auto found =
+        std::ranges::find(keysAndControls, keyCode, &KeyAndControl::keyCode);
+
+    if (found == std::end(keysAndControls))
+        return;
+
+    switch (found->control)
     {
-        case W:
-        case K:
-        case UpArrow:
+        case HeldControl::Forward:
             walkingForward = down;
             break;
-        case S:
-        case J:
-        case DownArrow:
+        case HeldControl::Back:
             walkingBack = down;
             break;
-        case A:
-        case H:
-        case LeftArrow:
+        case HeldControl::Left:
             walkingLeft = down;
             break;
-        case D:
-        case L:
-        case RightArrow:
+        case HeldControl::Right:
             walkingRight = down;
             break;
-        case Space:
+        case HeldControl::Jump:
             jumping = down;
             break;
-        default:
+        case HeldControl::None:
             break;
     }
 }
 
 float Input::walkAhead() const
 {
-    auto keys = (walkingForward ? 1.f : 0.f) - (walkingBack ? 1.f : 0.f);
-    return std::clamp(keys + stickAhead + padAhead, -1.f, 1.f);
+    return combineWalkAxis({walkingForward, walkingBack, stickAhead, padAhead});
 }
 
 float Input::walkTurn() const
 {
-    auto keys = (walkingLeft ? 1.f : 0.f) - (walkingRight ? 1.f : 0.f);
-    return std::clamp(keys + stickTurn + padTurn, -1.f, 1.f);
-}
-
-void Input::setStick(float ahead, float turn)
-{
-    stickAhead = ahead;
-    stickTurn = turn;
-}
-
-void Input::setPad(float ahead, float turn, bool jumping)
-{
-    padAhead = ahead;
-    padTurn = turn;
-    padJumping = jumping;
+    return combineWalkAxis({walkingLeft, walkingRight, stickTurn, padTurn});
 }
 
 void Input::jump()

@@ -11,8 +11,19 @@ struct Input final
     void setHeld(std::uint16_t keyCode, bool down);
     float walkAhead() const;
     float walkTurn() const;
-    void setStick(float ahead, float turn);
-    void setPad(float ahead, float turn, bool jumping);
+    void setStick(float ahead, float turn)
+    {
+        stickAhead = ahead;
+        stickTurn = turn;
+    }
+
+    void setPad(float ahead, float turn, bool jumping)
+    {
+        padAhead = ahead;
+        padTurn = turn;
+        padJumping = jumping;
+    }
+
     void jump();
 
     bool walkingForward = false;

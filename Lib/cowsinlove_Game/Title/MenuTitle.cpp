@@ -10,6 +10,11 @@ namespace Cows::MenuTitle
 namespace
 {
 constexpr auto fill = 0.74f;
+
+bool hasRoomToPlaceTitle(Graphics::Point viewSize, const TitleMesh& title)
+{
+    return viewSize.x > 0.f && viewSize.y > 0.f && title.width > 0.f;
+}
 } // namespace
 
 TitleMesh makeWide()
@@ -27,7 +32,7 @@ Mat4 placement(const OrbitCamera& camera,
                const Graphics::Rect& area,
                const TitleMesh& title)
 {
-    if (viewSize.x <= 0.f || viewSize.y <= 0.f || title.width <= 0.f)
+    if (!hasRoomToPlaceTitle(viewSize, title))
         return Mat4::scale(0.f);
 
     auto aspect = viewSize.x / viewSize.y;

@@ -43,6 +43,19 @@ struct CowFraming final
     float clearanceAboveHead = 0.f;
 };
 
+struct EditorStickSteps final
+{
+    int across = 0;
+    int along = 0;
+};
+
+struct BatchTarget final
+{
+    RenderPass& pass;
+    const Maths::Mat4& cullWith;
+    FrameProfile::Pass counted = FrameProfile::Pass::Scene;
+};
+
 struct CowsView final : GPUView
 {
     enum class SwingGoal
@@ -58,6 +71,11 @@ struct CowsView final : GPUView
              std::uint32_t firstSeed);
 
     void update(Threads::FrameTime time) override;
+    void advanceClocks(float delta, float wallDelta);
+    void pressStartWhenDue(float wallDelta);
+    bool isJumpHeld() const;
+    void stepGame(float delta);
+    void notifyWhenHintOrFallChanges();
     void render(Frame& frame) override;
 
     void mouseDown(const Graphics::MouseEvent& event) override;
@@ -69,6 +87,7 @@ struct CowsView final : GPUView
 
     void control(const ControlEvent& event);
     void openMenu(bool swing = true);
+    bool isMenuSettled() const;
     void startGame();
     bool isSwingingIntoPlay() const;
     InputRecipient getInputRecipient() const;
@@ -77,6 +96,7 @@ struct CowsView final : GPUView
     void closeEditor();
     void wear(const CowSkin& skin);
     bool escape();
+    CameraPose getSwingGoalPose() const;
     void swingCamera(float delta);
     float menuOpacity() const;
     float editorOpacity() const;
@@ -91,10 +111,21 @@ struct CowsView final : GPUView
     CameraPose playPose() const;
     bool menuKey(const Graphics::KeyEvent& event);
     bool editorKey(const Graphics::KeyEvent& event);
+    void chooseUnlessKeyRepeats(const Graphics::KeyEvent& event,
+                                const std::function<void()>& choose);
+    void pressPlayActionKey(const Graphics::KeyEvent& event);
+    void restartOrAdvanceStage();
     void useMenuPad(const PadControls& pad);
+    void moveMenuSelection(int step);
     void useEditorPad(const PadControls& pad, float delta);
+    void moveEditorSelection(EditorStickSteps steps);
+    void pressEditorPadButtons(const PadControls& pad);
     void readGameInput(float delta);
     void usePad(const PadControls& pad, float delta);
+    void usePlayPad(const PadControls& pad, float delta);
+    void pressPlayPadButtons(const PadControls& pad);
+    void pressPadJump();
+    bool orbitWithPadLook(const PadControls& pad, float delta);
     void useHints(Hints used);
     void returnKeyFocus();
     void restart();
@@ -105,6 +136,9 @@ struct CowsView final : GPUView
     MooAnswer answerFrom() const;
     void addAnswerFlare();
     void steerCamera(float delta, float wallDelta);
+    void steerMenuCamera();
+    void steerSearchingCamera(float delta);
+    void steerFoundCamera(float delta);
     void pullCameraInFrontOfBlockingProps(float delta);
     void applyFrameRateCap();
     void logInputRecipientWhenItChanges();
@@ -117,10 +151,18 @@ struct CowsView final : GPUView
     void measureQuality();
 
     void gatherInstances(float seconds);
+    void poseCowsSearching(std::array<CowPose, 2>& poses, float seconds);
+    void poseCowsInEnding(std::array<CowPose, 2>& poses);
+    void addCowsToBatches(const std::array<CowPose, 2>& poses);
     Maths::Vec3 groundFocus() const;
     void setSceneUniforms(SceneUniforms& uniforms,
                           const Maths::Mat4& viewProjection);
 
+    void setAllSceneUniforms(const Maths::Mat4& viewProjection);
+    void drawScene(RenderPass& pass,
+                   const Maths::Mat4& viewProjection,
+                   Graphics::Point targetSize);
+    void drawObjects(const BatchTarget& target);
     void drawShadows(Frame& frame);
     void drawSky(RenderPass& pass, float aspect);
     void drawGround(RenderPass& pass);
@@ -129,13 +171,12 @@ struct CowsView final : GPUView
                        const GrassDraw& draw,
                        const Vector<BladeInstance>& blades);
     void drawTitle(RenderPass& pass);
+    bool isMenuTitleShowing() const;
     void drawMenuTitle(RenderPass& pass, float width, float height);
     void drawGlows(RenderPass& pass, const Maths::Mat4& viewProjection);
-    void drawBatch(RenderPass& pass,
+    void drawBatch(const BatchTarget& target,
                    ShaderProgram& shader,
-                   const SurfaceBatch& batch,
-                   const Maths::Mat4& cullWith,
-                   FrameProfile::Pass counted = FrameProfile::Pass::Scene);
+                   const SurfaceBatch& batch);
 
     Stages stages;
     Game game;

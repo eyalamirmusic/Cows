@@ -1,56 +1,64 @@
 #include "Render/ShapeMeshes.h"
 
+#include <algorithm>
+#include <array>
+
 namespace Cows
 {
 namespace
 {
+constexpr auto capsuleRadius = 0.14f;
+constexpr auto sphereRings = 32;
+constexpr auto sphereSegments = 48;
+constexpr auto roundSegments = 32;
+constexpr auto hornSegments = 24;
+constexpr auto barrelSegments = 48;
+
+struct SolidMaker final
+{
+    Shape shape;
+    MeshData (*make)(float detail);
+};
+
+const std::array solidMakers {
+    SolidMaker {Shape::Sphere,
+                [](float detail)
+                {
+                    return makeSphere(detailed(sphereRings, detail),
+                                      detailed(sphereSegments, detail));
+                }},
+    SolidMaker {
+        Shape::Capsule,
+        [](float detail)
+        { return makeCapsule(capsuleRadius, detailed(roundSegments, detail)); }},
+    SolidMaker {Shape::Horn,
+                [](float detail)
+                { return makeHorn(detailed(hornSegments, detail)); }},
+    SolidMaker {Shape::Barrel,
+                [](float detail)
+                { return makeBarrel(detailed(barrelSegments, detail)); }},
+    SolidMaker {Shape::Box, [](float) { return makeBox(); }},
+    SolidMaker {Shape::Wedge, [](float) { return makeWedge(); }},
+    SolidMaker {Shape::Cylinder,
+                [](float detail)
+                { return makeCylinder(detailed(roundSegments, detail)); }},
+    SolidMaker {Shape::Cone,
+                [](float detail)
+                { return makeCone(detailed(roundSegments, detail)); }},
+};
+
 MeshData makeSolid(Shape shape,
                    const std::function<MeshData(Shape)>& content,
                    float detail)
 {
-    auto steps = [detail](int count) { return detailed(count, detail); };
+    auto isThisShape = [shape](const SolidMaker& maker)
+    { return maker.shape == shape; };
+    auto found = std::find_if(solidMakers.begin(), solidMakers.end(), isThisShape);
 
-    switch (shape)
-    {
-        case Shape::Sphere:
-            return makeSphere(steps(32), steps(48));
-        case Shape::Capsule:
-            return makeCapsule(0.14f, steps(32));
-        case Shape::Horn:
-            return makeHorn(steps(24));
-        case Shape::Barrel:
-            return makeBarrel(steps(48));
-        case Shape::Box:
-            return makeBox();
-        case Shape::Wedge:
-            return makeWedge();
-        case Shape::Cylinder:
-            return makeCylinder(steps(32));
-        case Shape::Cone:
-            return makeCone(steps(32));
-        case Shape::Heart:
-        case Shape::Belly:
-        case Shape::BellyBand:
-        case Shape::Seat:
-        case Shape::SeatBand:
-        case Shape::BucketCrown:
-        case Shape::BucketBrim:
-        case Shape::WizardCone:
-        case Shape::WizardBrim:
-        case Shape::Star:
-        case Shape::BarnWall:
-        case Shape::BarnTrim:
-        case Shape::BarnRoof:
-        case Shape::BarnWood:
-        case Shape::BarnHay:
-        case Shape::BarnMetal:
-        case Shape::BarnTwine:
-        case Shape::BaleStraw:
-        case Shape::BaleTwine:
-            break;
-    }
+    if (found == solidMakers.end())
+        return content(shape);
 
-    return content(shape);
+    return found->make(detail);
 }
 } // namespace
 

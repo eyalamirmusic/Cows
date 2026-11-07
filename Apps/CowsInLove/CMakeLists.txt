@@ -16,6 +16,10 @@ eacp_add_app(Cows
         Source/Stages.cpp
         Source/Templates.cpp
         Source/Scene/CowsView.cpp
+        Source/Scene/CowsViewCamera.cpp
+        Source/Scene/CowsViewDrawing.cpp
+        Source/Scene/CowsViewInput.cpp
+        Source/Scene/CowsViewQuality.cpp
         Source/Scene/FrameRate.cpp
         Source/Scene/Quality.cpp
         BUNDLE_ID ${COWS_BUNDLE_ID}

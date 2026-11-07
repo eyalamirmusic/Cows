@@ -8,6 +8,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <initializer_list>
 #include <iostream>
 
 using namespace nano;
@@ -40,11 +41,16 @@ constexpr auto hashGridStepsPerUnit = 256.f;
 constexpr auto fnvOffset = 1469598103934665603ull;
 constexpr auto fnvPrime = 1099511628211ull;
 
-std::uint64_t mixRoundedValueIntoHash(std::uint64_t hash, float value)
+struct LayoutHash final
+{
+    std::uint64_t value = fnvOffset;
+};
+
+void mixRoundedValueIntoHash(LayoutHash& hash, float value)
 {
     auto valueOnGrid =
         static_cast<std::uint64_t>(std::llround(value * hashGridStepsPerUnit));
-    return (hash ^ valueOnGrid) * fnvPrime;
+    hash.value = (hash.value ^ valueOnGrid) * fnvPrime;
 }
 
 using MeadowHashes = std::array<std::uint64_t, meadowGolden.size()>;
@@ -64,30 +70,46 @@ void printMeadowHashesAsTable(const MeadowHashes& hashes)
     std::cout << std::endl;
 }
 
-std::uint64_t hashLevelLayout(const Level& level)
+void mixRoundedValuesIntoHash(LayoutHash& hash, std::initializer_list<float> values)
 {
-    auto hash = fnvOffset;
+    for (auto value: values)
+        mixRoundedValueIntoHash(hash, value);
+}
 
+void mixCollidersIntoHash(LayoutHash& hash, const Level& level)
+{
     for (const auto& c: level.colliders)
-        for (auto v: {c.center.x, c.center.y, c.radius, c.top})
-            hash = mixRoundedValueIntoHash(hash, v);
+        mixRoundedValuesIntoHash(hash, {c.center.x, c.center.y, c.radius, c.top});
+}
 
+void mixBlocksIntoHash(LayoutHash& hash, const Level& level)
+{
     for (const auto& b: level.blocks)
-        for (auto v:
-             {b.center.x, b.center.y, b.half.x, b.half.y, b.top, b.rise.x, b.rise.y})
-            hash = mixRoundedValueIntoHash(hash, v);
+        mixRoundedValuesIntoHash(
+            hash,
+            {b.center.x, b.center.y, b.half.x, b.half.y, b.top, b.rise.x, b.rise.y});
+}
 
-    auto hidingPlace = static_cast<float>(level.hiding);
-
-    for (auto v: {level.hideout.x, level.hideout.y, level.hideout.z, hidingPlace})
-        hash = mixRoundedValueIntoHash(hash, v);
-
+void mixInstancesIntoHash(LayoutHash& hash, const Level& level)
+{
     for (const auto& list: level.batch.lists)
         for (const auto& i: list)
-            for (auto v: {i.model3.x, i.model3.y, i.model3.z, i.model0.x, i.color.x})
-                hash = mixRoundedValueIntoHash(hash, v);
+            mixRoundedValuesIntoHash(
+                hash, {i.model3.x, i.model3.y, i.model3.z, i.model0.x, i.color.x});
+}
 
-    return hash;
+std::uint64_t hashLevelLayout(const Level& level)
+{
+    auto hash = LayoutHash {};
+    mixCollidersIntoHash(hash, level);
+    mixBlocksIntoHash(hash, level);
+
+    auto hidingPlace = static_cast<float>(level.hiding);
+    mixRoundedValuesIntoHash(
+        hash, {level.hideout.x, level.hideout.y, level.hideout.z, hidingPlace});
+
+    mixInstancesIntoHash(hash, level);
+    return hash.value;
 }
 
 struct Recorder final : Segment

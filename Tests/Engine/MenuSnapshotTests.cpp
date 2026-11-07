@@ -19,17 +19,6 @@ void addItems(Menu& menu)
         {.label = "Dress Your Cow", .note = "Coming Soon!", .enabled = Enabled::No});
 }
 
-bool anyDrawnIn(const Graphics::Image& image, const Graphics::Rect& area)
-{
-    for (auto y = (int) area.y; y < (int) (area.y + area.h); ++y)
-        for (auto x = (int) area.x; x < (int) (area.x + area.w); ++x)
-            if (x >= 0 && y >= 0 && x < image.width() && y < image.height()
-                && !isClearColor(image.at(x, y)))
-                return true;
-
-    return false;
-}
-
 bool inside(const Graphics::Rect& area, float width, float height)
 {
     return area.x >= 0.f && area.y >= 0.f && area.x + area.w <= width
@@ -82,8 +71,8 @@ auto tMenuWide = test("MenuSnapshot/wide") = []
     check(!start.intersects(cow) && !dress.intersects(cow));
     check(start.y >= title.y + title.h && dress.y >= title.y + title.h);
     check(inside(start, 1280.f, 800.f) && inside(dress, 1280.f, 800.f));
-    check(anyDrawnIn(image, start) && anyDrawnIn(image, dress));
-    check(!anyDrawnIn(image, title));
+    check(isAnythingDrawnIn(image, start) && isAnythingDrawnIn(image, dress));
+    check(!isAnythingDrawnIn(image, title));
     check(menu.itemAt({start.x + start.w * 0.5f, start.y + start.h * 0.5f}) == 0);
 };
 
@@ -114,7 +103,8 @@ auto tMenuTall = test("MenuSnapshot/tall") = []
     check(start.pointSize > dress.pointSize);
     check(start.area.h >= 64.f && start.area.w >= 64.f);
     check(inside(start.area, 390.f, 844.f) && inside(dress.area, 390.f, 844.f));
-    check(anyDrawnIn(image, start.area) && anyDrawnIn(image, dress.area));
+    check(isAnythingDrawnIn(image, start.area)
+          && isAnythingDrawnIn(image, dress.area));
 };
 
 namespace

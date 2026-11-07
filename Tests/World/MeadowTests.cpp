@@ -6,6 +6,7 @@
 
 #include <NanoTest/NanoTest.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 
@@ -39,22 +40,26 @@ bool same(const Cows::Block& a, const Cows::Block& b)
            && a.rise.x == b.rise.x && a.rise.y == b.rise.y;
 }
 
-bool same(const Level& a, const Level& b)
+template <typename Thing>
+bool same(const Vector<Thing>& a, const Vector<Thing>& b)
 {
-    if (a.colliders.size() != b.colliders.size()
-        || a.blocks.size() != b.blocks.size())
-        return false;
+    return std::equal(a.begin(),
+                      a.end(),
+                      b.begin(),
+                      b.end(),
+                      [](const Thing& x, const Thing& y) { return same(x, y); });
+}
 
-    for (auto index = 0; index < (int) a.colliders.size(); ++index)
-        if (!same(a.colliders[index], b.colliders[index]))
-            return false;
-
-    for (auto index = 0; index < (int) a.blocks.size(); ++index)
-        if (!same(a.blocks[index], b.blocks[index]))
-            return false;
-
+bool hasSameHideout(const Level& a, const Level& b)
+{
     return a.hideout.x == b.hideout.x && a.hideout.y == b.hideout.y
            && a.hideout.z == b.hideout.z && a.hiding == b.hiding;
+}
+
+bool same(const Level& a, const Level& b)
+{
+    return same(a.colliders, b.colliders) && same(a.blocks, b.blocks)
+           && hasSameHideout(a, b);
 }
 } // namespace
 

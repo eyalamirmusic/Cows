@@ -28,9 +28,9 @@ Vec2 ground(Vec3 point)
     return {point.x, point.z};
 }
 
-Vec2 ahead(float heading)
+Vec2 getFacingOf(const BarnSpot& spot)
 {
-    return {std::cos(heading), -std::sin(heading)};
+    return {std::cos(spot.heading), -std::sin(spot.heading)};
 }
 
 Game inBarn(Vec2 at)
@@ -82,22 +82,37 @@ struct ClimbTop final
     float heading = 0.f;
 };
 
+bool isRoofOver(const Cows::Block& roof, Vec2 point)
+{
+    auto isFloatingRamp = roof.bottom > 0.f && lengthSquared(roof.rise) > 0.f;
+    return isFloatingRamp && roof.contains(point);
+}
+
+bool isUnderRoof(const Level& level, const Cows::Block& block)
+{
+    auto underRoof = false;
+
+    for (const auto& roof: level.blocks)
+        underRoof = underRoof || isRoofOver(roof, block.center);
+
+    return underRoof;
+}
+
+bool isStandingBlockHigher(const Level& level,
+                           const Cows::Block& block,
+                           const Cows::Block& top)
+{
+    auto isStanding = block.bottom == 0.f && !isUnderRoof(level, block);
+    return isStanding && block.top > top.top;
+}
+
 ClimbTop climbTop(const Level& level)
 {
     auto top = Cows::Block {};
 
     for (const auto& block: level.blocks)
-    {
-        auto underRoof = false;
-
-        for (const auto& roof: level.blocks)
-            underRoof = underRoof
-                        || (roof.bottom > 0.f && lengthSquared(roof.rise) > 0.f
-                            && roof.contains(block.center));
-
-        if (block.bottom == 0.f && !underRoof && block.top > top.top)
+        if (isStandingBlockHigher(level, block, top))
             top = block;
-    }
 
     auto toBarn = level.clearings[0].center - top.center;
     auto toward = std::abs(toBarn.x) > std::abs(toBarn.y)
@@ -106,7 +121,7 @@ ClimbTop climbTop(const Level& level)
     return {top.center, top.top, std::atan2(-toward.y, toward.x)};
 }
 const auto nearTheLoftsWall =
-    ground(spots.loft.at) + ahead(spots.loft.heading) * alongTheLoft;
+    ground(spots.loft.at) + getFacingOf(spots.loft) * alongTheLoft;
 } // namespace
 
 auto tUnderTheRoof = test("BarnJump/aJumpInsideNeverSurfacesOnTheRoof") = []

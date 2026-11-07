@@ -29,6 +29,14 @@ struct QualityGovernor final
 
     bool decided() const;
 
+    bool consumeSettleFrame();
+    bool hasReachedMinimumWindowTime() const;
+    bool isWindowFull() const;
+    double takeWindowAverage();
+    bool isStillClimbing() const;
+    bool shouldClimb(double average) const;
+    int chooseNextLevel(double average) const;
+
     Settings settings;
     int level = settings.start;
     int toSettle = settings.settle;

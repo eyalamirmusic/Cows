@@ -18,6 +18,7 @@ namespace Cows::Testing
 constexpr Graphics::Color clearColor {1.f, 0.f, 1.f};
 
 bool isClearColor(const Graphics::Color& color);
+bool isAnythingDrawnIn(const Graphics::Image& image, const Graphics::Rect& area);
 bool hasDevice();
 
 struct SnapshotView final : GPUView

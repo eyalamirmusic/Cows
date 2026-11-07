@@ -65,20 +65,20 @@ Material shiny(std::uint32_t hex)
     return material;
 }
 
+Mat4 placeOnSeat(Vec3 position, Vec3 size, const Mat4& rotation)
+{
+    return Mat4::translation(position) * rotation * Mat4::scale(size);
+}
+
 struct HatParts final
 {
     void add(Shape shape, Vec3 position, Vec3 size, const Material& material)
     {
-        add(shape, position, size, material, {});
+        add(shape, placeOnSeat(position, size, {}), material);
     }
 
-    void add(Shape shape,
-             Vec3 position,
-             Vec3 size,
-             const Material& material,
-             const Mat4& rotation)
+    void add(Shape shape, const Mat4& local, const Material& material)
     {
-        auto local = Mat4::translation(position) * rotation * Mat4::scale(size);
         parts.add({shape, Bone::Head, seat * local, material, spotScale});
     }
 
@@ -87,15 +87,21 @@ struct HatParts final
     float spotScale = 1.f;
 };
 
-Mat4 seatAt(float tiltBack, float tiltSide, Vec3 nudge = {})
+struct HatTilt final
 {
-    return Mat4::translation(crownOfHead + nudge) * Mat4::rotationZ(tiltBack)
-           * Mat4::rotationX(tiltSide);
+    float back = 0.f;
+    float side = 0.f;
+};
+
+Mat4 seatAt(HatTilt tilt, Vec3 nudge = {})
+{
+    return Mat4::translation(crownOfHead + nudge) * Mat4::rotationZ(tilt.back)
+           * Mat4::rotationX(tilt.side);
 }
 
 void addTopHat(Vector<CowPart>& parts)
 {
-    auto hat = HatParts {parts, seatAt(0.1f, 0.06f, {0.f, -0.04f, 0.f})};
+    auto hat = HatParts {parts, seatAt({0.1f, 0.06f}, {0.f, -0.04f, 0.f})};
     auto felt = cloth(Palette::topHat, 0.35f);
 
     hat.add(Shape::Cylinder, {0.f, 0.f, 0.f}, {0.56f, 0.035f, 0.56f}, felt);
@@ -108,17 +114,17 @@ void addTopHat(Vector<CowPart>& parts)
 
 void addCowboyHat(Vector<CowPart>& parts)
 {
-    auto hat = HatParts {parts, seatAt(0.08f, -0.04f)};
+    auto hat = HatParts {parts, seatAt({0.08f, -0.04f})};
     auto leather = cloth(Palette::cowboyHat, 0.25f);
 
     hat.add(Shape::Sphere, {0.f, 0.02f, 0.f}, {0.36f, 0.03f, 0.26f}, leather);
 
     for (auto side: {-1.f, 1.f})
         hat.add(Shape::Sphere,
-                {0.f, 0.07f, 0.24f * side},
-                {0.3f, 0.025f, 0.12f},
-                leather,
-                Mat4::rotationX(-0.7f * side));
+                placeOnSeat({0.f, 0.07f, 0.24f * side},
+                            {0.3f, 0.025f, 0.12f},
+                            Mat4::rotationX(-0.7f * side)),
+                leather);
 
     hat.add(Shape::Barrel, {0.f, -0.02f, 0.f}, {0.28f, 0.38f, 0.24f}, leather);
     hat.add(Shape::Sphere,
@@ -133,7 +139,7 @@ void addCowboyHat(Vector<CowPart>& parts)
 
 void addPartyHat(Vector<CowPart>& parts)
 {
-    auto hat = HatParts {parts, seatAt(-0.12f, 0.05f, {0.f, -0.02f, 0.f})};
+    auto hat = HatParts {parts, seatAt({-0.12f, 0.05f}, {0.f, -0.02f, 0.f})};
 
     hat.add(Shape::Cone,
             {0.f, 0.f, 0.f},
@@ -151,7 +157,7 @@ void addPartyHat(Vector<CowPart>& parts)
 
 void addBeanie(Vector<CowPart>& parts)
 {
-    auto hat = HatParts {parts, seatAt(0.12f, 0.f, {-0.02f, 0.04f, 0.f})};
+    auto hat = HatParts {parts, seatAt({0.12f, 0.f}, {-0.02f, 0.04f, 0.f})};
     auto knit = cloth(Palette::beanie, 0.1f);
 
     hat.add(Shape::Sphere, {0.f, -0.02f, 0.f}, {0.31f, 0.21f, 0.29f}, knit);
@@ -167,7 +173,7 @@ void addBeanie(Vector<CowPart>& parts)
 
 void addCrown(Vector<CowPart>& parts)
 {
-    auto hat = HatParts {parts, seatAt(0.04f, -0.05f, {0.f, -0.03f, 0.f})};
+    auto hat = HatParts {parts, seatAt({0.04f, -0.05f}, {0.f, -0.03f, 0.f})};
     auto gold = shiny(Palette::gold);
 
     hat.add(Shape::Cylinder, {0.f, 0.f, 0.f}, {0.36f, 0.15f, 0.36f}, gold);
@@ -191,7 +197,7 @@ void addCrown(Vector<CowPart>& parts)
 
 void addFrogHat(Vector<CowPart>& parts)
 {
-    auto hat = HatParts {parts, seatAt(0.f, 0.f, {-0.07f, -0.01f, 0.f})};
+    auto hat = HatParts {parts, seatAt({0.f, 0.f}, {-0.07f, -0.01f, 0.f})};
     auto plush = cloth(Palette::frog, 0.1f);
     auto lining = cloth(Palette::frogLining, 0.1f);
 
@@ -224,7 +230,7 @@ void addFrogHat(Vector<CowPart>& parts)
 void addCowBucketHat(Vector<CowPart>& parts)
 {
     auto hat =
-        HatParts {parts, seatAt(0.2f, 0.f, {-0.03f, 0.03f, 0.f}), cowPrintSpots};
+        HatParts {parts, seatAt({0.2f, 0.f}, {-0.03f, 0.03f, 0.f}), cowPrintSpots};
     auto print = cloth(Palette::hide, 0.15f);
     print.spots = 1.f;
 
@@ -234,26 +240,26 @@ void addCowBucketHat(Vector<CowPart>& parts)
     for (auto side: {-1.f, 1.f})
     {
         hat.add(Shape::Horn,
-                {0.f, 0.18f, 0.24f * side},
-                {0.1f, 0.24f, 0.1f},
-                cloth(Palette::spot, 0.5f),
-                Mat4::rotationX(0.6f * side));
+                placeOnSeat({0.f, 0.18f, 0.24f * side},
+                            {0.1f, 0.24f, 0.1f},
+                            Mat4::rotationX(0.6f * side)),
+                cloth(Palette::spot, 0.5f));
         hat.add(Shape::Sphere,
-                {0.f, 0.09f, 0.32f * side},
-                {0.05f, 0.065f, 0.12f},
-                print,
-                Mat4::rotationX(-0.2f * side));
+                placeOnSeat({0.f, 0.09f, 0.32f * side},
+                            {0.05f, 0.065f, 0.12f},
+                            Mat4::rotationX(-0.2f * side)),
+                print);
         hat.add(Shape::Sphere,
-                {0.02f, 0.09f, 0.345f * side},
-                {0.033f, 0.045f, 0.09f},
-                cloth(Palette::innerEar, 0.3f),
-                Mat4::rotationX(-0.2f * side));
+                placeOnSeat({0.02f, 0.09f, 0.345f * side},
+                            {0.033f, 0.045f, 0.09f},
+                            Mat4::rotationX(-0.2f * side)),
+                cloth(Palette::innerEar, 0.3f));
     }
 }
 
 void addTrafficCone(Vector<CowPart>& parts)
 {
-    auto hat = HatParts {parts, seatAt(0.f, 0.f, {0.f, 0.02f, 0.f})};
+    auto hat = HatParts {parts, seatAt({0.f, 0.f}, {0.f, 0.02f, 0.f})};
     auto reflective = cloth(Palette::reflector, 0.9f);
     reflective.emission = 0.1f;
 
@@ -283,12 +289,14 @@ float wizardRadiusAt(float height)
 
 void addWizardHat(Vector<CowPart>& parts)
 {
-    auto hat = HatParts {parts, seatAt(0.24f, 0.04f, {-0.03f, 0.f, 0.f})};
+    auto hat = HatParts {parts, seatAt({0.24f, 0.04f}, {-0.03f, 0.f, 0.f})};
     auto felt = cloth(Palette::wizardHat, 0.3f);
     auto star = shiny(Palette::wizardStar);
 
     hat.add(Shape::WizardBrim, {}, {1.f, 1.f, 1.f}, felt);
-    hat.add(Shape::WizardCone, {}, {1.f, 1.f, 1.f}, felt, Mat4::rotationY(-2.4f));
+    hat.add(Shape::WizardCone,
+            placeOnSeat({}, {1.f, 1.f, 1.f}, Mat4::rotationY(-2.4f)),
+            felt);
     hat.add(Shape::Cylinder,
             {0.f, 0.f, 0.f},
             {2.f * wizardBase + 0.012f, 0.055f, 2.f * wizardBase + 0.012f},
@@ -303,11 +311,12 @@ void addWizardHat(Vector<CowPart>& parts)
     for (auto [azimuth, height, size]: stars)
     {
         auto out = wizardRadiusAt(height) + 0.004f;
-        hat.add(Shape::Star,
-                {out * std::cos(azimuth), height, out * std::sin(azimuth)},
-                {size, size, size},
-                star,
-                Mat4::rotationY(-azimuth) * Mat4::rotationZ(tilt - halfPi));
+        hat.add(
+            Shape::Star,
+            placeOnSeat({out * std::cos(azimuth), height, out * std::sin(azimuth)},
+                        {size, size, size},
+                        Mat4::rotationY(-azimuth) * Mat4::rotationZ(tilt - halfPi)),
+            star);
     }
 }
 
@@ -400,6 +409,19 @@ void addGarment(Vector<CowPart>& parts, Shape garment, Shape waistband)
                aroundTorso(bandOut),
                cloth(Palette::denimSeam, 0.15f)});
 }
+using AddHatParts = void (*)(Vector<CowPart>&);
+
+constexpr auto hatsAndBuilders = std::to_array<std::pair<Hat, AddHatParts>>({
+    {Hat::TopHat, addTopHat},
+    {Hat::CowboyHat, addCowboyHat},
+    {Hat::PartyHat, addPartyHat},
+    {Hat::Beanie, addBeanie},
+    {Hat::Crown, addCrown},
+    {Hat::FrogHat, addFrogHat},
+    {Hat::CowBucketHat, addCowBucketHat},
+    {Hat::TrafficCone, addTrafficCone},
+    {Hat::WizardHat, addWizardHat},
+});
 } // namespace
 
 void addPants(Vector<CowPart>& parts, Pants pants)
@@ -422,38 +444,9 @@ void addPants(Vector<CowPart>& parts, Pants pants)
 
 void addHat(Vector<CowPart>& parts, Hat hat)
 {
-    switch (hat)
-    {
-        case Hat::TopHat:
-            addTopHat(parts);
-            break;
-        case Hat::CowboyHat:
-            addCowboyHat(parts);
-            break;
-        case Hat::PartyHat:
-            addPartyHat(parts);
-            break;
-        case Hat::Beanie:
-            addBeanie(parts);
-            break;
-        case Hat::Crown:
-            addCrown(parts);
-            break;
-        case Hat::FrogHat:
-            addFrogHat(parts);
-            break;
-        case Hat::CowBucketHat:
-            addCowBucketHat(parts);
-            break;
-        case Hat::TrafficCone:
-            addTrafficCone(parts);
-            break;
-        case Hat::WizardHat:
-            addWizardHat(parts);
-            break;
-        case Hat::None:
-            break;
-    }
+    for (const auto& [listed, addListedHat]: hatsAndBuilders)
+        if (listed == hat)
+            addListedHat(parts);
 }
 
 MeshData makePantsMesh(Shape shape, float detail)

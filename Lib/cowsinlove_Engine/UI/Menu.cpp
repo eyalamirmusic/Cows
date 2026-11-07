@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <tuple>
 #include <utility>
 
 namespace Cows
@@ -118,51 +117,81 @@ float noteSizeFor(float labelSize, float leastNote)
     return onFontGrid(std::max(labelSize * noteScale, leastNote));
 }
 
-Flex::Tree itemTree(const Vector<MenuItem>& items,
-                    float pointSize,
-                    float target,
-                    float leastNote,
-                    Vector<ItemNodes>* nodes)
+struct ItemTreeSizes final
+{
+    float pointSize = 0.f;
+    float target = 0.f;
+    float leastNote = 0.f;
+};
+
+struct ItemTree final
+{
+    Flex::Tree tree;
+    Vector<ItemNodes> nodes;
+};
+
+Flex::Node makeItemColumn()
 {
     auto column = Flex::Node {};
     column.direction = Flex::Direction::Down;
     column.mainAlign = Flex::Align::Centre;
     column.crossAlign = Flex::Align::Centre;
-    auto tree = Flex::Tree {column};
+    return column;
+}
 
-    for (const auto& item: items)
+Flex::Node makeItemRow(float size, float target)
+{
+    auto line = size * lineSpacing;
+    auto rowPadding = line * (rowStep - 1.f) * 0.5f;
+    auto side = padding + size * hoverRoom;
+
+    auto row = Flex::Node {};
+    row.direction = Flex::Direction::Down;
+    row.width = Flex::Size::fit(target);
+    row.height = Flex::Size::fit(target);
+    row.padding = {
+        .top = rowPadding, .left = side, .bottom = rowPadding, .right = side};
+    row.mainAlign = Flex::Align::Centre;
+    row.crossAlign = Flex::Align::Centre;
+    return row;
+}
+
+ItemNodes
+    addItemNodes(Flex::Tree& tree, const MenuItem& item, const ItemTreeSizes& sizes)
+{
+    auto size = onFontGrid(sizes.pointSize * item.scale);
+    auto rowId = tree.add(Flex::Tree::root, makeItemRow(size, sizes.target));
+
+    if (!item.note.empty())
     {
-        auto size = onFontGrid(pointSize * item.scale);
-        auto line = size * lineSpacing;
-        auto rowPadding = line * (rowStep - 1.f) * 0.5f;
-        auto side = padding + size * hoverRoom;
-
-        auto row = Flex::Node {};
-        row.direction = Flex::Direction::Down;
-        row.width = Flex::Size::fit(target);
-        row.height = Flex::Size::fit(target);
-        row.padding = {
-            .top = rowPadding, .left = side, .bottom = rowPadding, .right = side};
-        row.mainAlign = Flex::Align::Centre;
-        row.crossAlign = Flex::Align::Centre;
-        auto rowId = tree.add(Flex::Tree::root, row);
-
-        if (!item.note.empty())
-        {
-            auto note = Flex::Node {};
-            note.text = Flex::Text {item.note, noteSizeFor(size, leastNote)};
-            tree.add(rowId, note);
-        }
-
-        auto label = Flex::Node {};
-        label.text = Flex::Text {item.label, size, lineSpacing};
-        auto labelId = tree.add(rowId, label);
-
-        if (nodes != nullptr)
-            nodes->add({rowId, labelId});
+        auto note = Flex::Node {};
+        note.text = Flex::Text {item.note, noteSizeFor(size, sizes.leastNote)};
+        tree.add(rowId, note);
     }
 
-    return tree;
+    auto label = Flex::Node {};
+    label.text = Flex::Text {item.label, size, lineSpacing};
+    return {rowId, tree.add(rowId, label)};
+}
+
+ItemTree makeItemTree(const Vector<MenuItem>& items, const ItemTreeSizes& sizes)
+{
+    auto result = ItemTree {Flex::Tree {makeItemColumn()}, {}};
+
+    for (const auto& item: items)
+        result.nodes.add(addItemNodes(result.tree, item, sizes));
+
+    return result;
+}
+
+Vector<Menu::Shape> orderShapesByAspect(bool byAspectWide,
+                                        Menu::Shape wideStep,
+                                        Menu::Shape tallStep)
+{
+    if (byAspectWide)
+        return {wideStep, tallStep};
+
+    return {tallStep, wideStep};
 }
 } // namespace
 
@@ -189,8 +218,7 @@ Menu::Menu()
 
 Menu::Shape Menu::shape() const
 {
-    if (laidOutFor.has_value()
-        && sameFrame(*laidOutFor, frameOf(*this, topClearance)))
+    if (isLaidOutFor(frameOf(*this, topClearance)))
         return chosen;
 
     return aspectWide(*this) ? wideShape : tallShape;
@@ -217,11 +245,88 @@ void Menu::setItems(Vector<MenuItem> newItems)
     itemsChanged = true;
 }
 
+bool Menu::isLaidOutFor(const ScreenFrame& frame) const
+{
+    return laidOutFor.has_value() && sameFrame(*laidOutFor, frame);
+}
+
+float Menu::calculateTapTargetIn(Rect content, Rect area) const
+{
+    auto numItems = static_cast<float>(items.size());
+    return std::min(tapTarget(content), area.h / numItems);
+}
+
+std::pair<Menu::Shape, ChosenShape> Menu::chooseLargestShape(
+    const Vector<Shape>& shapes, Rect content, const Flex::Measure& measure) const
+{
+    auto leastNote = smallestReadableSize(content);
+    auto candidates = Vector<LayoutShape> {};
+
+    for (const auto& each: shapes)
+    {
+        auto area = itemsIn(content, each);
+        auto sizes =
+            ItemTreeSizes {0.f, calculateTapTargetIn(content, area), leastNote};
+        candidates.add({[this, sizes](float size)
+                        {
+                            auto sized = sizes;
+                            sized.pointSize = size;
+                            return makeItemTree(items, sized).tree;
+                        },
+                        area});
+    }
+
+    // About, the smallest item, is held to the readable size.
+    auto readable = leastNote / smallestScale(items);
+    auto largest = std::clamp(content.h * largestShare, leastLargest, mostLargest);
+    auto best = largestShape(candidates, measure, {readable, largest});
+    return std::pair {shapes[best.index], best};
+}
+
+std::pair<Menu::Shape, ChosenShape>
+    Menu::squeezeUntilReadable(Rect content, const Flex::Measure& measure) const
+{
+    auto byAspectWide = aspectWide(*this);
+    auto result = std::pair<Shape, ChosenShape> {};
+
+    for (auto step = 0; step <= squeezeSteps && !result.second.readable; ++step)
+    {
+        auto wideStep = squeezed(wideShape, roomyWideShape, step);
+        auto tallStep = squeezed(tallShape, roomyTallShape, step);
+        result = chooseLargestShape(
+            orderShapesByAspect(byAspectWide, wideStep, tallStep), content, measure);
+    }
+
+    if (!result.second.readable)
+        result = chooseLargestShape({tightTallShape}, content, measure);
+
+    return result;
+}
+
+void Menu::placeItems(Rect content, const Flex::Measure& measure)
+{
+    auto leastNote = smallestReadableSize(content);
+    auto area = itemsIn(content, chosen);
+    auto sizes =
+        ItemTreeSizes {pointSize, calculateTapTargetIn(content, area), leastNote};
+    auto [tree, nodes] = makeItemTree(items, sizes);
+    tree.resolve(area, measure);
+
+    for (const auto& each: nodes)
+    {
+        auto labelSize = tree.node(each.label).text->pointSize;
+        placed.add({tree.rect(each.label).center(),
+                    labelSize,
+                    tree.rect(each.row),
+                    noteSizeFor(labelSize, leastNote)});
+    }
+}
+
 void Menu::layOut(Hud& hud)
 {
     auto frame = frameOf(*this, topClearance);
 
-    if (!itemsChanged && laidOutFor.has_value() && sameFrame(*laidOutFor, frame))
+    if (!itemsChanged && isLaidOutFor(frame))
         return;
 
     itemsChanged = false;
@@ -233,65 +338,10 @@ void Menu::layOut(Hud& hud)
 
     auto content = frame.contentArea();
     auto measure = menuMeasure(hud);
-    auto byAspect = aspectWide(*this);
-    auto leastNote = smallestReadableSize(content);
-    auto targetIn = [&](Rect area)
-    { return std::min(tapTarget(content), area.h / (float) items.size()); };
-
-    auto choose = [&](const Vector<Shape>& shapes)
-    {
-        auto candidates = Vector<LayoutShape> {};
-
-        for (const auto& each: shapes)
-        {
-            auto area = itemsIn(content, each);
-            auto target = targetIn(area);
-            candidates.add(
-                {[this, target, leastNote](float size)
-                 { return itemTree(items, size, target, leastNote, nullptr); },
-                 area});
-        }
-
-        // About, the smallest item, is held to the readable size.
-        auto readable = smallestReadableSize(content) / smallestScale(items);
-        auto largest =
-            std::clamp(content.h * largestShare, leastLargest, mostLargest);
-        auto best = largestShape(candidates, measure, readable, largest);
-        return std::pair {shapes[best.index], best};
-    };
-
-    auto shapeChosen = Shape {};
-    auto size = ChosenShape {};
-
-    for (auto step = 0; step <= squeezeSteps && !size.readable; ++step)
-    {
-        auto wideStep = squeezed(wideShape, roomyWideShape, step);
-        auto tallStep = squeezed(tallShape, roomyTallShape, step);
-        std::tie(shapeChosen, size) =
-            choose(byAspect ? Vector<Shape> {wideStep, tallStep}
-                            : Vector<Shape> {tallStep, wideStep});
-    }
-
-    if (!size.readable)
-        std::tie(shapeChosen, size) = choose({tightTallShape});
-
+    auto [shapeChosen, size] = squeezeUntilReadable(content, measure);
     chosen = shapeChosen;
     pointSize = size.pointSize;
-
-    auto area = itemsIn(content, chosen);
-    auto nodes = Vector<ItemNodes> {};
-    auto tree = itemTree(items, pointSize, targetIn(area), leastNote, &nodes);
-    tree.resolve(area, measure);
-
-    for (auto index = 0; index < items.size(); ++index)
-    {
-        auto label = tree.rect(nodes[index].label);
-        auto labelSize = tree.node(nodes[index].label).text->pointSize;
-        placed.add({label.center(),
-                    labelSize,
-                    tree.rect(nodes[index].row),
-                    noteSizeFor(labelSize, leastNote)});
-    }
+    placeItems(content, measure);
 }
 
 void Menu::draw(Hud& hud)
@@ -305,44 +355,71 @@ void Menu::draw(Hud& hud)
         drawItem(hud, index);
 }
 
+bool Menu::isEnabled(int index) const
+{
+    return items[index].enabled != Enabled::No;
+}
+
+bool Menu::isLit(int index) const
+{
+    return isEnabled(index) && (hovered == index || pressed == index);
+}
+
+Graphics::Color Menu::getLabelColor(int index) const
+{
+    if (!isEnabled(index))
+        return faded(disabledColor, opacity);
+
+    auto brighten = isLit(index) ? litBrighten : 0.f;
+    return faded(pink(brighten), opacity);
+}
+
+Graphics::Color Menu::getRingColor(int index) const
+{
+    if (!isEnabled(index))
+        return faded(disabledColor, opacity);
+
+    return faded(pink(ringBrighten), opacity);
+}
+
+void Menu::drawSelectionRing(Hud& hud, int index)
+{
+    const auto& area = placed[index].area;
+    hud.strokeRoundedRect(
+        area, ringWidth, std::min(area.h * 0.5f, ringCorner), getRingColor(index));
+}
+
+void Menu::drawNote(Hud& hud, int index, float top)
+{
+    const auto& item = items[index];
+    const auto& place = placed[index];
+    const auto& noteFont = menuFont(place.noteSize);
+    auto width = hud.measure(item.note, noteFont);
+    auto baseline = top - place.pointSize * noteLift;
+    drawMenuText(hud,
+                 item.note,
+                 {place.center.x - width * 0.5f, baseline},
+                 {noteFont, faded(pink(), opacity), opacity});
+}
+
 void Menu::drawItem(Hud& hud, int index)
 {
     const auto& item = items[index];
     const auto& place = placed[index];
-    auto lit =
-        item.enabled == Enabled::Yes && (hovered == index || pressed == index);
-    const auto& font = menuFont(place.pointSize * (lit ? hoverScale : 1.f));
-    auto size = font.pointSize;
-    auto color = faded(item.enabled == Enabled::Yes ? pink(lit ? litBrighten : 0.f)
-                                                    : disabledColor,
-                       opacity);
-    auto top = place.center.y - size * lineSpacing * 0.5f;
-    auto ascent = hud.ascent(font);
+    auto scale = isLit(index) ? hoverScale : 1.f;
+    const auto& font = menuFont(place.pointSize * scale);
+    auto top = place.center.y - font.pointSize * lineSpacing * 0.5f;
 
     if (showSelection && selected == index)
-        hud.strokeRoundedRect(
-            place.area,
-            ringWidth,
-            std::min(place.area.h * 0.5f, ringCorner),
-            faded(item.enabled == Enabled::Yes ? pink(ringBrighten) : disabledColor,
-                  opacity));
+        drawSelectionRing(hud, index);
 
     if (!item.note.empty())
-    {
-        const auto& noteFont = menuFont(place.noteSize);
-        auto width = hud.measure(item.note, noteFont);
-        auto baseline = top - place.pointSize * noteLift;
-        drawMenuText(hud,
-                     item.note,
-                     {place.center.x - width * 0.5f, baseline},
-                     noteFont,
-                     faded(pink(), opacity),
-                     opacity);
-    }
+        drawNote(hud, index, top);
 
     auto width = hud.measure(item.label, font);
-    auto at = Point {place.center.x - width * 0.5f, top + ascent * ascentShare};
-    drawMenuText(hud, item.label, at, font, color, opacity);
+    auto at =
+        Point {place.center.x - width * 0.5f, top + hud.ascent(font) * ascentShare};
+    drawMenuText(hud, item.label, at, {font, getLabelColor(index), opacity});
 }
 
 int Menu::itemAt(Point position) const
@@ -371,10 +448,16 @@ void Menu::chooseSelected()
     choose(selected);
 }
 
+bool Menu::isChoosable(int index) const
+{
+    auto numItems = static_cast<int>(items.size());
+    auto isInRange = index >= 0 && index < numItems;
+    return isInRange && isEnabled(index);
+}
+
 void Menu::choose(int index)
 {
-    if (index < 0 || index >= (int) items.size()
-        || items[index].enabled == Enabled::No)
+    if (!isChoosable(index))
         return;
 
     onChoose(index);

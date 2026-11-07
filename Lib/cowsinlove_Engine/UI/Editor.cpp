@@ -138,83 +138,248 @@ float linesFor(RowShape shape, int rows)
     return perRow * (float) rows + 1.f + titleLines;
 }
 
-Flex::Tree panelTree(const std::string& title,
-                     const Vector<EditorRow>& rows,
-                     const std::string& doneLabel,
-                     RowShape shape,
-                     float pointSize,
-                     float target,
-                     float margin,
-                     PanelNodes* nodes)
+struct PanelContent final
+{
+    const std::string& title;
+    const Vector<EditorRow>& rows;
+    const std::string& doneLabel;
+};
+
+struct PanelSizing final
+{
+    RowShape shape = RowShape::Inline;
+    float pointSize = 0.f;
+    float target = 0.f;
+    float margin = 0.f;
+};
+
+Flex::Node makeRowLine(const PanelSizing& sizing)
+{
+    auto stacked = sizing.shape == RowShape::Stacked;
+    auto line = Flex::Node {};
+    line.direction = stacked ? Flex::Direction::Down : Flex::Direction::Across;
+    line.crossAlign = stacked ? Flex::Align::Centre : Flex::Align::Start;
+    line.height = Flex::Size::fit(sizing.target);
+    line.padding = {.left = sizing.target * rowSidePadding,
+                    .right = sizing.target * rowSidePadding};
+    return line;
+}
+
+Flex::Node makeRowName(const std::string& text, const PanelSizing& sizing)
+{
+    auto name = label(text, sizing.pointSize);
+    name.column = nameColumn;
+
+    if (sizing.shape == RowShape::Stacked)
+        name.height = Flex::Size::fit();
+    else
+        name.padding.right = sizing.pointSize * nameGap;
+
+    return name;
+}
+
+RowNodes addRowNodes(Flex::Tree& tree,
+                     Flex::NodeId tableId,
+                     const EditorRow& row,
+                     const PanelSizing& sizing)
+{
+    auto lineId = tree.add(tableId, makeRowLine(sizing));
+    auto nameId = tree.add(lineId, makeRowName(row.name, sizing));
+    auto controls = lineId;
+
+    if (sizing.shape == RowShape::Stacked)
+    {
+        auto group = Flex::Node {};
+        group.height = Flex::Size::fit(sizing.target);
+        controls = tree.add(lineId, group);
+    }
+
+    auto value = button({}, sizing.pointSize, sizing.target);
+    value.text->alsoFits = row.choices;
+    value.column = valueColumn;
+
+    auto previousId =
+        tree.add(controls, button(previousArrow, sizing.pointSize, sizing.target));
+    auto valueId = tree.add(controls, value);
+    auto nextId =
+        tree.add(controls, button(nextArrow, sizing.pointSize, sizing.target));
+    return {lineId, nameId, previousId, valueId, nextId};
+}
+
+Flex::Node makePanelBlock(const PanelSizing& sizing)
 {
     auto block = Flex::Node {};
     block.direction = Flex::Direction::Down;
     block.mainAlign = Flex::Align::Centre;
     block.crossAlign = Flex::Align::Centre;
-    block.padding = {.left = margin, .right = margin};
-    block.gap = pointSize * doneGap;
-    auto tree = Flex::Tree {block};
+    block.padding = {.left = sizing.margin, .right = sizing.margin};
+    block.gap = sizing.pointSize * doneGap;
+    return block;
+}
+
+Flex::Tree makePanelTree(const PanelContent& content,
+                         const PanelSizing& sizing,
+                         PanelNodes& nodes)
+{
+    auto tree = Flex::Tree {makePanelBlock(sizing)};
 
     auto heading = Flex::Node {};
-    heading.text = Flex::Text {title, onFontGrid(pointSize * titleScale), titleLine};
-    auto titleId = tree.add(Flex::Tree::root, heading);
+    heading.text = Flex::Text {
+        content.title, onFontGrid(sizing.pointSize * titleScale), titleLine};
+    nodes.title = tree.add(Flex::Tree::root, heading);
 
     auto table = Flex::Node {};
     table.direction = Flex::Direction::Down;
-    table.gap = pointSize * rowGap;
+    table.gap = sizing.pointSize * rowGap;
     auto tableId = tree.add(Flex::Tree::root, table);
 
-    auto made = PanelNodes {};
-    made.title = titleId;
+    nodes.rows.clear();
 
-    for (const auto& row: rows)
-    {
-        auto stacked = shape == RowShape::Stacked;
-        auto line = Flex::Node {};
-        line.direction = stacked ? Flex::Direction::Down : Flex::Direction::Across;
-        line.crossAlign = stacked ? Flex::Align::Centre : Flex::Align::Start;
-        line.height = Flex::Size::fit(target);
-        line.padding = {.left = target * rowSidePadding,
-                        .right = target * rowSidePadding};
-        auto lineId = tree.add(tableId, line);
+    for (const auto& row: content.rows)
+        nodes.rows.add(addRowNodes(tree, tableId, row, sizing));
 
-        auto name = label(row.name, pointSize);
-        name.column = nameColumn;
-
-        if (stacked)
-            name.height = Flex::Size::fit();
-        else
-            name.padding.right = pointSize * nameGap;
-
-        auto nameId = tree.add(lineId, name);
-        auto controls = lineId;
-
-        if (stacked)
-        {
-            auto group = Flex::Node {};
-            group.height = Flex::Size::fit(target);
-            controls = tree.add(lineId, group);
-        }
-
-        auto value = button({}, pointSize, target);
-        value.text->alsoFits = row.choices;
-        value.column = valueColumn;
-
-        auto previousId =
-            tree.add(controls, button(previousArrow, pointSize, target));
-        auto valueId = tree.add(controls, value);
-        auto nextId = tree.add(controls, button(nextArrow, pointSize, target));
-        made.rows.add({lineId, nameId, previousId, valueId, nextId});
-    }
-
-    auto done = button(doneLabel, pointSize, target);
-    done.height = Flex::Size::fit(target);
-    made.done = tree.add(Flex::Tree::root, done);
-
-    if (nodes != nullptr)
-        *nodes = made;
+    auto done = button(content.doneLabel, sizing.pointSize, sizing.target);
+    done.height = Flex::Size::fit(sizing.target);
+    nodes.done = tree.add(Flex::Tree::root, done);
 
     return tree;
+}
+
+struct PanelFitting final
+{
+    Rect content;
+    int numRows = 0;
+    Flex::Measure measure;
+    float readable = 0.f;
+    float largest = 0.f;
+};
+
+float calculateTapTarget(const PanelFitting& fitting, const PanelShape& shape)
+{
+    auto panel = panelIn(fitting.content, shape.area);
+    return std::min({tapTarget(fitting.content),
+                     panel.h / linesFor(shape.rows, fitting.numRows),
+                     panel.w * targetWidthShare});
+}
+
+PanelSizing calculatePanelSizing(const PanelFitting& fitting,
+                                 const PanelShape& shape,
+                                 float pointSize)
+{
+    auto panel = panelIn(fitting.content, shape.area);
+    return {shape.rows,
+            pointSize,
+            calculateTapTarget(fitting, shape),
+            panel.w * panelMargin};
+}
+
+struct FittedPanel final
+{
+    PanelShape shape;
+    ChosenShape fitted;
+};
+
+FittedPanel chooseLargestPanel(const PanelContent& content,
+                               const PanelFitting& fitting,
+                               const Vector<PanelShape>& shapes)
+{
+    auto candidates = Vector<LayoutShape> {};
+
+    for (const auto& each: shapes)
+    {
+        auto build = [content, fitting, each](float pointSize)
+        {
+            auto ignored = PanelNodes {};
+            return makePanelTree(
+                content, calculatePanelSizing(fitting, each, pointSize), ignored);
+        };
+        candidates.add({build, panelIn(fitting.content, each.area)});
+    }
+
+    auto best = largestShape(
+        candidates, fitting.measure, {fitting.readable, fitting.largest});
+    return {shapes[best.index], best};
+}
+
+FittedPanel chooseReadablePanel(const PanelContent& content,
+                                const PanelFitting& fitting,
+                                bool byAspect)
+{
+    auto result = FittedPanel {};
+    auto preferred = byAspect ? wideShape : tallShape;
+    auto other = byAspect ? tallShape : wideShape;
+
+    for (auto rowShape: {RowShape::Inline, RowShape::Stacked})
+    {
+        for (auto step = 0; step <= squeezeSteps && !result.fitted.readable; ++step)
+        {
+            auto first = squeezed(preferred, step);
+            auto second = squeezed(other, step);
+            result = chooseLargestPanel(
+                content, fitting, {{first, rowShape}, {second, rowShape}});
+        }
+    }
+
+    return result;
+}
+
+float calculateLargestPointSize(Rect content)
+{
+    return std::clamp(
+        std::min(content.w, content.h) * largestShare, leastLargest, mostLargest);
+}
+
+struct TextMetrics final
+{
+    float pointSize = 0.f;
+    float ascent = 0.f;
+    bool namesAboveValues = false;
+};
+
+float calculateBaselineIn(const Rect& area, const TextMetrics& metrics)
+{
+    return area.y + area.h * 0.5f - metrics.pointSize * lineSpacing * 0.5f
+           + metrics.ascent * ascentShare;
+}
+
+Editor::Placed
+    placeRow(const Flex::Tree& tree, const RowNodes& row, const TextMetrics& metrics)
+{
+    auto place = Editor::Placed {};
+    place.pointSize = metrics.pointSize;
+    place.row = tree.rect(row.row);
+    place.name = tree.rect(row.name);
+    place.previous = tree.rect(row.previous);
+    place.value = tree.rect(row.value);
+    place.next = tree.rect(row.next);
+    place.baseline = calculateBaselineIn(
+        metrics.namesAboveValues ? place.value : place.row, metrics);
+    place.nameBaseline = metrics.namesAboveValues
+                             ? calculateBaselineIn(place.name, metrics)
+                             : place.baseline;
+    return place;
+}
+
+struct PanelPlacement final
+{
+    Vector<Editor::Placed> rows;
+    Editor::Placed done;
+};
+
+PanelPlacement placeRowsAndDone(const Flex::Tree& tree,
+                                const PanelNodes& nodes,
+                                const TextMetrics& metrics)
+{
+    auto placement = PanelPlacement {};
+
+    for (const auto& row: nodes.rows)
+        placement.rows.add(placeRow(tree, row, metrics));
+
+    placement.done.pointSize = metrics.pointSize;
+    placement.done.value = tree.rect(nodes.done);
+    placement.done.baseline = calculateBaselineIn(placement.done.value, metrics);
+    placement.done.row = placement.done.value;
+    return placement;
 }
 
 } // namespace
@@ -226,11 +391,15 @@ Editor::Editor()
 
 Editor::Shape Editor::shape() const
 {
-    if (laidOutFor.has_value()
-        && sameFrame(*laidOutFor, frameOf(*this, topClearance)))
+    if (isLaidOutFor(frameOf(*this, topClearance)))
         return chosen;
 
     return aspectWide(*this) ? wideShape : tallShape;
+}
+
+bool Editor::isLaidOutFor(const ScreenFrame& frame) const
+{
+    return laidOutFor.has_value() && sameFrame(*laidOutFor, frame);
 }
 
 bool Editor::wide() const
@@ -268,116 +437,38 @@ int Editor::doneIndex() const
 void Editor::layOut(Hud& hud)
 {
     auto frame = frameOf(*this, topClearance);
+    auto upToDate = !contentChanged && isLaidOutFor(frame);
 
-    if (!contentChanged && laidOutFor.has_value() && sameFrame(*laidOutFor, frame))
+    if (upToDate)
         return;
 
     contentChanged = false;
     laidOutFor = frame;
 
     auto content = frame.contentArea();
-    auto measure = menuMeasure(hud);
-    auto byAspect = aspectWide(*this);
+    auto fitting = PanelFitting {content,
+                                 (int) rows.size(),
+                                 menuMeasure(hud),
+                                 smallestReadableSize(content),
+                                 calculateLargestPointSize(content)};
+    auto panelContent = PanelContent {title, rows, doneLabel};
+    auto choice = chooseReadablePanel(panelContent, fitting, aspectWide(*this));
 
-    auto targetFor = [&](const PanelShape& shape)
-    {
-        auto panel = panelIn(content, shape.area);
-        return std::min({tapTarget(content),
-                         panel.h / linesFor(shape.rows, rows.size()),
-                         panel.w * targetWidthShare});
-    };
+    chosen = choice.shape.area;
+    namesAboveValues = choice.shape.rows == RowShape::Stacked;
+    auto size = choice.fitted.pointSize;
 
-    auto readable = smallestReadableSize(content);
-    auto largest = std::clamp(
-        std::min(content.w, content.h) * largestShare, leastLargest, mostLargest);
-
-    auto choose = [&](const Vector<PanelShape>& shapes)
-    {
-        auto candidates = Vector<LayoutShape> {};
-
-        for (const auto& each: shapes)
-        {
-            auto panel = panelIn(content, each.area);
-            auto target = targetFor(each);
-            auto margin = panel.w * panelMargin;
-            candidates.add({[this, each, target, margin](float pointSize)
-                            {
-                                return panelTree(title,
-                                                 rows,
-                                                 doneLabel,
-                                                 each.rows,
-                                                 pointSize,
-                                                 target,
-                                                 margin,
-                                                 nullptr);
-                            },
-                            panel});
-        }
-
-        auto best = largestShape(candidates, measure, readable, largest);
-        return std::pair {shapes[best.index], best};
-    };
-
-    auto shape = PanelShape {};
-    auto fitted = ChosenShape {};
-
-    for (auto rowShape: {RowShape::Inline, RowShape::Stacked})
-        for (auto step = 0; step <= squeezeSteps && !fitted.readable; ++step)
-        {
-            auto first = squeezed(byAspect ? wideShape : tallShape, step);
-            auto second = squeezed(byAspect ? tallShape : wideShape, step);
-            std::tie(shape, fitted) =
-                choose({{first, rowShape}, {second, rowShape}});
-        }
-
-    chosen = shape.area;
-    namesAboveValues = shape.rows == RowShape::Stacked;
-    auto size = fitted.pointSize;
-
-    auto panel = panelIn(content, chosen);
     auto nodes = PanelNodes {};
-    auto tree = panelTree(title,
-                          rows,
-                          doneLabel,
-                          shape.rows,
-                          size,
-                          targetFor(shape),
-                          panel.w * panelMargin,
-                          &nodes);
-    tree.resolve(panel, measure);
-
-    auto ascent = hud.ascent(menuFont(size));
-    auto baselineIn = [&](const Rect& area)
-    {
-        return area.y + area.h * 0.5f - size * lineSpacing * 0.5f
-               + ascent * ascentShare;
-    };
+    auto tree = makePanelTree(
+        panelContent, calculatePanelSizing(fitting, choice.shape, size), nodes);
+    tree.resolve(panelIn(content, chosen), fitting.measure);
 
     titleBox = tree.rect(nodes.title);
     titleSize = tree.node(nodes.title).text->pointSize;
-    placed.clear();
-
-    for (const auto& row: nodes.rows)
-    {
-        auto place = Placed {};
-        place.pointSize = size;
-        place.row = tree.rect(row.row);
-        place.name = tree.rect(row.name);
-        place.baseline =
-            baselineIn(namesAboveValues ? tree.rect(row.value) : place.row);
-        place.nameBaseline =
-            namesAboveValues ? baselineIn(place.name) : place.baseline;
-        place.previous = tree.rect(row.previous);
-        place.value = tree.rect(row.value);
-        place.next = tree.rect(row.next);
-        placed.add(place);
-    }
-
-    done = {};
-    done.pointSize = size;
-    done.value = tree.rect(nodes.done);
-    done.baseline = baselineIn(done.value);
-    done.row = done.value;
+    auto placement = placeRowsAndDone(
+        tree, nodes, {size, hud.ascent(menuFont(size)), namesAboveValues});
+    placed = std::move(placement.rows);
+    done = placement.done;
 }
 
 void Editor::draw(Hud& hud)
@@ -394,9 +485,7 @@ void Editor::draw(Hud& hud)
     drawMenuText(hud,
                  title,
                  {titleBox.x + (titleBox.w - titleWidth) * 0.5f, titleBaseline},
-                 titleFont,
-                 faded(pink(ringBrighten), opacity),
-                 opacity);
+                 {titleFont, faded(pink(ringBrighten), opacity), opacity});
 
     for (auto index = 0; index < (int) rows.size(); ++index)
         drawRow(hud, index);
@@ -416,33 +505,33 @@ void Editor::drawRow(Hud& hud, int index)
         drawRing(hud, place.row);
 
     drawLabel(hud,
-              row.name,
-              place.name,
-              place.nameBaseline,
-              place.pointSize,
-              false,
-              namesAboveValues);
+              {row.name,
+               place.name,
+               place.nameBaseline,
+               place.pointSize,
+               false,
+               namesAboveValues});
     drawLabel(hud,
-              previousArrow,
-              place.previous,
-              place.baseline,
-              place.pointSize,
-              isLit({index, Part::Previous}),
-              true);
+              {previousArrow,
+               place.previous,
+               place.baseline,
+               place.pointSize,
+               isLit({index, Part::Previous}),
+               true});
     drawLabel(hud,
-              value,
-              place.value,
-              place.baseline,
-              place.pointSize,
-              isLit({index, Part::Value}),
-              true);
+              {value,
+               place.value,
+               place.baseline,
+               place.pointSize,
+               isLit({index, Part::Value}),
+               true});
     drawLabel(hud,
-              nextArrow,
-              place.next,
-              place.baseline,
-              place.pointSize,
-              isLit({index, Part::Next}),
-              true);
+              {nextArrow,
+               place.next,
+               place.baseline,
+               place.pointSize,
+               isLit({index, Part::Next}),
+               true});
 }
 
 void Editor::drawDone(Hud& hud)
@@ -451,22 +540,22 @@ void Editor::drawDone(Hud& hud)
         drawRing(hud, done.row);
 
     drawLabel(hud,
-              doneLabel,
-              done.value,
-              done.baseline,
-              done.pointSize,
-              isLit({doneIndex(), Part::Done}),
-              true);
+              {doneLabel,
+               done.value,
+               done.baseline,
+               done.pointSize,
+               isLit({doneIndex(), Part::Done}),
+               true});
 }
 
-void Editor::drawLabel(Hud& hud,
-                       const std::string& text,
-                       const Rect& area,
-                       float baseline,
-                       float pointSize,
-                       bool lit,
-                       bool centred)
+void Editor::drawLabel(Hud& hud, const LabelToDraw& label)
 {
+    const auto& text = label.text;
+    const auto& area = label.area;
+    auto baseline = label.baseline;
+    auto pointSize = label.pointSize;
+    auto lit = label.lit;
+    auto centred = label.centred;
     const auto& font = menuFont(pointSize * (lit ? hoverScale : 1.f));
     auto size = font.pointSize;
     auto width = hud.measure(text, font);
@@ -476,9 +565,7 @@ void Editor::drawLabel(Hud& hud,
     drawMenuText(hud,
                  text,
                  {x, baseline + grownBy},
-                 font,
-                 faded(pink(lit ? litBrighten : 0.f), opacity),
-                 opacity);
+                 {font, faded(pink(lit ? litBrighten : 0.f), opacity), opacity});
 }
 
 void Editor::drawRing(Hud& hud, const Rect& area)

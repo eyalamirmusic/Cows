@@ -1,5 +1,7 @@
 #include "Render/QualityGovernor.h"
 
+#include <algorithm>
+
 namespace Cows
 {
 QualityGovernor::QualityGovernor(const Settings& settingsToUse)
@@ -9,41 +11,71 @@ QualityGovernor::QualityGovernor(const Settings& settingsToUse)
 {
 }
 
-bool QualityGovernor::addFrame(double gpuMilliseconds)
+bool QualityGovernor::consumeSettleFrame()
 {
-    if (gpuMilliseconds <= 0.0)
+    if (toSettle <= 0)
         return false;
 
-    if (toSettle > 0)
-    {
-        --toSettle;
-        return false;
-    }
+    --toSettle;
+    return true;
+}
 
-    total += gpuMilliseconds;
-    ++frames;
+bool QualityGovernor::hasReachedMinimumWindowTime() const
+{
+    return frames >= settings.minimumWindow && total >= settings.windowMilliseconds;
+}
 
-    auto full = frames >= settings.window
-                || (frames >= settings.minimumWindow
-                    && total >= settings.windowMilliseconds);
+bool QualityGovernor::isWindowFull() const
+{
+    return frames >= settings.window || hasReachedMinimumWindowTime();
+}
 
-    if (!full)
-        return false;
-
+double QualityGovernor::takeWindowAverage()
+{
     auto average = total / frames;
     total = 0.0;
     frames = 0;
     ++windows;
+    return average;
+}
 
-    auto climbing = !cameDown && windows <= settings.climbWindows;
-    auto next = level;
+bool QualityGovernor::isStillClimbing() const
+{
+    return !cameDown && windows <= settings.climbWindows;
+}
 
+bool QualityGovernor::shouldClimb(double average) const
+{
+    return isStillClimbing() && average < settings.headroom
+           && level + 1 < settings.levels;
+}
+
+int QualityGovernor::chooseNextLevel(double average) const
+{
     if (average > settings.budget * settings.collapse)
-        next = 0;
-    else if (average > settings.budget)
-        next = level > 0 ? level - 1 : 0;
-    else if (climbing && average < settings.headroom && level + 1 < settings.levels)
-        next = level + 1;
+        return 0;
+
+    if (average > settings.budget)
+        return std::max(level - 1, 0);
+
+    if (shouldClimb(average))
+        return level + 1;
+
+    return level;
+}
+
+bool QualityGovernor::addFrame(double gpuMilliseconds)
+{
+    if (gpuMilliseconds <= 0.0 || consumeSettleFrame())
+        return false;
+
+    total += gpuMilliseconds;
+    ++frames;
+
+    if (!isWindowFull())
+        return false;
+
+    auto next = chooseNextLevel(takeWindowAverage());
 
     if (next == level)
     {

@@ -13,16 +13,9 @@ namespace
 {
 bool anyDrawn(const Graphics::Image& image, Graphics::Point center, float radius)
 {
-    auto x0 = (int) (center.x - radius);
-    auto y0 = (int) (center.y - radius);
-
-    for (auto y = y0; y < (int) (center.y + radius); ++y)
-        for (auto x = x0; x < (int) (center.x + radius); ++x)
-            if (x >= 0 && y >= 0 && x < image.width() && y < image.height()
-                && !isClearColor(image.at(x, y)))
-                return true;
-
-    return false;
+    auto side = 2.f * radius;
+    return isAnythingDrawnIn(image,
+                             {center.x - radius, center.y - radius, side, side});
 }
 } // namespace
 

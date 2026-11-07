@@ -75,15 +75,6 @@ void checkSnapshot(const Scenery& scenery, const std::string& name, const Shot& 
     check(!isClearColor(image.at(image.width() / 2, image.height() / 2)));
 }
 
-void checkSnapshot(const Scenery& scenery,
-                   const std::string& name,
-                   Vec3 target,
-                   float distance,
-                   float yaw = 0.6f)
-{
-    checkSnapshot(scenery, name, Shot {target, distance, yaw});
-}
-
 constexpr auto playerHeight = 1.5f;
 constexpr auto stepUp = 0.55f;
 constexpr auto jumpHeight = 2.4f;
@@ -156,18 +147,28 @@ struct ClimbTop final
     Vec2 toward;
 };
 
+bool isUnderRoof(const Scenery& scenery, const Cows::Block& block)
+{
+    auto underRoof = false;
+
+    for (const auto& roof: blocksAt(scenery, block.center, true))
+        underRoof = underRoof || ramps(roof);
+
+    return underRoof;
+}
+
+bool isClimbCandidate(const Scenery& scenery, const Cows::Block& block)
+{
+    return !floats(block) && !isUnderRoof(scenery, block);
+}
+
 ClimbTop climbTop(const Scenery& scenery)
 {
     auto top = ClimbTop {};
 
     for (const auto& block: scenery.blocks)
     {
-        auto underRoof = false;
-
-        for (const auto& roof: blocksAt(scenery, block.center, true))
-            underRoof = underRoof || ramps(roof);
-
-        if (!floats(block) && !underRoof && block.top > top.block.top)
+        if (isClimbCandidate(scenery, block) && block.top > top.block.top)
             top.block = block;
     }
 
@@ -359,20 +360,20 @@ auto tTree = test("Props/tree") = []
     check(scenery.blocks.empty());
     check(instanceCount(scenery.batch) >= 2);
 
-    checkSnapshot(scenery, "tree", {0.f, 2.5f, 0.f}, 11.f);
+    checkSnapshot(scenery, "tree", Shot {{0.f, 2.5f, 0.f}, 11.f});
 };
 
 auto tHedge = test("Props/hedge") = []
 {
     auto scenery = Scenery {};
     auto random = std::mt19937 {7u};
-    addHedgePiece(scenery, random, {}, 0.3f, hedgeColors[0]);
+    addHedgePiece(scenery, random, {{}, 0.3f, hedgeColors[0]});
 
     check(scenery.colliders.size() == 1);
     check(scenery.blocks.empty());
     check(instanceCount(scenery.batch) == 2);
 
-    checkSnapshot(scenery, "hedge", {0.f, 1.5f, 0.f}, 8.f);
+    checkSnapshot(scenery, "hedge", Shot {{0.f, 1.5f, 0.f}, 8.f});
 };
 
 auto tBale = test("Props/bale") = []
@@ -386,7 +387,7 @@ auto tBale = test("Props/bale") = []
     check(scenery.blocks.empty());
     check(instanceCount(scenery.batch) == (int) baleParts().size());
 
-    checkSnapshot(scenery, "bale", {0.f, 0.8f, 0.f}, 5.f, 2.2f);
+    checkSnapshot(scenery, "bale", Shot {{0.f, 0.8f, 0.f}, 5.f, 2.2f});
 };
 
 auto tBaleMesh = test("Props/baleMeshFitsTheDrumFrame") = []
@@ -433,7 +434,8 @@ auto tBaleShots = test("Props/baleShots") = []
 
     auto close = Scenery {};
     addMeadow(close);
-    addBaleAt(close, lyingDrum({}, 0.f, closeHeading, 0.f, baleRadius, stackLength));
+    addBaleAt(close,
+              lyingDrum({{}, 0.f, closeHeading, 0.f, baleRadius, stackLength}));
     const auto closeEye = Vec3 {2.9f, 2.1f, 3.4f};
     auto closeShot = looking(closeEye, {0.f, baleRadius, 0.f});
     closeShot.width = baleShotWidth;
@@ -448,9 +450,10 @@ auto tBaleShots = test("Props/baleShots") = []
     for (auto side: {-0.5f, 0.5f})
         addBaleAt(
             stack,
-            lyingDrum({side * across, 0.f}, 0.f, 0.f, 0.f, baleRadius, stackLength));
+            lyingDrum(
+                {{side * across, 0.f}, 0.f, 0.f, 0.f, baleRadius, stackLength}));
 
-    addBaleAt(stack, lyingDrum({}, restHeight, 0.f, 0.f, baleRadius, stackLength));
+    addBaleAt(stack, lyingDrum({{}, restHeight, 0.f, 0.f, baleRadius, stackLength}));
     checkSnapshot(stack,
                   "bale-stack",
                   Shot {{0.f, 1.3f, 0.f},
@@ -494,7 +497,7 @@ auto tCrate = test("Props/crate") = []
     check(instanceCount(scenery.batch) == (int) scenery.blocks.size());
     check(top.y == scenery.blocks.back().top);
 
-    checkSnapshot(scenery, "crate", {0.9f, 1.f, 0.f}, 7.f);
+    checkSnapshot(scenery, "crate", Shot {{0.9f, 1.f, 0.f}, 7.f});
 };
 
 auto tRock = test("Props/rock") = []
@@ -507,7 +510,7 @@ auto tRock = test("Props/rock") = []
     check(scenery.blocks.empty());
     check(instanceCount(scenery.batch) == 1);
 
-    checkSnapshot(scenery, "rock", {0.f, 0.3f, 0.f}, 4.f);
+    checkSnapshot(scenery, "rock", Shot {{0.f, 0.3f, 0.f}, 4.f});
 };
 
 auto tSameDraws = test("Props/sameSeedSameProp") = []

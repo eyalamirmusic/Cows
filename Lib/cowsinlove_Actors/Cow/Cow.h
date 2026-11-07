@@ -50,25 +50,27 @@ struct CowPose final
     float seconds = 0.f;
 };
 
+// `heading` 0 faces +x.
+struct FreeCowMotion final
+{
+    Maths::Vec3 position;
+    float heading = 0.f;
+    float hopClock = 0.f;
+    float bounce = 0.f;
+    float seconds = 0.f;
+    float beatClock = 0.f;
+    float glow = 1.f;
+};
+
 struct Cow final
 {
     Maths::Mat4 placement(float seconds, float reach) const;
 
-    // `heading` 0 faces +x.
-    Maths::Mat4 placement(Maths::Vec3 position,
-                          float heading,
-                          float hopClock,
-                          float bounce) const;
+    Maths::Mat4 placement(const FreeCowMotion& motion) const;
 
     CowPose pose(float seconds, const Maths::Mat4& stage = {}) const;
 
-    CowPose freePose(Maths::Vec3 position,
-                     float heading,
-                     float hopClock,
-                     float bounce,
-                     float seconds,
-                     float beatClock,
-                     float glow) const;
+    CowPose freePose(const FreeCowMotion& motion) const;
 
     void addTo(SurfaceBatch& batch,
                Vector<GlowInstance>& glows,

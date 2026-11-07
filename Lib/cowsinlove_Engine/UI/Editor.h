@@ -107,16 +107,21 @@ struct Editor final : Graphics::View
     };
 
     Shape shape() const;
+    bool isLaidOutFor(const ScreenFrame& frame) const;
     void layOut(Hud& hud);
     void drawRow(Hud& hud, int index);
     void drawDone(Hud& hud);
-    void drawLabel(Hud& hud,
-                   const std::string& text,
-                   const Graphics::Rect& area,
-                   float baseline,
-                   float pointSize,
-                   bool lit,
-                   bool centred);
+    struct LabelToDraw final
+    {
+        std::string_view text;
+        Graphics::Rect area;
+        float baseline = 0.f;
+        float pointSize = 0.f;
+        bool lit = false;
+        bool centred = false;
+    };
+
+    void drawLabel(Hud& hud, const LabelToDraw& label);
     void drawRing(Hud& hud, const Graphics::Rect& area);
     bool isLit(Target target) const;
     int doneIndex() const;

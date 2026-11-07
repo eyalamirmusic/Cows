@@ -29,9 +29,8 @@ RenderPipelineDescriptor solidPipeline(int samples)
     return descriptor;
 }
 
-RenderPipelineDescriptor translucentPipeline(int samples)
+RenderPipelineDescriptor makeTranslucent(RenderPipelineDescriptor descriptor)
 {
-    auto descriptor = solidPipeline(samples);
     descriptor.blendMode = BlendMode::AlphaBlend;
     descriptor.depthWrite = false;
     return descriptor;
@@ -53,7 +52,28 @@ RenderPipelineDescriptor glowPipeline(int samples)
     descriptor.blend = blend;
     return descriptor;
 }
+
+bool isPixelDrawn(const Graphics::Image& image, int x, int y)
+{
+    auto isInsideImage = x >= 0 && y >= 0 && x < image.width() && y < image.height();
+    return isInsideImage && !isClearColor(image.at(x, y));
+}
 } // namespace
+
+bool isAnythingDrawnIn(const Graphics::Image& image, const Graphics::Rect& area)
+{
+    auto left = (int) area.x;
+    auto top = (int) area.y;
+    auto right = (int) (area.x + area.w);
+    auto bottom = (int) (area.y + area.h);
+
+    for (auto y = top; y < bottom; ++y)
+        for (auto x = left; x < right; ++x)
+            if (isPixelDrawn(image, x, y))
+                return true;
+
+    return false;
+}
 
 bool isClearColor(const Graphics::Color& color)
 {
@@ -76,7 +96,7 @@ SnapshotView::SnapshotView(const std::function<MeshData(Shape)>& content)
 
     auto samples = sampleCount();
     surfaceShader.prepare(solidPipeline(samples));
-    translucentShader.prepare(translucentPipeline(samples));
+    translucentShader.prepare(makeTranslucent(solidPipeline(samples)));
     glowShader.setVertices(glowQuad);
     glowShader.prepare(glowPipeline(samples));
 }

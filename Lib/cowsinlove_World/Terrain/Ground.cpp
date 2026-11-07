@@ -32,8 +32,17 @@ Vector<float> cutsAlong(const Level& level, float half, bool alongX)
     return cuts;
 }
 
-void addQuad(MeshData& mesh, float left, float right, float near, float far)
+struct GroundRect final
 {
+    float left = 0.f;
+    float right = 0.f;
+    float near = 0.f;
+    float far = 0.f;
+};
+
+void addQuad(MeshData& mesh, const GroundRect& rect)
+{
+    auto [left, right, near, far] = rect;
     auto up = Vec3 {0.f, 1.f, 0.f};
     auto base = (std::uint32_t) mesh.vertices.size();
 
@@ -69,7 +78,7 @@ MeshData makeGround(const Level& level, float size)
                                 (zs[row] + zs[row + 1]) * 0.5f};
 
             if (!level.overGap(middle))
-                addQuad(mesh, xs[column], xs[column + 1], zs[row], zs[row + 1]);
+                addQuad(mesh, {xs[column], xs[column + 1], zs[row], zs[row + 1]});
         }
 
     return mesh;

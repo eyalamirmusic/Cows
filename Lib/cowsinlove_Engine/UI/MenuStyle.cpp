@@ -33,6 +33,42 @@ bool sameInsets(const Graphics::Insets& a, const Graphics::Insets& b)
     return a.top == b.top && a.left == b.left && a.bottom == b.bottom
            && a.right == b.right;
 }
+
+Vector<ChosenShape> fitEveryShape(const Vector<LayoutShape>& shapes,
+                                  const Flex::Measure& measure,
+                                  const Flex::PointSizeRange& range)
+{
+    auto fits = Vector<ChosenShape> {};
+
+    for (auto index = 0; index < shapes.size(); ++index)
+    {
+        const auto& shape = shapes[index];
+        auto fitted =
+            Flex::largestPointSize(shape.build,
+                                   shape.area,
+                                   measure,
+                                   {range.least, range.most, fontSizeStep});
+
+        if (fitted.fits)
+            fits.add({index, fitted.pointSize, false});
+    }
+
+    return fits;
+}
+
+std::optional<ChosenShape> pickPreferredShape(const Vector<ChosenShape>& fits)
+{
+    auto largestFit = 0.f;
+
+    for (const auto& fit: fits)
+        largestFit = std::max(largestFit, fit.pointSize);
+
+    for (const auto& fit: fits)
+        if (fit.pointSize >= largestFit * preferenceShare)
+            return fit;
+
+    return std::nullopt;
+}
 } // namespace
 
 Graphics::Color pink(float brighten)
@@ -99,38 +135,24 @@ float smallestReadableSize(const Graphics::Rect& content)
 
 ChosenShape largestShape(const Vector<LayoutShape>& shapes,
                          const Flex::Measure& measure,
-                         float readable,
-                         float largest)
+                         const Flex::PointSizeRange& readableToLargest)
 {
-    auto pick = [&](float least, float most)
+    auto readable = readableToLargest.least;
+    auto largest = readableToLargest.most;
+    auto pick = [&](const Flex::PointSizeRange& range)
     {
-        auto fits = Vector<ChosenShape> {};
-        auto largestFit = 0.f;
+        auto fits = fitEveryShape(shapes, measure, range);
 
-        for (auto index = 0; index < shapes.size(); ++index)
-        {
-            const auto& shape = shapes[index];
-            auto fitted = Flex::largestPointSize(
-                shape.build, shape.area, measure, {least, most, fontSizeStep});
+        for (auto& fit: fits)
+            fit.readable = range.least >= readable;
 
-            if (!fitted.fits)
-                continue;
-
-            fits.add({index, fitted.pointSize, least >= readable});
-            largestFit = std::max(largestFit, fitted.pointSize);
-        }
-
-        for (const auto& fit: fits)
-            if (fit.pointSize >= largestFit * preferenceShare)
-                return std::optional {fit};
-
-        return std::optional<ChosenShape> {};
+        return pickPreferredShape(fits);
     };
 
-    if (auto readableBest = pick(readable, std::max(readable, largest)))
+    if (auto readableBest = pick({readable, std::max(readable, largest)}))
         return *readableBest;
 
-    if (auto smallBest = pick(smallestFallback, readable))
+    if (auto smallBest = pick({smallestFallback, readable}))
         return *smallBest;
 
     return {0, smallestFallback, false};
@@ -139,10 +161,10 @@ ChosenShape largestShape(const Vector<LayoutShape>& shapes,
 void drawMenuText(Hud& hud,
                   std::string_view text,
                   Graphics::Point baselineLeft,
-                  const Text::Font& font,
-                  const Graphics::Color& color,
-                  float opacity)
+                  const MenuTextStyle& style)
 {
+    const auto& font = style.font;
+    auto opacity = style.opacity;
     auto at = baselineLeft;
     auto offset = std::max(1.f, font.pointSize * 0.03f);
     auto outline = std::max(1.5f, font.pointSize * outlineShare);
@@ -161,6 +183,6 @@ void drawMenuText(Hud& hud,
             faded(outlineColor, opacity));
     }
 
-    hud.drawText(text, at, font, color);
+    hud.drawText(text, at, font, style.fill);
 }
 } // namespace Cows
