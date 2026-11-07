@@ -9,7 +9,6 @@ nano_add_executable(CowsInLoveTests
             ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/Quality.cpp
             ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Settings.cpp
             ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Stages.cpp
-            ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Templates.cpp
             ../Support/TestMain.cpp
         TARGETS cowsinlove_Game)
 

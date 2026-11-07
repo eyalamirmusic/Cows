@@ -14,7 +14,6 @@ eacp_add_app(Cows
         Source/CowsApp.cpp
         Source/Settings.cpp
         Source/Stages.cpp
-        Source/Templates.cpp
         Source/Scene/CowsView.cpp
         Source/Scene/CowsViewCamera.cpp
         Source/Scene/CowsViewDrawing.cpp

@@ -2,7 +2,7 @@
 #include "Levels/LevelGenerator.h"
 #include "MainMenu.h"
 #include "Scene/CowsView.h"
-#include "Templates.h"
+#include "Levels/Templates.h"
 #include "UI/Overlay.h"
 #include "UI/TouchControls.h"
 

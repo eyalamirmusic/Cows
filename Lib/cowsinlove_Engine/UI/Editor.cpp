@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <tuple>
 #include <utility>
 
 namespace Cows

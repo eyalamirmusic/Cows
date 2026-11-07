@@ -1,5 +1,5 @@
 #include "Levels/LevelGenerator.h"
-#include "Fixtures.h"
+#include "Levels/Templates.h"
 #include "Render/Mesh.h"
 #include "Snapshot.h"
 #include "Terrain/TerrainShaders.h"
@@ -24,7 +24,7 @@ bool inBarn(Level::Hiding hiding)
 
 Level makeMeadow(std::uint32_t seed)
 {
-    return generate(meadowFixture(), seed);
+    return generate(meadowTemplate(), seed);
 }
 
 bool same(const Collider& a, const Collider& b)

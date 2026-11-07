@@ -1,5 +1,4 @@
 #include "Snapshot.h"
-#include "UI/Hud.h"
 #include "UI/Menu.h"
 
 #include <NanoTest/NanoTest.h>
@@ -25,21 +24,6 @@ bool inside(const Graphics::Rect& area, float width, float height)
            && area.y + area.h <= height;
 }
 
-Graphics::Image menuShot(Menu& menu, float width, float height, const char* name)
-{
-    menu.setBounds({0.f, 0.f, width, height});
-
-    auto hud = Hud {};
-    auto view = SnapshotView {};
-    view.drawOverlay = [&](Frame& frame, RenderPass& pass)
-    {
-        hud.begin(frame, pass, view.sampleCount());
-        menu.draw(hud);
-        hud.end();
-    };
-
-    return snapshot(view, width, height, name);
-}
 } // namespace
 
 auto tMenuWide = test("MenuSnapshot/wide") = []
@@ -51,7 +35,7 @@ auto tMenuWide = test("MenuSnapshot/wide") = []
     addItems(menu);
     menu.showSelection = true;
 
-    auto image = menuShot(menu, 1280.f, 800.f, "engine-menu-wide");
+    auto image = snapshotScreen(menu, 1280.f, 800.f, "engine-menu-wide");
     check(image.isValid());
 
     if (!image.isValid())
@@ -84,7 +68,7 @@ auto tMenuTall = test("MenuSnapshot/tall") = []
     auto menu = Menu {};
     addItems(menu);
 
-    auto image = menuShot(menu, 390.f, 844.f, "engine-menu-tall");
+    auto image = snapshotScreen(menu, 390.f, 844.f, "engine-menu-tall");
     check(image.isValid());
 
     if (!image.isValid())
@@ -118,7 +102,7 @@ void checkMainMenu(float width, float height, const char* name)
     menu.items.add({"About"});
     menu.showSelection = true;
 
-    auto image = menuShot(menu, width, height, name);
+    auto image = snapshotScreen(menu, width, height, name);
     check(image.isValid());
     check(menu.placed.size() == 4);
 

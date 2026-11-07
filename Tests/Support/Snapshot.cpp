@@ -115,7 +115,7 @@ void SnapshotView::render(Frame& frame)
     draw(pass, surfaceShader, batch);
     drawOpaque(pass, viewProjection);
     draw(pass, translucentShader, translucent);
-    drawGlows(pass, viewProjection);
+    glowShader.drawGlows(pass, glows, viewProjection, camera);
     drawOverlay(frame, pass);
 }
 
@@ -158,18 +158,20 @@ void SnapshotView::draw(RenderPass& pass,
     }
 }
 
-void SnapshotView::drawGlows(RenderPass& pass, const Mat4& viewProjection)
+bool isMiddleClear(const Graphics::Image& image)
 {
-    if (glows.empty())
-        return;
+    auto centerX = image.width() / 2;
+    auto centerY = image.height() / 2;
 
-    glowShader.viewProjection = viewProjection;
-    glowShader.cameraRight = camera.right();
-    glowShader.cameraUp = camera.up();
-    glowShader.eyePosition = camera.eye();
-    glowShader.setInstances(1, glows.data(), glows.size());
+    constexpr auto halfHeight = 10;
+    constexpr auto halfWidth = 20;
 
-    pass.drawInstanced(glowShader, glows.size());
+    for (auto y = centerY - halfHeight; y < centerY + halfHeight; ++y)
+        for (auto x = centerX - halfWidth; x < centerX + halfWidth; ++x)
+            if (!isClearColor(image.at(x, y)))
+                return false;
+
+    return true;
 }
 
 Graphics::Image

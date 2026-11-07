@@ -1,6 +1,6 @@
 #include "Game.h"
 #include "Levels/LevelGenerator.h"
-#include "Fixtures.h"
+#include "Levels/Templates.h"
 #include "Props/Bale.h"
 
 #include <NanoTest/NanoTest.h>
@@ -123,7 +123,7 @@ auto tLevelTime = test("Respawn/gameTimeDrivesTheMovers") = []
 
 auto tCrossing = test("Respawn/aWellTimedRunCrossesTheRavine") = []
 {
-    auto level = generate(meadowRavineFixture(), 3);
+    auto level = generate(meadowRavineTemplate(), 3);
     const auto& gap = level.gaps.front();
     auto bridgeX = level.criticalPath.center().x;
     auto southRim = gap.center.y + gap.half.y;

@@ -11,6 +11,6 @@ nano_add_executable(WorldTests
             MeadowTests.cpp
             RavineSegmentTests.cpp
             ../Support/TestMain.cpp
-        TARGETS cowsinlove_World cowsinlove_TestSupport cowsinlove_TestFixtures)
+        TARGETS cowsinlove_World cowsinlove_TestSupport)
 
 set_default_target_setting(WorldTests)

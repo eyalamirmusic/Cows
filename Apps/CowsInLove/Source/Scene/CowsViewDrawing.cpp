@@ -113,7 +113,7 @@ void CowsView::drawScene(RenderPass& pass,
         drawSky(pass, targetSize.x / targetSize.y);
     drawBatch(sceneTarget, *translucentShader, heartBatch);
     if (!profileSettings().skips("glow"))
-        drawGlows(pass, viewProjection);
+        glowShader.drawGlows(pass, glows, viewProjection, camera);
 }
 
 void CowsView::drawObjects(const BatchTarget& target)
@@ -355,20 +355,6 @@ void CowsView::drawMenuTitle(RenderPass& pass, float width, float height)
     menuTitleShader.titleColor = Palette::linear(Palette::heart);
 
     pass.draw(menuTitleShader);
-}
-
-void CowsView::drawGlows(RenderPass& pass, const Mat4& viewProjection)
-{
-    if (glows.empty())
-        return;
-
-    glowShader.viewProjection = viewProjection;
-    glowShader.cameraRight = camera.right();
-    glowShader.cameraUp = camera.up();
-    glowShader.eyePosition = camera.eye();
-    glowShader.setInstances(1, glows.data(), glows.size());
-
-    pass.drawInstanced(glowShader, glows.size());
 }
 
 void CowsView::drawBatch(const BatchTarget& target,

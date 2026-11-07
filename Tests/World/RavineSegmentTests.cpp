@@ -1,6 +1,6 @@
 #include "Levels/LevelGenerator.h"
 #include "Levels/Segments/RavineSegment.h"
-#include "Fixtures.h"
+#include "Levels/Templates.h"
 #include "Props/Bale.h"
 #include "Snapshot.h"
 #include "Terrain/Ground.h"
@@ -25,7 +25,7 @@ constexpr auto clearWindow = 1.5f;
 
 Level makeRavine(std::uint32_t seed)
 {
-    return generate(meadowRavineFixture(), seed);
+    return generate(meadowRavineTemplate(), seed);
 }
 
 const Gap& ravine(const Level& level)

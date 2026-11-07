@@ -1,7 +1,7 @@
 #include "Levels/LevelGenerator.h"
 #include "Levels/Segments/JumpLineSegment.h"
 #include "Levels/Segments/RavineSegment.h"
-#include "Fixtures.h"
+#include "Levels/Templates.h"
 
 #include <NanoTest/NanoTest.h>
 
@@ -144,7 +144,7 @@ auto tMeadowGolden = test("LevelGenerator/meadowTemplateIsTodaysMeadow") = []
     auto hashes = MeadowHashes {};
 
     for (auto seed = 1u; seed <= hashes.size(); ++seed)
-        hashes[seed - 1] = hashLevelLayout(generate(meadowFixture(), seed));
+        hashes[seed - 1] = hashLevelLayout(generate(meadowTemplate(), seed));
 
     if (hashes != meadowGolden)
         printMeadowHashesAsTable(hashes);
@@ -154,7 +154,7 @@ auto tMeadowGolden = test("LevelGenerator/meadowTemplateIsTodaysMeadow") = []
 
 auto tMeadowStart = test("LevelGenerator/meadowStartsAtTheOrigin") = []
 {
-    auto level = generate(meadowFixture(), 3);
+    auto level = generate(meadowTemplate(), 3);
     check(level.start.x == 0.f && level.start.y == 0.f && level.start.z == 0.f);
     check(level.startHeading == 0.f);
     check(level.criticalPath.isEmpty());
@@ -190,7 +190,7 @@ auto tInOrder = test("LevelGenerator/segmentsLaidInOrderAlongZ") = []
 
 auto tCriticalPath = test("LevelGenerator/criticalPathIsClear") = []
 {
-    auto levelTemplate = meadowRavineFixture();
+    auto levelTemplate = meadowRavineTemplate();
     auto regions = segmentRegions(levelTemplate);
 
     for (auto seed = 1u; seed <= 20u; ++seed)

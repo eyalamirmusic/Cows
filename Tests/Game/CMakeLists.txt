@@ -10,6 +10,6 @@ nano_add_executable(GameTests
             PlayTouchTests.cpp
             TitleFontTests.cpp
             ../Support/TestMain.cpp
-        TARGETS cowsinlove_Game cowsinlove_TestSupport cowsinlove_TestFixtures)
+        TARGETS cowsinlove_Game cowsinlove_TestSupport)
 
 set_default_target_setting(GameTests)

@@ -173,7 +173,6 @@ struct CowsView final : GPUView
     void drawTitle(RenderPass& pass);
     bool isMenuTitleShowing() const;
     void drawMenuTitle(RenderPass& pass, float width, float height);
-    void drawGlows(RenderPass& pass, const Maths::Mat4& viewProjection);
     void drawBatch(const BatchTarget& target,
                    ShaderProgram& shader,
                    const SurfaceBatch& batch);
