@@ -3,8 +3,11 @@ add_executable(CowsArt
         LogoView.cpp
         Screenshots.cpp
         ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Stages.cpp
-        ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Templates.cpp
         ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/CowsView.cpp
+        ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/CowsViewCamera.cpp
+        ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/CowsViewDrawing.cpp
+        ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/CowsViewInput.cpp
+        ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/CowsViewQuality.cpp
         ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/FrameRate.cpp
         ${CMAKE_SOURCE_DIR}/Apps/CowsInLove/Source/Scene/Quality.cpp)
 

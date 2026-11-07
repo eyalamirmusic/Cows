@@ -46,13 +46,14 @@ Mat4 place(Vec3 position, Vec3 size, const Mat4& rotation = {})
     return Mat4::translation(position) * rotation * Mat4::scale(size);
 }
 
-CowPart ball(Bone bone,
-             Vec3 position,
-             Vec3 size,
-             const Material& material,
-             const Mat4& rotation = {})
+CowPart ball(Bone bone, const Mat4& placement, const Material& material)
 {
-    return {Shape::Sphere, bone, place(position, size, rotation), material};
+    return {Shape::Sphere, bone, placement, material};
+}
+
+CowPart ball(Bone bone, Vec3 position, Vec3 size, const Material& material)
+{
+    return ball(bone, place(position, size), material);
 }
 
 Mat4 about(Vec3 pivot, const Mat4& rotation)
@@ -94,11 +95,10 @@ void addTorso(Vector<CowPart>& parts)
     auto hide = hideMaterial();
 
     parts.add({Shape::Barrel, Bone::Body, torsoPlacement(), hide});
-    parts.add(ball(Bone::Body,
-                   {0.93f, 1.38f, 0.f},
-                   {0.42f, 0.36f, 0.32f},
-                   hide,
-                   Mat4::rotationZ(0.6f)));
+    parts.add(ball(
+        Bone::Body,
+        place({0.93f, 1.38f, 0.f}, {0.42f, 0.36f, 0.32f}, Mat4::rotationZ(0.6f)),
+        hide));
 
     auto udder = plain(Palette::muzzle, 0.5f);
     parts.add(ball(Bone::Body, {-0.38f, 0.64f, 0.f}, {0.22f, 0.15f, 0.2f}, udder));
@@ -168,8 +168,9 @@ void addCrown(Vector<CowPart>& parts)
         auto droop = Mat4::rotationX(0.45f * side) * Mat4::rotationY(-0.25f * side);
         auto earAt = Vec3 {1.28f, 1.84f, 0.37f * side};
         auto innerAt = Vec3 {1.32f, 1.84f, 0.38f * side};
-        parts.add(ball(Bone::Head, earAt, {0.08f, 0.1f, 0.21f}, ear, droop));
-        parts.add(ball(Bone::Head, innerAt, {0.05f, 0.07f, 0.16f}, innerEar, droop));
+        parts.add(ball(Bone::Head, place(earAt, {0.08f, 0.1f, 0.21f}, droop), ear));
+        parts.add(ball(
+            Bone::Head, place(innerAt, {0.05f, 0.07f, 0.16f}, droop), innerEar));
     }
 
     parts.add(ball(Bone::Head, {1.44f, 2.03f, 0.f}, {0.1f, 0.08f, 0.1f}, tuft));
@@ -177,10 +178,11 @@ void addCrown(Vector<CowPart>& parts)
     parts.add(ball(Bone::Head, {1.5f, 2.f, -0.06f}, {0.07f, 0.06f, 0.07f}, tuft));
 }
 
-Mat4 headPose(float hop, float lean, float moo)
+Mat4 headPose(const CowPose& cowPose)
 {
-    auto nod = 0.06f * (hop - 0.5f) - 0.12f * lean + 0.4f * moo;
-    auto tilt = 0.2f * lean;
+    auto nod =
+        0.06f * (cowPose.hop - 0.5f) - 0.12f * cowPose.lean + 0.4f * cowPose.moo;
+    auto tilt = 0.2f * cowPose.lean;
 
     return about(neckPivot, Mat4::rotationX(tilt) * Mat4::rotationZ(nod));
 }
@@ -192,9 +194,9 @@ Mat4 tailPose(float seconds, float side)
                  Mat4::rotationX(0.45f * swish) * Mat4::rotationZ(0.1f * swish));
 }
 
-Mat4 eyePose(float beat)
+Mat4 eyePose(const CowPose& cowPose)
 {
-    return Mat4::scale(1.f + 0.24f * beat);
+    return Mat4::scale(1.f + 0.24f * cowPose.beat);
 }
 
 Mat4 squashed(float hop, float squash)
@@ -262,14 +264,14 @@ Mat4 Cow::placement(float seconds, float reach) const
            * Mat4::scale({widen, stretch, widen});
 }
 
-Mat4 Cow::placement(Vec3 position, float heading, float hopClock, float bounce) const
+Mat4 Cow::placement(const FreeCowMotion& motion) const
 {
-    auto time = hopTime(hopClock, side);
-    auto hop = bounce * Choreography::hopHeight(time, false);
-    auto squash = bounce * Choreography::landingSquash(time, false);
+    auto time = hopTime(motion.hopClock, side);
+    auto hop = motion.bounce * Choreography::hopHeight(time, false);
+    auto squash = motion.bounce * Choreography::landingSquash(time, false);
 
-    return Mat4::translation(position + Vec3 {0.f, hopLift * hop, 0.f})
-           * Mat4::rotationY(heading) * squashed(hop, squash);
+    return Mat4::translation(motion.position + Vec3 {0.f, hopLift * hop, 0.f})
+           * Mat4::rotationY(motion.heading) * squashed(hop, squash);
 }
 
 CowPose Cow::pose(float seconds, const Mat4& stage) const
@@ -283,20 +285,15 @@ CowPose Cow::pose(float seconds, const Mat4& stage) const
     return pose;
 }
 
-CowPose Cow::freePose(Vec3 position,
-                      float heading,
-                      float hopClock,
-                      float bounce,
-                      float seconds,
-                      float beatClock,
-                      float glow) const
+CowPose Cow::freePose(const FreeCowMotion& motion) const
 {
     auto pose = CowPose {};
-    pose.world = placement(position, heading, hopClock, bounce);
-    pose.hop = bounce * Choreography::hopHeight(hopTime(hopClock, side), false);
-    pose.beat = Choreography::heartbeat(beatClock);
-    pose.glow = glow;
-    pose.seconds = seconds;
+    pose.world = placement(motion);
+    pose.hop = motion.bounce
+               * Choreography::hopHeight(hopTime(motion.hopClock, side), false);
+    pose.beat = Choreography::heartbeat(motion.beatClock);
+    pose.glow = motion.glow;
+    pose.seconds = motion.seconds;
     return pose;
 }
 
@@ -306,10 +303,10 @@ void Cow::addTo(SurfaceBatch& batch,
                 const CowPose& cowPose) const
 {
     const auto& world = cowPose.world;
-    auto head = headPose(cowPose.hop, cowPose.lean, cowPose.moo);
+    auto head = headPose(cowPose);
     auto tail = tailPose(cowPose.seconds, side);
     auto beat = cowPose.beat;
-    auto eye = eyePose(beat);
+    auto eye = eyePose(cowPose);
     auto seed = Mat4::translation(spotSeed);
 
     for (const auto& part: parts)

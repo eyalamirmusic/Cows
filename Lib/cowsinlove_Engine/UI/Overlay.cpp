@@ -89,11 +89,13 @@ void RootView::keyDown(const Graphics::KeyEvent& event)
         return;
     }
 
-    if (event.keyCode == Graphics::KeyCode::Escape && !event.isRepeat && onEscape())
+    auto isEscape = event.keyCode == Graphics::KeyCode::Escape;
+    auto isFreshEscape = isEscape && !event.isRepeat;
+
+    if (isFreshEscape && onEscape())
         return;
 
-    if (event.keyCode == Graphics::KeyCode::Q
-        || event.keyCode == Graphics::KeyCode::Escape)
+    if (isEscape || event.keyCode == Graphics::KeyCode::Q)
     {
         Apps::quit();
         return;

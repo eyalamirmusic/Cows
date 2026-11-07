@@ -1,6 +1,6 @@
 #include "Stages.h"
 #include "Levels/LevelGenerator.h"
-#include "Templates.h"
+#include "Levels/Templates.h"
 
 #include <chrono>
 

@@ -22,9 +22,16 @@ constexpr Screen playPhone {360.f, 640.f, 3.f, true};
 constexpr Screen playTablet7 {720.f, 1280.f, 2.f, true};
 constexpr Screen playTablet10 {900.f, 1600.f, 2.4f, true};
 
-void renderScreenshots(const std::string& directory, const Screen& screen);
+struct OutputDirectory final
+{
+    std::string path;
+};
 
-void renderScreens(const std::string& directory, const std::string& only);
+std::string getImagePath(const OutputDirectory& directory, const std::string& name);
+
+void renderScreenshots(const OutputDirectory& directory, const Screen& screen);
+
+void renderScreens(const OutputDirectory& directory, const std::string& only);
 
 std::uint32_t openMeadowSeed();
 } // namespace Cows

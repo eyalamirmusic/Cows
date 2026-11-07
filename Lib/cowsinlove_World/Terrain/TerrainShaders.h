@@ -42,5 +42,20 @@ struct GrassShader final : LitProgram
 
     Uniform<Float2> patchOffset;
     bool quickNoise = false;
+
+private:
+    struct BladeVaryings final
+    {
+        Float3 surface;
+        Float tip;
+        Float shade;
+        Float4 blade;
+        Float3 faceDirection;
+        Float3 acrossDirection;
+        Float dryness;
+    };
+
+    Float noiseOf(const Float3& position) const;
+    void shadeBlade(const BladeVaryings& varyings);
 };
 } // namespace Cows

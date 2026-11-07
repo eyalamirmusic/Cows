@@ -7,6 +7,7 @@
 #include "Render/ShapeMeshes.h"
 #include "Render/Shaders.h"
 #include "Render/ShadowMap.h"
+#include "UI/Hud.h"
 
 #include <eacp/Graphics/Image/Image.h>
 
@@ -18,7 +19,9 @@ namespace Cows::Testing
 constexpr Graphics::Color clearColor {1.f, 0.f, 1.f};
 
 bool isClearColor(const Graphics::Color& color);
+bool isAnythingDrawnIn(const Graphics::Image& image, const Graphics::Rect& area);
 bool hasDevice();
+bool isMiddleClear(const Graphics::Image& image);
 
 struct SnapshotView final : GPUView
 {
@@ -44,7 +47,6 @@ struct SnapshotView final : GPUView
 private:
     void clearShadows(Frame& frame);
     void draw(RenderPass& pass, SurfaceShader& shader, SurfaceBatch& instances);
-    void drawGlows(RenderPass& pass, const Maths::Mat4& viewProjection);
 
     ShadowMap shadowMap;
     ShapeMeshes shapes;
@@ -56,4 +58,25 @@ private:
 // Saves docs/shots/tests/<name>.png; the image is invalid without a GPU.
 Graphics::Image
     snapshot(SnapshotView& view, float width, float height, const std::string& name);
+
+// A screen is anything laid out by setBounds and drawn through a Hud: Menu, Editor.
+template <typename Screen>
+Graphics::Image snapshotScreen(Screen& screen,
+                               float width,
+                               float height,
+                               const std::string& name)
+{
+    screen.setBounds({0.f, 0.f, width, height});
+
+    auto hud = Hud {};
+    auto view = SnapshotView {};
+    view.drawOverlay = [&](Frame& frame, RenderPass& pass)
+    {
+        hud.begin(frame, pass, view.sampleCount());
+        screen.draw(hud);
+        hud.end();
+    };
+
+    return snapshot(view, width, height, name);
+}
 } // namespace Cows::Testing

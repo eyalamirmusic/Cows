@@ -14,6 +14,7 @@ constexpr auto meadowRoom = 3.f;
 constexpr auto meadowTries = 24;
 constexpr auto groveReach = 5.f;
 constexpr auto groveTrees = 2;
+constexpr auto floorTolerance = 0.01f;
 
 void addMeadowHidings(const Level& level, Layout& layout, const Region& region)
 {
@@ -25,6 +26,82 @@ void addMeadowHidings(const Level& level, Layout& layout, const Region& region)
         if (hasRoom(level, spot, meadowRoom))
             layout.addHiding(Level::Hiding::Meadow, spot);
     }
+}
+
+struct Clearance final
+{
+    Vec2 at;
+    float overhead = 0.f;
+    float margin = 0.f;
+};
+
+bool isBlockedBy(const Collider& collider, const Clearance& clearance)
+{
+    return collider.top > clearance.overhead
+           && distance(clearance.at, collider.center)
+                  < collider.radius + clearance.margin;
+}
+
+bool isWalledBy(const Block& block, const Clearance& clearance)
+{
+    return block.top > clearance.overhead
+           && block.contains(clearance.at, clearance.margin);
+}
+
+bool isFarFromStartInsideArena(const Level& level, Vec2 at)
+{
+    if (distance(at, {level.start.x, level.start.z}) < nearestHiding)
+        return false;
+
+    auto isOutsideArena = std::abs(at.x) > arenaReach || std::abs(at.y) > arenaReach;
+    return !isOutsideArena;
+}
+
+bool standsOnFloor(const Level& level, Vec3 spot)
+{
+    auto floorHeight = level.floorAt({spot.x, spot.z}, spot.y);
+    auto isOffFloor = std::abs(floorHeight - spot.y) > floorTolerance;
+    return !isOffFloor;
+}
+
+bool isInBarn(Level::Hiding kind)
+{
+    return kind == Level::Hiding::Roof || kind == Level::Hiding::Loft;
+}
+
+bool isUnfitOutsideBarn(const Level& level,
+                        const Layout& layout,
+                        Level::Hiding kind,
+                        const HidingSpot& spot)
+{
+    if (!hasRoom(level, spot.at, hidingRoom))
+        return true;
+
+    return kind == Level::Hiding::Grove && !amongTrees(layout, spot.at);
+}
+
+void removeUnfitHidingSpots(const Level& level,
+                            Layout& layout,
+                            const Region& region,
+                            Level::Hiding kind)
+{
+    auto& spots = layout.hidings[(std::size_t) kind];
+    auto unfit = [&](const HidingSpot& spot)
+    {
+        if (!region.contains({spot.at.x, spot.at.z}))
+            return true;
+
+        return !isInBarn(kind) && isUnfitOutsideBarn(level, layout, kind, spot);
+    };
+    spots.erase(std::remove_if(spots.begin(), spots.end(), unfit), spots.end());
+}
+
+void hideInMiddleOfMeadow(Level& level, const Region& region)
+{
+    auto center = region.center();
+    level.hiding = Level::Hiding::Meadow;
+    level.hideout = {center.x, level.floorAt(center, 0.f), center.y};
+    level.hideoutHeading.reset();
 }
 } // namespace
 
@@ -85,21 +162,14 @@ bool Layout::onPath(Vec2 point, float margin) const
 bool hasRoom(const Level& level, Vec3 spot, float margin)
 {
     auto at = Vec2 {spot.x, spot.z};
-    auto overhead = spot.y + maxStepUpHeight;
 
-    if (distance(at, {level.start.x, level.start.z}) < nearestHiding
-        || std::abs(at.x) > arenaReach || std::abs(at.y) > arenaReach
-        || std::abs(level.floorAt(at, spot.y) - spot.y) > 0.01f)
+    if (!isFarFromStartInsideArena(level, at) || !standsOnFloor(level, spot))
         return false;
 
+    auto clearance = Clearance {at, spot.y + maxStepUpHeight, margin};
     auto blocked = [&](const Collider& collider)
-    {
-        return collider.top > overhead
-               && distance(at, collider.center) < collider.radius + margin;
-    };
-
-    auto walled = [&](const Block& block)
-    { return block.top > overhead && block.contains(at, margin); };
+    { return isBlockedBy(collider, clearance); };
+    auto walled = [&](const Block& block) { return isWalledBy(block, clearance); };
 
     return std::none_of(level.colliders.begin(), level.colliders.end(), blocked)
            && std::none_of(level.blocks.begin(), level.blocks.end(), walled);
@@ -123,18 +193,7 @@ void chooseHideout(Level& level, Layout& layout, const Region& region)
     for (auto kind = 0; kind < hidingKinds; ++kind)
     {
         auto& spots = layout.hidings[(std::size_t) kind];
-        auto grove = kind == (int) Level::Hiding::Grove;
-        auto inBarn =
-            kind == (int) Level::Hiding::Roof || kind == (int) Level::Hiding::Loft;
-
-        auto unfit = [&](const HidingSpot& spot)
-        {
-            return !region.contains({spot.at.x, spot.at.z})
-                   || (!inBarn
-                       && (!hasRoom(level, spot.at, hidingRoom)
-                           || (grove && !amongTrees(layout, spot.at))));
-        };
-        spots.erase(std::remove_if(spots.begin(), spots.end(), unfit), spots.end());
+        removeUnfitHidingSpots(level, layout, region, (Level::Hiding) kind);
 
         if (!spots.empty())
             kinds.add(kind);
@@ -142,10 +201,7 @@ void chooseHideout(Level& level, Layout& layout, const Region& region)
 
     if (kinds.empty())
     {
-        auto center = region.center();
-        level.hiding = Level::Hiding::Meadow;
-        level.hideout = {center.x, level.floorAt(center, 0.f), center.y};
-        level.hideoutHeading.reset();
+        hideInMiddleOfMeadow(level, region);
         return;
     }
 

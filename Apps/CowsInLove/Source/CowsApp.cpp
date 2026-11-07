@@ -117,26 +117,41 @@ CowsApp::CowsApp()
     scene.menu = &menu;
 
     showMainMenu();
-    menu.onChoose = [this](int itemIndex)
+    menu.onChoose = [this](int itemIndex) { chooseMenuItem(itemIndex); };
+
+    connectDressEditor();
+    connectSettingsPanel();
+    connectRootKeys();
+    connectFooterAndTouchControls();
+    scene.onStateChanged = [this] { showControlsForInputRecipient(); };
+    useTouchHintsOnTouchScreens();
+    scene.drawHud = [this](Hud& hud) { drawHud(hud); };
+    addOverlaysToRoot();
+    openFirstScreen();
+}
+
+void CowsApp::chooseMenuItem(int itemIndex)
+{
+    if (showingAbout)
     {
-        if (showingAbout)
-        {
-            showMainMenu();
-            return;
-        }
+        showMainMenu();
+        return;
+    }
 
-        const auto& chosenLabel = menu.items[itemIndex].label;
+    const auto& chosenLabel = menu.items[itemIndex].label;
 
-        if (chosenLabel == startLabel)
-            scene.startGame();
-        else if (chosenLabel == dressLabel)
-            scene.openEditor(dressEditor);
-        else if (chosenLabel == settingsLabel)
-            scene.openEditor(settingsPanel);
-        else if (chosenLabel == aboutLabel)
-            showAbout();
-    };
+    if (chosenLabel == startLabel)
+        scene.startGame();
+    else if (chosenLabel == dressLabel)
+        scene.openEditor(dressEditor);
+    else if (chosenLabel == settingsLabel)
+        scene.openEditor(settingsPanel);
+    else if (chosenLabel == aboutLabel)
+        showAbout();
+}
 
+void CowsApp::connectDressEditor()
+{
     dressEditor.setTitle(dressTitle);
     dressEditor.setRows(makeDressRows(savedSettings.skin));
     dressEditor.topClearance = titlebarClearance();
@@ -146,23 +161,21 @@ CowsApp::CowsApp()
     { dressCow(stepSkinItemChoice(savedSettings.skin, rowIndex, steps)); };
     dressEditor.onDone = [this] { scene.closeEditor(); };
     dressEditor.onControl = [this](const ControlEvent& event)
-    {
-        scene.useHints(scene.pointerHints);
-        scene.control(event);
-    };
+    { controlSceneByPointer(event); };
+}
 
+void CowsApp::controlSceneByPointer(const ControlEvent& event)
+{
+    scene.useHints(scene.pointerHints);
+    scene.control(event);
+}
+
+void CowsApp::connectSettingsPanel()
+{
     settingsPanel.setTitle(settingsTitle);
     settingsPanel.topClearance = dressEditor.topClearance;
     settingsPanel.onRowValueStepped = [this](int rowIndex, int steps)
-    {
-        const auto& steppedRowName = settingsPanel.rows[rowIndex].name;
-
-        if (steppedRowName == frameRateRowName)
-            chooseFrameRate(stepFrameRate(savedSettings.frameRate, steps));
-        else if (steppedRowName == qualityRowName)
-            scene.chooseQuality(
-                stepQualityChoice(scene.qualityPreference.chosen, steps));
-    };
+    { stepSettingsRow(rowIndex, steps); };
     settingsPanel.onDone = [this] { scene.closeEditor(); };
     settingsPanel.onControl = dressEditor.onControl;
     scene.chosenFrameRate = savedSettings.frameRate;
@@ -173,93 +186,129 @@ CowsApp::CowsApp()
         savedSettings.quality = scene.qualityPreference;
         writeSettingsFile();
     };
+}
 
+void CowsApp::stepSettingsRow(int rowIndex, int steps)
+{
+    const auto& steppedRowName = settingsPanel.rows[rowIndex].name;
+
+    if (steppedRowName == frameRateRowName)
+        chooseFrameRate(stepFrameRate(savedSettings.frameRate, steps));
+    else if (steppedRowName == qualityRowName)
+        scene.chooseQuality(
+            stepQualityChoice(scene.qualityPreference.chosen, steps));
+}
+
+void CowsApp::connectRootKeys()
+{
     root.onKeyDown = [this](const Graphics::KeyEvent& event)
     { scene.keyDown(event); };
     root.onKeyUp = [this](const Graphics::KeyEvent& event) { scene.keyUp(event); };
-    root.onEscape = [this]
+    root.onEscape = [this] { return escape(); };
+}
+
+bool CowsApp::escape()
+{
+    if (showingAbout)
     {
-        if (showingAbout)
-        {
-            showMainMenu();
-            return true;
-        }
+        showMainMenu();
+        return true;
+    }
 
-        return scene.escape();
-    };
+    return scene.escape();
+}
 
-    footer.text = [this]
-    {
-        if (scene.dressing)
-            return editorText(scene.hints);
-
-        return footerText(scene.game, scene.hint, scene.hints);
-    };
+void CowsApp::connectFooterAndTouchControls()
+{
+    footer.text = [this] { return getFooterText(); };
     touchControls.onControl = [this](const ControlEvent& event)
+    { controlSceneByPointer(event); };
+}
+
+std::string CowsApp::getFooterText() const
+{
+    if (scene.dressing)
+        return editorText(scene.hints);
+
+    return footerText(scene.game, scene.hint, scene.hints);
+}
+
+void CowsApp::showControlsForInputRecipient()
+{
+    auto recipient = scene.getInputRecipient();
+    touchControls.showAgain = scene.game.state == Game::State::Found;
+    menu.setShowing(recipient == InputRecipient::Menu);
+    menu.hovered = -1;
+    menu.pressed = -1;
+    for (auto* each: {&dressEditor, &settingsPanel})
     {
-        scene.useHints(scene.pointerHints);
-        scene.control(event);
-    };
-    scene.onStateChanged = [this]
-    {
-        auto recipient = scene.getInputRecipient();
-        touchControls.showAgain = scene.game.state == Game::State::Found;
-        menu.setShowing(recipient == InputRecipient::Menu);
-        menu.hovered = -1;
-        menu.pressed = -1;
-        for (auto* each: {&dressEditor, &settingsPanel})
-        {
-            each->setShowing(recipient == InputRecipient::Editor
-                             && scene.editor == each);
-            each->hovered = {};
-            each->pressed = {};
-        }
+        each->setShowing(recipient == InputRecipient::Editor
+                         && scene.editor == each);
+        each->hovered = {};
+        each->pressed = {};
+    }
 
-        if (menu.isShowing())
-            menu.showSelection = isGamepad(scene.hints);
+    showSelectionRingsForGamepad();
+}
 
-        for (auto* each: {&dressEditor, &settingsPanel})
-            if (each->isShowing())
-                each->showSelection = isGamepad(scene.hints);
-    };
+void CowsApp::showSelectionRingsForGamepad()
+{
+    if (menu.isShowing())
+        menu.showSelection = isGamepad(scene.hints);
 
+    for (auto* each: {&dressEditor, &settingsPanel})
+        if (each->isShowing())
+            each->showSelection = isGamepad(scene.hints);
+}
+
+void CowsApp::useTouchHintsOnTouchScreens()
+{
     if (touchScreen)
     {
         scene.pointerHints = Hints::Touch;
         scene.hints = Hints::Touch;
     }
+}
 
-    scene.drawHud = [this](Hud& hud)
+void CowsApp::drawHud(Hud& hud)
+{
+    footer.bottomInset = root.getSafeAreaInsets().bottom;
+    footer.draw(hud);
+
+    if (scene.game.state == Game::State::Menu)
+        drawMenuAndEditor(hud);
+
+    if (scene.getInputRecipient() != InputRecipient::Play)
+        return;
+
+    if (touchScreen && !isGamepad(scene.hints))
+        touchControls.draw(hud);
+}
+
+void CowsApp::drawMenuAndEditor(Hud& hud)
+{
+    menu.opacity = scene.menuOpacity();
+    menu.draw(hud);
+    if (scene.editor != nullptr)
     {
-        footer.bottomInset = root.getSafeAreaInsets().bottom;
-        footer.draw(hud);
+        showSettings();
+        scene.editor->opacity = scene.editorOpacity();
+        scene.editor->draw(hud);
+    }
+}
 
-        if (scene.game.state == Game::State::Menu)
-        {
-            menu.opacity = scene.menuOpacity();
-            menu.draw(hud);
-            if (scene.editor != nullptr)
-            {
-                showSettings();
-                scene.editor->opacity = scene.editorOpacity();
-                scene.editor->draw(hud);
-            }
-        }
-
-        if (scene.getInputRecipient() != InputRecipient::Play)
-            return;
-
-        if (touchScreen && !isGamepad(scene.hints))
-            touchControls.draw(hud);
-    };
-
+void CowsApp::addOverlaysToRoot()
+{
     if (touchScreen)
         root.addSubview(touchControls);
 
     root.addSubview(menu);
     root.addSubview(dressEditor);
     root.addSubview(settingsPanel);
+}
 
+void CowsApp::openFirstScreen()
+{
     if (opensOnMenu())
         scene.openMenu(false);
     else

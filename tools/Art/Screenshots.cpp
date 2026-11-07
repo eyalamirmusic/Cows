@@ -2,7 +2,7 @@
 #include "Levels/LevelGenerator.h"
 #include "MainMenu.h"
 #include "Scene/CowsView.h"
-#include "Templates.h"
+#include "Levels/Templates.h"
 #include "UI/Overlay.h"
 #include "UI/TouchControls.h"
 
@@ -42,14 +42,20 @@ void settle(CowsView& view, float seconds)
     }
 }
 
-void standAt(CowsView& view, Vec3 at, float heading)
+struct Placement final
+{
+    Vec3 at;
+    float heading = 0.f;
+};
+
+void standAt(CowsView& view, const Placement& placement)
 {
     auto& game = view.game;
-    game.player = at;
-    game.playerHeading = heading;
-    game.checkpoint = at;
-    view.camera.target = at + Vec3 {0.f, eyeHeight, 0.f};
-    view.camera.yaw = behind + heading;
+    game.player = placement.at;
+    game.playerHeading = placement.heading;
+    game.checkpoint = placement.at;
+    view.camera.target = placement.at + Vec3 {0.f, eyeHeight, 0.f};
+    view.camera.yaw = behind + placement.heading;
 }
 
 float headingTo(Vec3 from, Vec3 to)
@@ -57,91 +63,74 @@ float headingTo(Vec3 from, Vec3 to)
     return std::atan2(-(to.z - from.z), to.x - from.x);
 }
 
+void setUpMoo(CowsView& view)
+{
+    auto& game = view.game;
+    auto toward = headingTo(game.player, game.partner) + 0.25f;
+    standAt(view, {game.player, toward});
+    view.callOut();
+}
+
+void setUpRavine(CowsView& view)
+{
+    const auto& level = view.game.level;
+    const auto& gap = level.gaps.front();
+    auto x = level.criticalPath.center().x;
+    standAt(view, {{x, 0.f, gap.center.y + gap.half.y + 5.f}, halfPi});
+    view.camera.pitch = 0.32f;
+}
+
+void setUpBridge(CowsView& view)
+{
+    const auto& level = view.game.level;
+    const auto& gap = level.gaps.front();
+    auto x = level.criticalPath.center().x;
+    standAt(view, {{x, 0.f, gap.center.y + 2.3f}, halfPi + 0.35f});
+    view.camera.pitch = 0.4f;
+    view.camera.distance = 13.f;
+}
+
+void setUpJump(CowsView& view)
+{
+    auto& game = view.game;
+    auto start = game.player;
+    standAt(view, {start + Vec3 {0.f, 0.f, -15.3f}, halfPi});
+    settle(view, 1.f);
+    game.update(step, 1.f, 0.f, true);
+
+    for (auto frame = 0; frame < 16; ++frame)
+    {
+        game.update(step, 1.f, 0.f, false);
+        view.steerCamera(step, step);
+    }
+}
+
+void setUpFound(CowsView& view)
+{
+    auto& game = view.game;
+    game.player = game.partner + Vec3 {3.f, 0.f, 0.f};
+    settle(view, 4.6f);
+
+    if (view.pointerHints == Hints::Touch)
+    {
+        view.framedPortrait = true;
+        view.camera.distance = 21.f;
+    }
+}
+
 Vector<Shot> shots()
 {
     auto list = Vector<Shot> {};
-
     list.add({"1-meadow", 0, 3, 2.f});
-
-    list.add({"2-moo",
-              0,
-              7,
-              1.9f,
-              [](CowsView& view)
-              {
-                  auto& game = view.game;
-                  auto toward = headingTo(game.player, game.partner) + 0.25f;
-                  standAt(view, game.player, toward);
-                  view.callOut();
-              }});
-
-    list.add({"3-ravine",
-              1,
-              3,
-              1.5f,
-              [](CowsView& view)
-              {
-                  const auto& level = view.game.level;
-                  const auto& gap = level.gaps.front();
-                  auto x = level.criticalPath.center().x;
-                  standAt(view, {x, 0.f, gap.center.y + gap.half.y + 5.f}, halfPi);
-                  view.camera.pitch = 0.32f;
-              }});
-
-    list.add({"4-bridge",
-              1,
-              3,
-              3.2f,
-              [](CowsView& view)
-              {
-                  const auto& level = view.game.level;
-                  const auto& gap = level.gaps.front();
-                  auto x = level.criticalPath.center().x;
-                  standAt(view, {x, 0.f, gap.center.y + 2.3f}, halfPi + 0.35f);
-                  view.camera.pitch = 0.4f;
-                  view.camera.distance = 13.f;
-              }});
-
-    list.add({"5-jump",
-              1,
-              3,
-              0.f,
-              [](CowsView& view)
-              {
-                  auto& game = view.game;
-                  auto start = game.player;
-                  standAt(view, start + Vec3 {0.f, 0.f, -15.3f}, halfPi);
-                  settle(view, 1.f);
-                  game.update(step, 1.f, 0.f, true);
-
-                  for (auto frame = 0; frame < 16; ++frame)
-                  {
-                      game.update(step, 1.f, 0.f, false);
-                      view.steerCamera(step, step);
-                  }
-              }});
-
-    list.add({"6-found",
-              0,
-              openMeadowSeed(),
-              0.f,
-              [](CowsView& view)
-              {
-                  auto& game = view.game;
-                  game.player = game.partner + Vec3 {3.f, 0.f, 0.f};
-                  settle(view, 4.6f);
-
-                  if (view.pointerHints == Hints::Touch)
-                  {
-                      view.framedPortrait = true;
-                      view.camera.distance = 21.f;
-                  }
-              }});
-
+    list.add({"2-moo", 0, 7, 1.9f, setUpMoo});
+    list.add({"3-ravine", 1, 3, 1.5f, setUpRavine});
+    list.add({"4-bridge", 1, 3, 3.2f, setUpBridge});
+    list.add({"5-jump", 1, 3, 0.f, setUpJump});
+    list.add({"6-found", 0, openMeadowSeed(), 0.f, setUpFound});
     return list;
 }
 
-void render(const Shot& shot, const std::string& directory, const Screen& screen)
+void render(const Shot& shot, const OutputDirectory& directory, const Screen& screen)
 {
     auto phone = screen.phone;
     auto root = RootView {};
@@ -180,7 +169,7 @@ void render(const Shot& shot, const std::string& directory, const Screen& screen
     };
 
     auto image = root.renderToImage(screen.scale);
-    auto path = directory + "/" + shot.name + ".png";
+    auto path = getImagePath(directory, shot.name);
 
     if (!image.isValid())
     {
@@ -191,47 +180,38 @@ void render(const Shot& shot, const std::string& directory, const Screen& screen
     image.save(FilePath {path});
     LOG(path);
 }
-} // namespace
-
-std::uint32_t openMeadowSeed()
+enum class MenuScreen
 {
-    for (auto seed = 1u;; ++seed)
-        if (generate(meadowTemplate(), seed).hiding == Level::Hiding::Meadow)
-            return seed;
-}
+    Menu,
+    Dress,
+    Settings,
+    About
+};
 
-void renderScreens(const std::string& directory, const std::string& only)
+struct ScreenShape final
 {
-    enum class Screen
-    {
-        Menu,
-        Dress,
-        Settings,
-        About
-    };
+    std::string name;
+    float width = 0.f;
+    float height = 0.f;
+    Graphics::Insets safe;
+    Hints hints = Hints::Keys;
+};
 
-    struct ScreenShape final
-    {
-        std::string name;
-        float width = 0.f;
-        float height = 0.f;
-        Graphics::Insets safe;
-        Hints hints = Hints::Keys;
-    };
+struct NamedMenuScreen final
+{
+    MenuScreen screen = MenuScreen::Menu;
+    std::string name;
+};
 
-    struct Named final
-    {
-        Screen screen = Screen::Menu;
-        std::string name;
-    };
-
+Vector<ScreenShape> getScreenShapes()
+{
     constexpr auto phoneSides =
         Graphics::Insets {.left = 59.f, .bottom = 21.f, .right = 59.f};
     constexpr auto phoneUpright = Graphics::Insets {.top = 59.f, .bottom = 34.f};
     constexpr auto androidUpright = Graphics::Insets {.top = 24.f, .bottom = 24.f};
     constexpr auto tablet = Graphics::Insets {.top = 24.f, .bottom = 20.f};
 
-    auto shapes = Vector<ScreenShape> {
+    return {
         {"phone-430x932", 430.f, 932.f, phoneUpright, Hints::Touch},
         {"phone-932x430", 932.f, 430.f, phoneSides, Hints::Touch},
         {"phone-360x800", 360.f, 800.f, androidUpright, Hints::Touch},
@@ -249,114 +229,176 @@ void renderScreens(const std::string& directory, const std::string& only)
         {"desktop-500x500", 500.f, 500.f, {}, Hints::Keys},
         {"desktop-320x320", 320.f, 320.f, {}, Hints::Keys},
     };
+}
 
-    auto screens = Vector<Named> {{Screen::Menu, "menu"},
-                                  {Screen::Dress, "dress"},
-                                  {Screen::Settings, "settings"},
-                                  {Screen::About, "about"}};
+Vector<NamedMenuScreen> getMenuScreens()
+{
+    return {{MenuScreen::Menu, "menu"},
+            {MenuScreen::Dress, "dress"},
+            {MenuScreen::Settings, "settings"},
+            {MenuScreen::About, "about"}};
+}
 
-    for (const auto& screen: screens)
+bool isEditorScreen(MenuScreen screen)
+{
+    return screen == MenuScreen::Dress || screen == MenuScreen::Settings;
+}
+
+Vector<MenuItem> makeMenuItemsFor(MenuScreen screen)
+{
+    if (screen == MenuScreen::About)
+        return makeAboutItems();
+
+    return makeMainMenuItems();
+}
+
+void fillEditorFor(Editor& editor, MenuScreen screen)
+{
+    if (screen == MenuScreen::Dress)
+    {
+        editor.setTitle(dressTitle);
+        editor.setRows(makeDressRows(CowSkin {}));
+    }
+
+    if (screen == MenuScreen::Settings)
+    {
+        editor.setTitle(settingsTitle);
+        constexpr auto stillMeasuring = false;
+        editor.setRows(makeSettingsRows(
+            QualityChoice::Auto, Quality::High, stillMeasuring, FrameRate::Auto));
+    }
+}
+
+float getTopClearanceFor(Hints hints)
+{
+    if (hints == Hints::Keys)
+        return macTitleBarClearance;
+
+    return 0.f;
+}
+
+void logTextSize(const std::string& path, CowsView& scene, Menu& menu)
+{
+    if (scene.editor != nullptr && !scene.editor->placed.empty())
+        LOG(path,
+            " text ",
+            scene.editor->placed.front().pointSize,
+            scene.editor->wide() ? " wide" : " tall");
+    else
+        LOG(path, " text ", menu.pointSize, menu.wide() ? " wide" : " tall");
+}
+
+void drawMenuHud(Hud& hud, CowsView& scene, Menu& menu, Footer& footer)
+{
+    footer.draw(hud);
+    menu.opacity = scene.menuOpacity();
+    menu.draw(hud);
+
+    if (scene.editor != nullptr)
+    {
+        scene.editor->opacity = scene.editorOpacity();
+        scene.editor->draw(hud);
+    }
+}
+
+struct MenuShot final
+{
+    NamedMenuScreen screen;
+    ScreenShape shape;
+};
+
+void renderMenuShot(const OutputDirectory& directory, const MenuShot& shot)
+{
+    const auto& screen = shot.screen;
+    const auto& shape = shot.shape;
+    auto root = RootView {};
+    auto scene = CowsView {{QualityChoice::High, {}}, Stages {menuStage}, menuSeed};
+    auto menu = Menu {};
+    auto editor = Editor {};
+    auto footer = Footer {};
+    auto clearance = getTopClearanceFor(shape.hints);
+
+    scene.frozen = true;
+    scene.menu = &menu;
+    scene.pointerHints = shape.hints;
+    scene.hints = scene.pointerHints;
+    menu.setItems(makeMenuItemsFor(screen.screen));
+    menu.topClearance = clearance;
+    editor.topClearance = clearance;
+    fillEditorFor(editor, screen.screen);
+
+    footer.text = [&]
+    {
+        if (scene.dressing)
+            return editorText(scene.hints);
+
+        return footerText(scene.game, scene.hint, scene.hints);
+    };
+    root.addSubview(scene);
+    root.addSubview(menu);
+    root.addSubview(editor);
+    root.setSafeAreaInsets(shape.safe);
+    footer.bottomInset = shape.safe.bottom;
+    root.setBounds({0.f, 0.f, shape.width, shape.height});
+    root.resized();
+    scene.viewAspect = shape.width / shape.height;
+    scene.openMenu(false);
+
+    if (isEditorScreen(screen.screen))
+    {
+        scene.openEditor(editor);
+        scene.dressAmount = 1.f;
+    }
+
+    settle(scene, 2.f);
+    scene.drawHud = [&](Hud& hud) { drawMenuHud(hud, scene, menu, footer); };
+
+    // The first render picks the layout's shape the camera then frames.
+    root.renderToImage(1.f);
+    settle(scene, step);
+
+    if (scene.dressing)
+        scene.camera.setPose(scene.editorPose());
+
+    auto image = root.renderToImage(1.f);
+    auto path = getImagePath(directory, screen.name + "-" + shape.name);
+
+    if (image.isValid())
+        image.save(FilePath {path});
+    else
+        LOG("could not render ", path);
+
+    logTextSize(path, scene, menu);
+}
+} // namespace
+
+std::string getImagePath(const OutputDirectory& directory, const std::string& name)
+{
+    return directory.path + "/" + name + ".png";
+}
+
+std::uint32_t openMeadowSeed()
+{
+    for (auto seed = 1u;; ++seed)
+        if (generate(meadowTemplate(), seed).hiding == Level::Hiding::Meadow)
+            return seed;
+}
+
+void renderScreens(const OutputDirectory& directory, const std::string& only)
+{
+    auto shapes = getScreenShapes();
+
+    for (const auto& screen: getMenuScreens())
         for (const auto& shape: shapes)
         {
             if (!only.empty() && only != screen.name)
                 continue;
 
-            auto root = RootView {};
-            auto scene =
-                CowsView {{QualityChoice::High, {}}, Stages {menuStage}, menuSeed};
-            auto menu = Menu {};
-            auto editor = Editor {};
-            auto footer = Footer {};
-            auto clearance = shape.hints == Hints::Keys ? macTitleBarClearance : 0.f;
-
-            scene.frozen = true;
-            scene.menu = &menu;
-            scene.pointerHints = shape.hints;
-            scene.hints = scene.pointerHints;
-            menu.setItems(screen.screen == Screen::About ? makeAboutItems()
-                                                         : makeMainMenuItems());
-            menu.topClearance = clearance;
-            editor.topClearance = clearance;
-
-            if (screen.screen == Screen::Dress)
-            {
-                editor.setTitle(dressTitle);
-                editor.setRows(makeDressRows(CowSkin {}));
-            }
-
-            if (screen.screen == Screen::Settings)
-            {
-                editor.setTitle(settingsTitle);
-                constexpr auto stillMeasuring = false;
-                editor.setRows(makeSettingsRows(QualityChoice::Auto,
-                                                Quality::High,
-                                                stillMeasuring,
-                                                FrameRate::Auto));
-            }
-
-            footer.text = [&]
-            {
-                if (scene.dressing)
-                    return editorText(scene.hints);
-
-                return footerText(scene.game, scene.hint, scene.hints);
-            };
-            root.addSubview(scene);
-            root.addSubview(menu);
-            root.addSubview(editor);
-            root.setSafeAreaInsets(shape.safe);
-            footer.bottomInset = shape.safe.bottom;
-            root.setBounds({0.f, 0.f, shape.width, shape.height});
-            root.resized();
-            scene.viewAspect = shape.width / shape.height;
-            scene.openMenu(false);
-
-            if (screen.screen == Screen::Dress || screen.screen == Screen::Settings)
-            {
-                scene.openEditor(editor);
-                scene.dressAmount = 1.f;
-            }
-
-            settle(scene, 2.f);
-            scene.drawHud = [&](Hud& hud)
-            {
-                footer.draw(hud);
-                menu.opacity = scene.menuOpacity();
-                menu.draw(hud);
-
-                if (scene.editor != nullptr)
-                {
-                    scene.editor->opacity = scene.editorOpacity();
-                    scene.editor->draw(hud);
-                }
-            };
-
-            // The first render picks the layout's shape the camera then frames.
-            root.renderToImage(1.f);
-            settle(scene, step);
-
-            if (scene.dressing)
-                scene.camera.setPose(scene.editorPose());
-
-            auto image = root.renderToImage(1.f);
-            auto path = directory + "/" + screen.name + "-" + shape.name + ".png";
-
-            if (image.isValid())
-                image.save(FilePath {path});
-            else
-                LOG("could not render ", path);
-
-            if (scene.editor != nullptr && !scene.editor->placed.empty())
-                LOG(path,
-                    " text ",
-                    scene.editor->placed.front().pointSize,
-                    scene.editor->wide() ? " wide" : " tall");
-            else
-                LOG(path, " text ", menu.pointSize, menu.wide() ? " wide" : " tall");
+            renderMenuShot(directory, {screen, shape});
         }
 }
 
-void renderScreenshots(const std::string& directory, const Screen& screen)
+void renderScreenshots(const OutputDirectory& directory, const Screen& screen)
 {
     for (const auto& shot: shots())
         render(shot, directory, screen);

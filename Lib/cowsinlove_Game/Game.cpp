@@ -180,25 +180,56 @@ void Game::update(float delta, float ahead, float turn, bool jump)
 
     auto moving = ahead != 0.f || turn != 0.f;
     playerHeading += turn * turnSpeed * delta;
+    auto step = PlayerStep {delta, ahead, jump};
+    walkPlayer(step);
+    applyJumpAndGravity(step);
+    respawnIfFellBelowKillDepth();
+    animate(delta, moving && grounded);
 
-    if (ahead != 0.f || !level.movers.empty())
-    {
-        auto direction = Vec2 {std::cos(playerHeading), -std::sin(playerHeading)};
-        auto speed = walkSpeed * (ahead > 0.f ? ahead : ahead * backSpeed);
-        auto next = ground(player) + direction * (speed * delta);
-        next.x = std::clamp(next.x, -playReach, playReach);
-        next.y = std::clamp(next.y, -playReach, playReach);
-        next = level.pushedOut(next, playerRadius, player.y);
-        player.x = next.x;
-        player.z = next.y;
-    }
+    if (isPartnerWithinReach())
+        findPartner();
+}
 
-    if (jump && grounded)
+bool Game::isPartnerWithinReach() const
+{
+    auto isTooFar = distance() > foundDistance;
+    auto isTooHighOrLow = std::abs(player.y - partner.y) > foundClimb;
+    return !(isTooFar || isTooHighOrLow);
+}
+
+void Game::findPartner()
+{
+    auto between = ground(partner) - ground(player);
+    state = State::Found;
+    stageCenter = partner;
+    stageHeading = level.hideoutHeading.value_or(headingToward(normalize(between)));
+    sinceFound = 0.f;
+}
+
+void Game::walkPlayer(const PlayerStep& step)
+{
+    if (step.ahead == 0.f && level.movers.empty())
+        return;
+
+    auto direction = Vec2 {std::cos(playerHeading), -std::sin(playerHeading)};
+    auto speed =
+        walkSpeed * (step.ahead > 0.f ? step.ahead : step.ahead * backSpeed);
+    auto next = ground(player) + direction * (speed * step.delta);
+    next.x = std::clamp(next.x, -playReach, playReach);
+    next.y = std::clamp(next.y, -playReach, playReach);
+    next = level.pushedOut(next, playerRadius, player.y);
+    player.x = next.x;
+    player.z = next.y;
+}
+
+void Game::applyJumpAndGravity(const PlayerStep& step)
+{
+    if (step.jump && grounded)
         verticalSpeed = jumpSpeed;
 
     auto feetBefore = player.y;
-    verticalSpeed -= gravity * delta;
-    player.y += verticalSpeed * delta;
+    verticalSpeed -= gravity * step.delta;
+    player.y += verticalSpeed * step.delta;
 
     auto headroom = level.ceilingAt(ground(player), feetBefore) - playerHeight;
 
@@ -224,7 +255,10 @@ void Game::update(float delta, float ahead, float turn, bool jump)
             checkpointHeading = playerHeading;
         }
     }
+}
 
+void Game::respawnIfFellBelowKillDepth()
+{
     if (level.killDepth < 0.f && player.y < level.killDepth)
     {
         player = checkpoint;
@@ -233,17 +267,6 @@ void Game::update(float delta, float ahead, float turn, bool jump)
         grounded = true;
         sinceFell = 0.f;
     }
-
-    animate(delta, moving && grounded);
-
-    if (distance() > foundDistance || std::abs(player.y - partner.y) > foundClimb)
-        return;
-
-    auto between = ground(partner) - ground(player);
-    state = State::Found;
-    stageCenter = partner;
-    stageHeading = level.hideoutHeading.value_or(headingToward(normalize(between)));
-    sinceFound = 0.f;
 }
 
 void Game::animate(float delta, bool walking)

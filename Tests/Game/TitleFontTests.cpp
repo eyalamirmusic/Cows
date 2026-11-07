@@ -21,18 +21,6 @@ bool finite(Vec3 vector)
            && std::isfinite(vector.z);
 }
 
-bool middleIsClear(const Graphics::Image& image)
-{
-    auto centerX = image.width() / 2;
-    auto centerY = image.height() / 2;
-
-    for (auto y = centerY - 10; y < centerY + 10; ++y)
-        for (auto x = centerX - 20; x < centerX + 20; ++x)
-            if (!isClearColor(image.at(x, y)))
-                return false;
-
-    return true;
-}
 } // namespace
 
 auto tGlyphs = test("TitleFont/everyGlyphHasGeometry") = []
@@ -107,5 +95,5 @@ auto tTitleSnapshot = test("TitleFont/snapshot") = []
     if (!image.isValid())
         return;
 
-    check(!middleIsClear(image));
+    check(!isMiddleClear(image));
 };

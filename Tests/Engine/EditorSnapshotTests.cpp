@@ -1,6 +1,5 @@
 #include "Snapshot.h"
 #include "UI/Editor.h"
-#include "UI/Hud.h"
 
 #include <NanoTest/NanoTest.h>
 
@@ -22,23 +21,6 @@ bool inside(const Graphics::Rect& area, float width, float height)
 {
     return area.x >= 0.f && area.y >= 0.f && area.x + area.w <= width
            && area.y + area.h <= height;
-}
-
-Graphics::Image
-    editorShot(Editor& editor, float width, float height, const char* name)
-{
-    editor.setBounds({0.f, 0.f, width, height});
-
-    auto hud = Hud {};
-    auto view = SnapshotView {};
-    view.drawOverlay = [&](Frame& frame, RenderPass& pass)
-    {
-        hud.begin(frame, pass, view.sampleCount());
-        editor.draw(hud);
-        hud.end();
-    };
-
-    return snapshot(view, width, height, name);
 }
 
 bool within(const Graphics::Rect& inner, const Graphics::Rect& outer)
@@ -122,7 +104,7 @@ auto tEditorWide = test("EditorSnapshot/wide") = []
     editor.topClearance = 28.f;
     editor.showSelection = true;
 
-    auto image = editorShot(editor, 1280.f, 800.f, "engine-editor-wide");
+    auto image = snapshotScreen(editor, 1280.f, 800.f, "engine-editor-wide");
     check(image.isValid());
 
     if (!image.isValid())
@@ -140,7 +122,7 @@ auto tEditorTall = test("EditorSnapshot/tall") = []
     auto editor = Editor {};
     addRows(editor);
 
-    auto image = editorShot(editor, 390.f, 844.f, "engine-editor-tall");
+    auto image = snapshotScreen(editor, 390.f, 844.f, "engine-editor-tall");
     check(image.isValid());
 
     if (!image.isValid())
@@ -157,7 +139,7 @@ auto tEditorTargets = test("Editor/clicksStepAndFinish") = []
 
     auto editor = Editor {};
     addRows(editor);
-    editorShot(editor, 1280.f, 800.f, "engine-editor-targets");
+    snapshotScreen(editor, 1280.f, 800.f, "engine-editor-targets");
 
     auto steps = Vector<int> {};
     auto finished = 0;
@@ -275,7 +257,7 @@ auto tSettingsShot = test("EditorSnapshot/settings") = []
     editor.setRows(makeExampleSettingsRows());
     editor.topClearance = macTitleBarClearance;
 
-    auto image = editorShot(editor, 1280.f, 800.f, "engine-editor-settings");
+    auto image = snapshotScreen(editor, 1280.f, 800.f, "engine-editor-settings");
     check(image.isValid());
 
     if (!image.isValid())

@@ -237,7 +237,7 @@ under `Apps/CowsInLove/`.
 - `Apps/CowsInLove/Source/Main.cpp` — runs `CowsApp`. On Android eacp sets the
   COWS_* settings before `main()` in a debug build, from the launch intent's
   `--es` extras and the `debug.com.cowsinlove.play.env` property
-- `Apps/CowsInLove/Source/Templates` — the level templates (`meadowTemplate`,
+- `Lib/cowsinlove_World/Levels/Templates` — the level templates, shared by the app and the tests (`meadowTemplate`,
   `meadowRavineTemplate`: the segment lists and lengths)
 - `Apps/CowsInLove/Source/Stages` — the content. A stage is a position in the
   ordered list of level templates (meadow, then meadow → ravine → meadow); a

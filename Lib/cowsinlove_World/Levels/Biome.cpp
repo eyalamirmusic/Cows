@@ -28,11 +28,22 @@ constexpr auto barnInset = 28.f;
 constexpr auto hideoutTries = 1000;
 constexpr auto groveRing = 3.5f;
 constexpr auto hedgeShelter = 2.6f;
+constexpr auto barnTries = 400;
+constexpr auto barnDistanceFromHome = 25.f;
+constexpr auto alignedHedgerowChance = 0.7f;
+constexpr auto hedgerowWobble = 0.15f;
+constexpr auto hedgeSpacing = 2.2f;
+constexpr auto hedgerowRegionSlack = 4.f;
+
+bool isOpenGround(const Level& level, const Layout& layout, Vec2 at, float room)
+{
+    return !layout.inClearing(at) && level.isFree(at, structureMargin)
+           && !layout.onPath(at, room);
+}
 
 void plantTree(Level& level, Layout& layout, Vec2 at)
 {
-    if (layout.inClearing(at) || !level.isFree(at, structureMargin)
-        || layout.onPath(at, treeRoom))
+    if (!isOpenGround(level, layout, at, treeRoom))
         return;
 
     addTree(level, layout.random, at);
@@ -63,13 +74,42 @@ void addGrove(Level& level, Layout& layout, const Region& region)
     }
 }
 
+float chooseHedgerowHeading(Layout& layout)
+{
+    auto isAligned = layout.unit() < alignedHedgerowChance;
+
+    if (!isAligned)
+        return layout.between(0.f, twoPi);
+
+    auto quarter = (float) (int) (layout.unit() * 4.f);
+    return halfPi * quarter + layout.between(-hedgerowWobble, hedgerowWobble);
+}
+
+bool canPlaceHedgePiece(const Level& level,
+                        const Layout& layout,
+                        const Region& region,
+                        Vec2 at)
+{
+    return !layout.inClearing(at) && level.isFree(at, structureMargin)
+           && region.inset(arenaInset - hedgerowRegionSlack).contains(at)
+           && !layout.onPath(at, hedgeRoom);
+}
+
+Vec2 getSpotBehindHedgeAwayFromHome(const Layout& layout, Vec2 at, Vec2 direction)
+{
+    auto across = Vec2 {-direction.y, direction.x};
+    auto isHomeSide = dot(across, at - layout.home) < 0.f;
+
+    if (isHomeSide)
+        return at + across * -hedgeShelter;
+
+    return at + across * hedgeShelter;
+}
+
 void addHedgerow(Level& level, Layout& layout, const Region& region)
 {
     auto start = layout.spot(region);
-    auto heading = layout.unit() < 0.7f
-                       ? halfPi * (float) (int) (layout.unit() * 4.f)
-                             + layout.between(-0.15f, 0.15f)
-                       : layout.between(0.f, twoPi);
+    auto heading = chooseHedgerowHeading(layout);
     auto direction = Vec2 {std::cos(heading), -std::sin(heading)};
     auto pieces = 6 + (int) (layout.unit() * 10.f);
     auto gap = 2 + (int) (layout.unit() * (float) (pieces - 4));
@@ -80,20 +120,14 @@ void addHedgerow(Level& level, Layout& layout, const Region& region)
         if (piece == gap || piece == gap + 1)
             continue;
 
-        auto at = start + direction * (2.2f * (float) piece);
+        auto at = start + direction * (hedgeSpacing * (float) piece);
 
-        if (layout.inClearing(at) || !level.isFree(at, structureMargin)
-            || !region.inset(arenaInset - 4.f).contains(at)
-            || layout.onPath(at, hedgeRoom))
+        if (!canPlaceHedgePiece(level, layout, region, at))
             continue;
 
-        addHedgePiece(level, layout.random, at, heading, color);
+        addHedgePiece(level, layout.random, {at, heading, color});
 
-        auto across = Vec2 {-direction.y, direction.x};
-        auto behind = at
-                      + across
-                            * (dot(across, at - layout.home) < 0.f ? -hedgeShelter
-                                                                   : hedgeShelter);
+        auto behind = getSpotBehindHedgeAwayFromHome(layout, at, direction);
         layout.addHiding(Level::Hiding::Hedge, {behind.x, 0.f, behind.y});
     }
 }
@@ -108,8 +142,7 @@ void addBales(Level& level, Layout& layout, const Region& region)
         auto at =
             center + Vec2 {layout.between(-4.f, 4.f), layout.between(-4.f, 4.f)};
 
-        if (layout.inClearing(at) || !level.isFree(at, structureMargin)
-            || layout.onPath(at, baleRoom))
+        if (!isOpenGround(level, layout, at, baleRoom))
             continue;
 
         addBale(level, layout.random, at);
@@ -150,12 +183,41 @@ void addBarnHidings(Layout& layout, Vec2 center, int quarterTurns)
     layout.addHiding(Level::Hiding::Loft, spots.loft.at, spots.loft.heading);
 }
 
+bool isRoomForBarn(const Layout& layout, const Vector<Vec2>& spots, Vec2 at)
+{
+    auto isFarFromHome = distance(at, layout.home) > barnDistanceFromHome;
+
+    if (!isFarFromHome || layout.onPath(at, barnReach()))
+        return false;
+
+    return std::all_of(spots.begin(),
+                       spots.end(),
+                       [&](Vec2 other)
+                       { return distance(at, other) > 2.f * barnReach(); });
+}
+
+void addRandomBarnSpots(Layout& layout,
+                        const Region& area,
+                        Vector<Vec2>& spots,
+                        int count)
+{
+    for (auto attempt = 0; attempt < barnTries && spots.size() < count; ++attempt)
+    {
+        auto at = Vec2 {layout.between(area.min.x, area.max.x),
+                        layout.between(area.min.y, area.max.y)};
+
+        if (isRoomForBarn(layout, spots, at))
+            spots.add(at);
+    }
+}
+
 void addBarns(Level& level, Layout& layout, const Region& region, int barns)
 {
     auto area = region.inset(barnInset);
 
     if (area.isEmpty())
         return;
+
     auto count = layout.share(barns, region);
     auto spots = Vector<Vec2> {};
     auto hideout = hideoutSpot(layout, area);
@@ -163,20 +225,7 @@ void addBarns(Level& level, Layout& layout, const Region& region, int barns)
     if (hideout)
         spots.add(*hideout);
 
-    for (auto attempt = 0; attempt < 400 && spots.size() < count; ++attempt)
-    {
-        auto at = Vec2 {layout.between(area.min.x, area.max.x),
-                        layout.between(area.min.y, area.max.y)};
-        auto roomy =
-            distance(at, layout.home) > 25.f && !layout.onPath(at, barnReach())
-            && std::all_of(spots.begin(),
-                           spots.end(),
-                           [&](Vec2 other)
-                           { return distance(at, other) > 2.f * barnReach(); });
-
-        if (roomy)
-            spots.add(at);
-    }
+    addRandomBarnSpots(layout, area, spots, count);
 
     for (auto index = 0; index < spots.size(); ++index)
     {

@@ -6,6 +6,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <utility>
 
 namespace Cows
 {
@@ -94,6 +95,24 @@ private:
     // Until laid out, or in another window, the window's aspect decides.
     Shape chosen;
     std::optional<ScreenFrame> laidOutFor;
+
+    bool isLaidOutFor(const ScreenFrame& frame) const;
+    float calculateTapTargetIn(Graphics::Rect content, Graphics::Rect area) const;
+    std::pair<Shape, ChosenShape>
+        chooseLargestShape(const Vector<Shape>& shapes,
+                           Graphics::Rect content,
+                           const Flex::Measure& measure) const;
+    std::pair<Shape, ChosenShape>
+        squeezeUntilReadable(Graphics::Rect content,
+                             const Flex::Measure& measure) const;
+    void placeItems(Graphics::Rect content, const Flex::Measure& measure);
+    bool isEnabled(int index) const;
+    bool isLit(int index) const;
+    bool isChoosable(int index) const;
+    Graphics::Color getLabelColor(int index) const;
+    Graphics::Color getRingColor(int index) const;
+    void drawSelectionRing(Hud& hud, int index);
+    void drawNote(Hud& hud, int index, float top);
 };
 
 // The platform's monospace face if Comic Neue could not be registered.

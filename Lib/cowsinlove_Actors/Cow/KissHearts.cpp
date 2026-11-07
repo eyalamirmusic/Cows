@@ -62,14 +62,20 @@ void addFlash(Vector<GlowInstance>& glows, float age, Vec3 at)
         makeGlow(at + Vec3 {0.f, 0.f, 0.3f}, 1.1f + 0.8f * (1.f - strength), color));
 }
 
+struct HeartInFlight final
+{
+    int kiss = 0;
+    int heart = 0;
+    float age = 0.f;
+    Vec3 origin;
+};
+
 void addHeart(SurfaceBatch& batch,
               Vector<GlowInstance>& glows,
-              int kiss,
-              int heart,
-              float age,
-              Vec3 origin)
+              const HeartInFlight& flight)
 {
-    auto r = [&](int salt) { return random(kiss, heart, salt); };
+    auto r = [&](int salt) { return random(flight.kiss, flight.heart, salt); };
+    auto age = flight.age;
 
     auto life = 1.3f + 0.35f * r(1);
     auto progress = age / life;
@@ -94,7 +100,7 @@ void addHeart(SurfaceBatch& batch,
 
     auto spin = std::sin(age * 2.2f + wobblePhase) * 0.7f;
     auto tilt = std::sin(age * wobbleRate * 0.8f + wobblePhase) * 0.3f;
-    auto position = origin + Vec3 {x, y, z};
+    auto position = flight.origin + Vec3 {x, y, z};
 
     auto model = Mat4::translation(position) * Mat4::rotationY(spin)
                  * Mat4::rotationZ(tilt) * Mat4::scale(size);
@@ -136,7 +142,7 @@ void addKissHearts(SurfaceBatch& batch,
     {
         auto spawn =
             spawnSpread * ((float) heart + random(kiss, heart, 10)) / (float) count;
-        addHeart(batch, glows, kiss, heart, sinceKiss - spawn, kissPoint);
+        addHeart(batch, glows, {kiss, heart, sinceKiss - spawn, kissPoint});
     }
 }
 } // namespace Cows

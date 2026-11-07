@@ -72,7 +72,19 @@ struct Game final
     float seconds = 0.f;
 
 private:
+    struct PlayerStep final
+    {
+        float delta = 0.f;
+        float ahead = 0.f;
+        bool jump = false;
+    };
+
     void animate(float delta, bool walking);
+    void walkPlayer(const PlayerStep& step);
+    void applyJumpAndGravity(const PlayerStep& step);
+    void respawnIfFellBelowKillDepth();
+    bool isPartnerWithinReach() const;
+    void findPartner();
 };
 
 // Not Game::State: that stays Menu while Start swings the camera down into play.

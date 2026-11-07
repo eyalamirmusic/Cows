@@ -1,6 +1,6 @@
 #include "Levels/LevelGenerator.h"
 #include "Levels/Segments/RavineSegment.h"
-#include "Fixtures.h"
+#include "Levels/Templates.h"
 #include "Props/Bale.h"
 #include "Snapshot.h"
 #include "Terrain/Ground.h"
@@ -25,7 +25,7 @@ constexpr auto clearWindow = 1.5f;
 
 Level makeRavine(std::uint32_t seed)
 {
-    return generate(meadowRavineFixture(), seed);
+    return generate(meadowRavineTemplate(), seed);
 }
 
 const Gap& ravine(const Level& level)
@@ -43,24 +43,29 @@ const Cows::Block& bridge(const Level& level)
                          { return block.top == 0.f && gap.contains(block.center); });
 }
 
-bool same(const Level& a, const Level& b)
+template <typename Thing>
+bool haveSameCenters(const Vector<Thing>& a, const Vector<Thing>& b)
 {
-    if (a.colliders.size() != b.colliders.size()
-        || a.blocks.size() != b.blocks.size() || a.movers.size() != b.movers.size())
-        return false;
+    return std::equal(
+        a.begin(),
+        a.end(),
+        b.begin(),
+        b.end(),
+        [](const Thing& x, const Thing& y)
+        { return x.center.x == y.center.x && x.center.y == y.center.y; });
+}
 
-    for (auto index = 0; index < a.colliders.size(); ++index)
-        if (a.colliders[index].center.x != b.colliders[index].center.x
-            || a.colliders[index].center.y != b.colliders[index].center.y)
-            return false;
-
-    for (auto index = 0; index < a.blocks.size(); ++index)
-        if (a.blocks[index].center.x != b.blocks[index].center.x
-            || a.blocks[index].center.y != b.blocks[index].center.y)
-            return false;
-
+bool hasSameHideoutAndRavine(const Level& a, const Level& b)
+{
     return a.hideout.x == b.hideout.x && a.hideout.z == b.hideout.z
            && ravine(a).center.y == ravine(b).center.y;
+}
+
+bool same(const Level& a, const Level& b)
+{
+    return a.movers.size() == b.movers.size()
+           && haveSameCenters(a.colliders, b.colliders)
+           && haveSameCenters(a.blocks, b.blocks) && hasSameHideoutAndRavine(a, b);
 }
 
 void addAll(SurfaceBatch& into, const SurfaceBatch& from)

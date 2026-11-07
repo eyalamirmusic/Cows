@@ -134,6 +134,23 @@ GlowShader::GlowShader()
     compile();
 }
 
+void GlowShader::drawGlows(RenderPass& pass,
+                           const Vector<GlowInstance>& glows,
+                           const Mat4& viewProjectionMatrix,
+                           const OrbitCamera& camera)
+{
+    if (glows.empty())
+        return;
+
+    viewProjection = viewProjectionMatrix;
+    cameraRight = camera.right();
+    cameraUp = camera.up();
+    eyePosition = camera.eye();
+    setInstances(1, glows.data(), glows.size());
+
+    pass.drawInstanced(*this, glows.size());
+}
+
 void GlowShader::define()
 {
     auto corner = vertexInput(&CornerVertex::position);

@@ -22,6 +22,27 @@ constexpr std::int8_t unit = 127;
 // Half a quantum over 2 m bounds.
 constexpr auto tolerance = 1e-4f;
 
+struct QuantisedVertex final
+{
+    std::int16_t x = 0;
+    std::int16_t y = 0;
+    std::int16_t z = 0;
+    std::int8_t up = 0;
+};
+
+struct GroupHeader final
+{
+    std::string name;
+    std::uint32_t vertexCount = 0;
+    std::uint32_t indexCount = 0;
+};
+
+struct CommittedMesh final
+{
+    std::string file;
+    std::initializer_list<const char*> groups;
+};
+
 struct BlobWriter final
 {
     template <typename Value>
@@ -32,21 +53,24 @@ struct BlobWriter final
         std::memcpy(bytes.data() + at, &value, sizeof(Value));
     }
 
-    void putName(const std::string& name)
+    void putGroupHeader(const GroupHeader& header)
     {
-        put((std::uint8_t) name.size());
+        put((std::uint8_t) header.name.size());
 
-        for (auto letter: name)
+        for (auto letter: header.name)
             put(letter);
+
+        put(header.vertexCount);
+        put(header.indexCount);
     }
 
-    void putVertex(std::int16_t x, std::int16_t y, std::int16_t z, std::int8_t up)
+    void putVertex(const QuantisedVertex& vertex)
     {
-        put(x);
-        put(y);
-        put(z);
+        put(vertex.x);
+        put(vertex.y);
+        put(vertex.z);
         put((std::int8_t) 0);
-        put(up);
+        put(vertex.up);
         put((std::int8_t) 0);
     }
 
@@ -68,23 +92,19 @@ BlobWriter twoGroups()
     for (auto bound: {-1.f, -1.f, -1.f, 1.f, 1.f, 1.f})
         writer.put(bound);
 
-    writer.putName("wood");
-    writer.put((std::uint32_t) 3);
-    writer.put((std::uint32_t) 3);
-    writer.putVertex(lowest, 0, lowest, unit);
-    writer.putVertex(highest, 0, lowest, unit);
-    writer.putVertex(lowest, 0, highest, unit);
+    writer.putGroupHeader({"wood", 3, 3});
+    writer.putVertex({lowest, 0, lowest, unit});
+    writer.putVertex({highest, 0, lowest, unit});
+    writer.putVertex({lowest, 0, highest, unit});
 
     for (std::uint16_t index: {0, 1, 2})
         writer.put(index);
 
-    writer.putName("hay");
-    writer.put((std::uint32_t) 4);
-    writer.put((std::uint32_t) 6);
-    writer.putVertex(lowest, lowest, lowest, -unit);
-    writer.putVertex(highest, lowest, lowest, -unit);
-    writer.putVertex(highest, lowest, highest, -unit);
-    writer.putVertex(lowest, lowest, highest, -unit);
+    writer.putGroupHeader({"hay", 4, 6});
+    writer.putVertex({lowest, lowest, lowest, -unit});
+    writer.putVertex({highest, lowest, lowest, -unit});
+    writer.putVertex({highest, lowest, highest, -unit});
+    writer.putVertex({lowest, lowest, highest, -unit});
 
     for (std::uint16_t index: {0, 2, 1, 0, 3, 2})
         writer.put(index);
@@ -97,9 +117,9 @@ bool near(Vec3 a, Vec3 b)
     return length(a - b) < tolerance;
 }
 
-std::vector<std::byte> fileBytes(const std::string& name)
+std::vector<std::byte> fileBytes(const CommittedMesh& mesh)
 {
-    auto file = std::ifstream {std::string(COWS_RESOURCES_DIR) + "/" + name,
+    auto file = std::ifstream {std::string(COWS_RESOURCES_DIR) + "/" + mesh.file,
                                std::ios::binary};
     auto chars = std::vector<char> {std::istreambuf_iterator<char> {file}, {}};
     auto bytes = std::vector<std::byte>(chars.size());
@@ -107,10 +127,10 @@ std::vector<std::byte> fileBytes(const std::string& name)
     return bytes;
 }
 
-void checkCommitted(const std::string& name,
-                    std::initializer_list<const char*> groups)
+void checkCommitted(const CommittedMesh& committed)
 {
-    auto bytes = fileBytes(name);
+    const auto& groups = committed.groups;
+    auto bytes = fileBytes(committed);
     auto read = readMeshBlob(bytes);
 
     check(read.size() == (int) groups.size());
@@ -171,7 +191,7 @@ auto tShort = test("MeshBlob/aCutShortBlobReadsAsNothing") = []
 
 auto tCommitted = test("MeshBlob/theCommittedMeshesRead") = []
 {
-    checkCommitted("barn.mesh",
-                   {"wall", "trim", "roof", "wood", "hay", "metal", "twine"});
-    checkCommitted("bale.mesh", {"straw", "twine"});
+    checkCommitted(
+        {"barn.mesh", {"wall", "trim", "roof", "wood", "hay", "metal", "twine"}});
+    checkCommitted({"bale.mesh", {"straw", "twine"}});
 };

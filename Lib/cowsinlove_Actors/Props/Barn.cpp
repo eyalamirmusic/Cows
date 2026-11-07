@@ -77,13 +77,34 @@ constexpr std::uint32_t twineColor = 0x8c6a3c;
 constexpr auto barnSoftness = 0.1f;
 constexpr auto barnGloss = 0.1f;
 
-Vec2 turned(Vec2 offset, int quarterTurns)
+struct BarnFrame final
 {
-    for (auto turn = 0; turn < quarterTurns; ++turn)
-        offset = {-offset.y, offset.x};
+    Vec2 turn(Vec2 offset) const
+    {
+        for (auto turn = 0; turn < quarterTurns; ++turn)
+            offset = {-offset.y, offset.x};
 
-    return offset;
-}
+        return offset;
+    }
+
+    Vec2 place(Vec2 offset) const { return center + turn(offset); }
+
+    float facing(Vec2 direction) const
+    {
+        auto turnedDirection = turn(direction);
+        return std::atan2(-turnedDirection.y, turnedDirection.x);
+    }
+
+    Mat4 model() const
+    {
+        auto heading = -(float) quarterTurns * halfPi;
+        return Mat4::translation({center.x, 0.f, center.y})
+               * Mat4::rotationY(heading);
+    }
+
+    Vec2 center;
+    int quarterTurns = 0;
+};
 
 float roofHeightAt(float x)
 {
@@ -143,14 +164,10 @@ Piece floating(Vec2 from, Vec2 to, float bottom, float top)
     return {from, to, top, bottom, {}};
 }
 
-Piece ramp(Vec2 from, Vec2 to, float top, Vec2 rise)
+Piece makeSloping(Piece piece, Vec2 rise)
 {
-    return {from, to, top, 0.f, rise};
-}
-
-Piece pitch(Vec2 from, Vec2 to, float bottom, float top, Vec2 rise)
-{
-    return {from, to, top, bottom, rise};
+    piece.rise = rise;
+    return piece;
 }
 
 struct Placer final
@@ -161,17 +178,16 @@ struct Placer final
         auto half = absolute(piece.to - piece.from) * 0.5f;
 
         auto block = Block {};
-        block.center = center + turned(middle, quarterTurns);
-        block.half = absolute(turned(half, quarterTurns));
+        block.center = frame.place(middle);
+        block.half = absolute(frame.turn(half));
         block.top = piece.top;
         block.bottom = piece.bottom;
-        block.rise = turned(piece.rise, quarterTurns);
+        block.rise = frame.turn(piece.rise);
         scenery.blocks.add(block);
     }
 
     Scenery& scenery;
-    Vec2 center;
-    int quarterTurns = 0;
+    BarnFrame frame;
 };
 
 // Up to the roof over them: nothing pokes through it, nothing inside is jumped.
@@ -236,10 +252,9 @@ void addLoft(const Placer& place)
 
     place.add(floating(
         {-inside, frontInside}, {inside, loftEdge}, loftBottom, barnLoftHeight));
-    place.add(ramp({rampInside, loftEdge},
-                   {inside, barnRampFootZ},
-                   barnLoftHeight,
-                   {0.f, -1.f}));
+    place.add(makeSloping(
+        standing({rampInside, loftEdge}, {inside, barnRampFootZ}, barnLoftHeight),
+        {0.f, -1.f}));
     place.add(
         floating({-inside, frontInside},
                  {-inside + 2.f * barnBaleWidth, baleBack},
@@ -251,11 +266,10 @@ void addLoft(const Placer& place)
                        barnLoftHeight + barnBaleHeight));
 
     for (auto side: {-1.f, 1.f})
-        place.scenery.colliders.add(Collider {
-            place.center
-                + turned({side * barnLoftPostX, loftEdge}, place.quarterTurns),
-            barnLoftPostRadius,
-            loftBottom});
+        place.scenery.colliders.add(
+            Collider {place.frame.place({side * barnLoftPostX, loftEdge}),
+                      barnLoftPostRadius,
+                      loftBottom});
 }
 
 void addStalls(const Placer& place)
@@ -277,10 +291,10 @@ void addClimb(const Placer& place)
 {
     auto rampBack = barnClimbFront + barnClimbRampLength;
 
-    place.add(ramp({-climbOut, barnClimbFront},
-                   {-barnHalfWidth, rampBack},
-                   (float) barnClimbRampLayers * barnBaleHeight,
-                   {0.f, 1.f}));
+    place.add(makeSloping(standing({-climbOut, barnClimbFront},
+                                   {-barnHalfWidth, rampBack},
+                                   (float) barnClimbRampLayers * barnBaleHeight),
+                          {0.f, 1.f}));
 
     for (auto index = 0; index < (int) barnClimbLayers.size(); ++index)
     {
@@ -297,17 +311,17 @@ void addRoof(const Placer& place)
     for (auto side: {-1.f, 1.f})
     {
         auto inward = Vec2 {-side, 0.f};
-        place.add(pitch({side * barnRoofBreakX, -roofDepth},
-                        {side * roofReach, roofDepth},
-                        roofHeightAt(roofReach),
-                        barnRoofBreakHeight,
-                        inward));
+        place.add(makeSloping(floating({side * barnRoofBreakX, -roofDepth},
+                                       {side * roofReach, roofDepth},
+                                       roofHeightAt(roofReach),
+                                       barnRoofBreakHeight),
+                              inward));
         auto pastRidge = barnRidge + ridgeOverlap * upperSlope;
-        place.add(pitch({-side * ridgeOverlap, -roofDepth},
-                        {side * barnRoofBreakX, roofDepth},
-                        barnRoofBreakHeight,
-                        pastRidge,
-                        inward));
+        place.add(makeSloping(floating({-side * ridgeOverlap, -roofDepth},
+                                       {side * barnRoofBreakX, roofDepth},
+                                       barnRoofBreakHeight,
+                                       pastRidge),
+                              inward));
     }
 
     place.add(floating({-barnCupolaHalf, barnCupolaZ - barnCupolaHalf},
@@ -316,11 +330,9 @@ void addRoof(const Placer& place)
                        barnCupolaTop));
 }
 
-void addMeshes(Scenery& scenery, Vec2 center, int quarterTurns)
+void addMeshes(Scenery& scenery, const BarnFrame& frame)
 {
-    auto heading = -(float) quarterTurns * halfPi;
-    auto model =
-        Mat4::translation({center.x, 0.f, center.y}) * Mat4::rotationY(heading);
+    auto model = frame.model();
 
     for (const auto& part: barnParts)
         scenery.batch.add(
@@ -328,20 +340,15 @@ void addMeshes(Scenery& scenery, Vec2 center, int quarterTurns)
             makeInstance(model, matte(part.color, barnSoftness, barnGloss)));
 }
 
-float facing(Vec2 direction, int quarterTurns)
-{
-    auto turnedDirection = turned(direction, quarterTurns);
-    return std::atan2(-turnedDirection.y, turnedDirection.x);
-}
 } // namespace
 
 BarnSpots barnSpots(Vec2 center, int quarterTurns)
 {
+    auto frame = BarnFrame {center, quarterTurns};
     auto spot = [&](Vec2 at, float feet, Vec2 direction)
     {
-        auto placed = center + turned(at, quarterTurns);
-        return BarnSpot {{placed.x, feet, placed.y},
-                         facing(direction, quarterTurns)};
+        auto placed = frame.place(at);
+        return BarnSpot {{placed.x, feet, placed.y}, frame.facing(direction)};
     };
 
     auto rampTopZ = loftEdge + rampTopInset;
@@ -362,7 +369,8 @@ float barnReach()
 
 void addBarn(Scenery& scenery, Vec2 center, int quarterTurns)
 {
-    auto place = Placer {scenery, center, quarterTurns};
+    auto frame = BarnFrame {center, quarterTurns};
+    auto place = Placer {scenery, frame};
 
     addWalls(place);
     addDoors(place);
@@ -371,7 +379,7 @@ void addBarn(Scenery& scenery, Vec2 center, int quarterTurns)
     addClimb(place);
     addRoof(place);
     scenery.clearings.add(
-        Clearing {center, absolute(turned({inside, backInside}, quarterTurns))});
-    addMeshes(scenery, center, quarterTurns);
+        Clearing {center, absolute(frame.turn({inside, backInside}))});
+    addMeshes(scenery, frame);
 }
 } // namespace Cows

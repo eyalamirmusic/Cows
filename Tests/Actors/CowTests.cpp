@@ -23,17 +23,28 @@ bool finite(const Mat4& matrix)
     return true;
 }
 
+bool isColumnFinite(Vec4 column)
+{
+    return std::isfinite(column.x) && std::isfinite(column.y)
+           && std::isfinite(column.z) && std::isfinite(column.w);
+}
+
+bool isInstanceFinite(const SurfaceInstance& instance)
+{
+    for (const auto& column:
+         {instance.model0, instance.model1, instance.model2, instance.model3})
+        if (!isColumnFinite(column))
+            return false;
+
+    return true;
+}
+
 bool finite(const SurfaceBatch& batch)
 {
     for (const auto& list: batch.lists)
         for (const auto& instance: list)
-            for (const auto& column: {instance.model0,
-                                      instance.model1,
-                                      instance.model2,
-                                      instance.model3})
-                if (!std::isfinite(column.x) || !std::isfinite(column.y)
-                    || !std::isfinite(column.z) || !std::isfinite(column.w))
-                    return false;
+            if (!isInstanceFinite(instance))
+                return false;
 
     return true;
 }
@@ -71,7 +82,7 @@ auto tFreePoseFinite = test("Cow/freePoseIsFinite") = []
     for (auto seconds = 0.f; seconds < 6.f; seconds += 0.37f)
     {
         auto pose = cow.freePose(
-            {3.f, 0.f, -2.f}, seconds, seconds, 1.f, seconds, seconds, 1.f);
+            {{3.f, 0.f, -2.f}, seconds, seconds, 1.f, seconds, seconds, 1.f});
         check(finite(pose.world));
         check(std::isfinite(pose.hop) && std::isfinite(pose.beat));
     }
@@ -108,10 +119,11 @@ auto tConstantInstances = test("Cow/instanceCountIsConstant") = []
     for (auto seconds = 0.f; seconds < 12.f; seconds += 0.53f)
     {
         check(posedCount(cow, parts, cow.pose(seconds)) == expected);
-        check(posedCount(cow,
-                         parts,
-                         cow.freePose({}, 1.f, seconds, 0.5f, seconds, seconds, 1.f))
-              == expected);
+        check(
+            posedCount(cow,
+                       parts,
+                       cow.freePose({{}, 1.f, seconds, 0.5f, seconds, seconds, 1.f}))
+            == expected);
     }
 };
 
@@ -122,10 +134,7 @@ auto tCowSnapshot = test("Cow/snapshot") = []
 
     auto cow = Cow {};
     auto view = SnapshotView {cowMeshes(1.f)};
-    cow.addTo(view.batch,
-              view.glows,
-              makeCowParts(),
-              cow.freePose({}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f));
+    cow.addTo(view.batch, view.glows, makeCowParts(), cow.freePose({}));
     view.camera.target = {0.f, 1.6f, 0.f};
     view.camera.yaw = 0.35f;
     view.camera.pitch = 0.15f;
@@ -176,10 +185,7 @@ Graphics::Image cowSeenFrom(float distance, const std::string& name)
 {
     auto cow = Cow {};
     auto view = SnapshotView {cowMeshes(1.f)};
-    cow.addTo(view.batch,
-              view.glows,
-              makeCowParts(),
-              cow.freePose({}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f));
+    cow.addTo(view.batch, view.glows, makeCowParts(), cow.freePose({}));
     view.camera.target = {1.2f, 1.6f, 0.f};
     view.camera.yaw = 1.15f;
     view.camera.pitch = 0.05f;

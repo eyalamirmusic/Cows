@@ -86,7 +86,7 @@ void shoot(const CowSkin& skin, const Shot& shot, const std::string& name)
 {
     auto cow = Cow {};
     auto view = SnapshotView {cowMeshes(1.f)};
-    auto pose = cow.freePose({}, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f);
+    auto pose = cow.freePose({});
     pose.lean = shot.lean;
     cow.addTo(view.batch, view.glows, makeCowParts(skin), pose);
     view.camera.target = shot.target;

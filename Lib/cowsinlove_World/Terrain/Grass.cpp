@@ -17,19 +17,46 @@ namespace
 constexpr auto bladeColumns = 3;
 constexpr auto rimMargin = 0.15f;
 
+bool doesTileOverlapGap(const Gap& gap, Vec2 corner)
+{
+    auto near = gap.center - gap.half - Vec2 {rimMargin, rimMargin};
+    auto far = gap.center + gap.half + Vec2 {rimMargin, rimMargin};
+    return corner.x < far.x && corner.x + meadowTile > near.x && corner.y < far.y
+           && corner.y + meadowTile > near.y;
+}
+
 bool crossesGap(const Vector<Gap>& gaps, Vec2 corner)
 {
-    for (const auto& gap: gaps)
+    return std::any_of(gaps.begin(),
+                       gaps.end(),
+                       [&](const Gap& gap)
+                       { return doesTileOverlapGap(gap, corner); });
+}
+
+struct BladeGridSpot final
+{
+    int segment = 0;
+    int column = 0;
+};
+
+std::uint16_t getBladeVertexIndex(BladeGridSpot spot)
+{
+    return (std::uint16_t) (spot.segment * bladeColumns + spot.column);
+}
+
+void addBladeSegmentQuads(Blade& blade, int bladeSegments)
+{
+    for (auto segment = 0; segment + 1 < bladeSegments; ++segment)
     {
-        auto near = gap.center - gap.half - Vec2 {rimMargin, rimMargin};
-        auto far = gap.center + gap.half + Vec2 {rimMargin, rimMargin};
-
-        if (corner.x < far.x && corner.x + meadowTile > near.x && corner.y < far.y
-            && corner.y + meadowTile > near.y)
-            return true;
+        for (auto column = 0; column + 1 < bladeColumns; ++column)
+        {
+            auto a = getBladeVertexIndex({segment, column});
+            auto b = getBladeVertexIndex({segment, column + 1});
+            auto c = getBladeVertexIndex({segment + 1, column + 1});
+            auto d = getBladeVertexIndex({segment + 1, column});
+            blade.indices.add({a, b, c, a, c, d});
+        }
     }
-
-    return false;
 }
 
 float distanceToTile(Vec2 point, Vec2 corner)
@@ -51,17 +78,25 @@ float shareAt(const GrassDensity& density, float distance)
     return density.nearShare + (density.farShare - density.nearShare) * along;
 }
 
+bool isNearGap(const Gap& gap, Vec2 point)
+{
+    auto offset = absolute(point - gap.center);
+    return offset.x < gap.half.x + rimMargin && offset.y < gap.half.y + rimMargin;
+}
+
 bool nearGap(const Vector<Gap>& gaps, Vec2 point)
 {
-    for (const auto& gap: gaps)
-    {
-        auto offset = absolute(point - gap.center);
+    return std::any_of(gaps.begin(),
+                       gaps.end(),
+                       [&](const Gap& gap) { return isNearGap(gap, point); });
+}
 
-        if (offset.x < gap.half.x + rimMargin && offset.y < gap.half.y + rimMargin)
-            return true;
-    }
-
-    return false;
+bool isTileInView(const Mat4& viewProjection, Vec2 at)
+{
+    auto low = Vec3 {at.x - bladeReach, 0.f, at.y - bladeReach};
+    auto high = Vec3 {
+        at.x + meadowTile + bladeReach, bladeReach, at.y + meadowTile + bladeReach};
+    return boxInView(viewProjection, low, high);
 }
 } // namespace
 
@@ -79,24 +114,14 @@ Blade makeBlade(int bladeSegments)
 
     blade.vertices.add({{0.f, 1.f}});
 
-    auto at = [](int segment, int column)
-    { return (std::uint16_t) (segment * bladeColumns + column); };
-
-    for (auto segment = 0; segment + 1 < bladeSegments; ++segment)
-        for (auto column = 0; column + 1 < bladeColumns; ++column)
-        {
-            auto a = at(segment, column);
-            auto b = at(segment, column + 1);
-            auto c = at(segment + 1, column + 1);
-            auto d = at(segment + 1, column);
-            blade.indices.add({a, b, c, a, c, d});
-        }
+    addBladeSegmentQuads(blade, bladeSegments);
 
     auto tip = (std::uint16_t) (bladeSegments * bladeColumns);
 
     for (auto column = 0; column + 1 < bladeColumns; ++column)
-        blade.indices.add(
-            {at(bladeSegments - 1, column), at(bladeSegments - 1, column + 1), tip});
+        blade.indices.add({getBladeVertexIndex({bladeSegments - 1, column}),
+                           getBladeVertexIndex({bladeSegments - 1, column + 1}),
+                           tip});
 
     return blade;
 }
@@ -171,12 +196,8 @@ Vector<GrassDraw> planGrass(Vec2 focus,
         for (auto z = -density.tilesAround; z < density.tilesAround; ++z)
         {
             auto at = corner + Vec2 {(float) x * meadowTile, (float) z * meadowTile};
-            auto low = Vec3 {at.x - bladeReach, 0.f, at.y - bladeReach};
-            auto high = Vec3 {at.x + meadowTile + bladeReach,
-                              bladeReach,
-                              at.y + meadowTile + bladeReach};
 
-            if (!boxInView(viewProjection, low, high))
+            if (!isTileInView(viewProjection, at))
                 continue;
 
             auto distance = distanceToTile(ground, at);

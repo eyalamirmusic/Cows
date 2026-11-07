@@ -137,6 +137,35 @@ Vec2 longitudesAcross(Vec2 across, float radius)
     return {at(across.y), at(across.x)};
 }
 
+void addBarrelRing(MeshData& mesh,
+                   const BarrelPatch& patch,
+                   float side,
+                   float latitude)
+{
+    auto kept = longitudesAcross(patch.across, barrelProfile(latitude).x);
+    auto from = std::max(kept.x, patch.longitude.x);
+    auto to = std::max(std::min(kept.y, patch.longitude.y), from);
+
+    for (auto segment = 0; segment <= patch.segments; ++segment)
+    {
+        auto share = (float) segment / (float) patch.segments;
+        mesh.vertices.add(barrelPoint(latitude, side * std::lerp(from, to, share)));
+    }
+}
+
+void addGridIndices(MeshData& mesh, std::uint32_t base, const BarrelPatch& patch)
+{
+    for (auto ring = 0; ring < patch.rings; ++ring)
+    {
+        for (auto segment = 0; segment < patch.segments; ++segment)
+        {
+            auto a = base + (std::uint32_t) (ring * (patch.segments + 1) + segment);
+            auto b = a + (std::uint32_t) (patch.segments + 1);
+            mesh.indices.add({a, a + 1, b + 1, a, b + 1, b});
+        }
+    }
+}
+
 void addBarrelHalf(MeshData& mesh, const BarrelPatch& patch, float side)
 {
     auto base = (std::uint32_t) mesh.vertices.size();
@@ -145,40 +174,40 @@ void addBarrelHalf(MeshData& mesh, const BarrelPatch& patch, float side)
 
     for (auto ring = 0; ring <= patch.rings; ++ring)
     {
-        auto latitude = std::lerp(first, last, (float) ring / (float) patch.rings);
-        auto kept = longitudesAcross(patch.across, barrelProfile(latitude).x);
-        auto from = std::max(kept.x, patch.longitude.x);
-        auto to = std::max(std::min(kept.y, patch.longitude.y), from);
-
-        for (auto segment = 0; segment <= patch.segments; ++segment)
-            mesh.vertices.add(barrelPoint(
-                latitude,
-                side
-                    * std::lerp(
-                        from, to, (float) segment / (float) patch.segments)));
+        auto share = (float) ring / (float) patch.rings;
+        addBarrelRing(mesh, patch, side, std::lerp(first, last, share));
     }
 
-    for (auto ring = 0; ring < patch.rings; ++ring)
-        for (auto segment = 0; segment < patch.segments; ++segment)
-        {
-            auto a = base + (std::uint32_t) (ring * (patch.segments + 1) + segment);
-            auto b = a + (std::uint32_t) (patch.segments + 1);
-            mesh.indices.add({a, a + 1, b + 1, a, b + 1, b});
-        }
+    addGridIndices(mesh, base, patch);
+}
+
+bool isTriangleOutsideHole(const MeshData& mesh,
+                           int first,
+                           Vec3 center,
+                           float radius)
+{
+    for (auto corner = 0; corner < 3; ++corner)
+    {
+        auto index = (int) mesh.indices[first + corner];
+
+        if (length(mesh.vertices[index].position - center) < radius)
+            return false;
+    }
+
+    return true;
 }
 
 void cutHole(MeshData& mesh, Vec3 center, float radius)
 {
-    auto inside = [&](std::uint32_t index)
-    { return length(mesh.vertices[(int) index].position - center) < radius; };
     auto kept = Vector<std::uint32_t> {};
 
     for (auto first = 0; first + 2 < mesh.indices.size(); first += 3)
-        if (!inside(mesh.indices[first]) && !inside(mesh.indices[first + 1])
-            && !inside(mesh.indices[first + 2]))
+    {
+        if (isTriangleOutsideHole(mesh, first, center, radius))
             kept.add({mesh.indices[first],
                       mesh.indices[first + 1],
                       mesh.indices[first + 2]});
+    }
 
     mesh.indices = kept;
 }
@@ -198,33 +227,49 @@ struct Edge final
     std::uint32_t opposite;
 };
 
+using EdgeKey = std::pair<PointKey, PointKey>;
+
+EdgeKey makeEdgeKey(const MeshData& mesh, std::uint32_t a, std::uint32_t b)
+{
+    auto ka = keyOf(mesh.vertices[(int) a].position);
+    auto kb = keyOf(mesh.vertices[(int) b].position);
+
+    if (ka < kb)
+        return {ka, kb};
+
+    return {kb, ka};
+}
+
+template <typename EdgeCallback>
+void forEachTriangleEdge(const MeshData& mesh, EdgeCallback&& callback)
+{
+    for (auto first = 0; first + 2 < mesh.indices.size(); first += 3)
+    {
+        for (auto corner = 0; corner < 3; ++corner)
+        {
+            auto edge = Edge {mesh.indices[first + corner],
+                              mesh.indices[first + (corner + 1) % 3],
+                              mesh.indices[first + (corner + 2) % 3]};
+            auto key = makeEdgeKey(mesh, edge.from, edge.to);
+
+            if (key.first != key.second)
+                callback(edge, key);
+        }
+    }
+}
+
 Vector<Edge> boundaryOf(const MeshData& mesh)
 {
-    auto uses = std::map<std::pair<PointKey, PointKey>, int> {};
+    auto uses = std::map<EdgeKey, int> {};
     auto edges = Vector<Edge> {};
-    auto keyed = [&](std::uint32_t a, std::uint32_t b)
-    {
-        auto ka = keyOf(mesh.vertices[(int) a].position);
-        auto kb = keyOf(mesh.vertices[(int) b].position);
-        return ka < kb ? std::pair {ka, kb} : std::pair {kb, ka};
-    };
 
-    for (auto pass = 0; pass < 2; ++pass)
-        for (auto first = 0; first + 2 < mesh.indices.size(); first += 3)
-            for (auto corner = 0; corner < 3; ++corner)
-            {
-                auto a = mesh.indices[first + corner];
-                auto b = mesh.indices[first + (corner + 1) % 3];
-                auto key = keyed(a, b);
-
-                if (key.first == key.second)
-                    continue;
-
-                if (pass == 0)
-                    ++uses[key];
-                else if (uses[key] == 1)
-                    edges.add({a, b, mesh.indices[first + (corner + 2) % 3]});
-            }
+    forEachTriangleEdge(mesh, [&](const Edge&, const EdgeKey& key) { ++uses[key]; });
+    forEachTriangleEdge(mesh,
+                        [&](const Edge& edge, const EdgeKey& key)
+                        {
+                            if (uses[key] == 1)
+                                edges.add(edge);
+                        });
 
     return edges;
 }

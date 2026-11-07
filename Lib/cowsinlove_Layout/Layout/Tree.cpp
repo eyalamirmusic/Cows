@@ -88,70 +88,157 @@ float offsetFor(Align align, float free)
     return 0.f;
 }
 
-// Everyone's least first when there is room, else in proportion to the leasts.
-void shareGrowth(const Vector<Size>& sizes, Vector<float>& shares, float room)
+float sumLeasts(const Vector<Size>& sizes)
 {
-    auto count = sizes.size();
     auto leastSum = 0.f;
 
     for (const auto& size: sizes)
         leastSum += size.least;
 
-    if (room <= 0.f)
-    {
-        for (auto& share: shares)
-            share = 0.f;
+    return leastSum;
+}
 
-        return;
+void shareInProportionToLeasts(const Vector<Size>& sizes,
+                               Vector<float>& shares,
+                               float room,
+                               float leastSum)
+{
+    for (auto index = 0; index < sizes.size(); ++index)
+        shares[index] = room * sizes[index].least / leastSum;
+}
+
+struct EvenSplit final
+{
+    Vector<char> settled;
+    float left = 0.f;
+    int open = 0;
+};
+
+bool settleSharesOutsideTheirBounds(const Vector<Size>& sizes,
+                                    Vector<float>& shares,
+                                    EvenSplit& split)
+{
+    auto each = split.left / (float) split.open;
+    auto changed = false;
+
+    for (auto index = 0; index < sizes.size(); ++index)
+    {
+        if (split.settled[index])
+            continue;
+
+        auto clamped = std::clamp(each, sizes[index].least, sizes[index].most);
+
+        if (clamped == each)
+            continue;
+
+        shares[index] = clamped;
+        split.settled[index] = 1;
+        split.left -= clamped;
+        --split.open;
+        changed = true;
     }
 
-    if (room < leastSum)
-    {
-        for (auto index = 0; index < count; ++index)
-            shares[index] = room * sizes[index].least / leastSum;
+    return changed;
+}
 
+void shareWhatIsLeftAmongUnsettled(Vector<float>& shares, const EvenSplit& split)
+{
+    if (split.open == 0)
         return;
-    }
 
-    auto settled = Vector<char> {};
-    settled.resize(count, 0);
-    auto left = room;
-    auto open = count;
+    auto each = std::max(split.left, 0.f) / (float) split.open;
 
-    for (auto round = 0; round <= count && open > 0; ++round)
+    for (auto index = 0; index < shares.size(); ++index)
     {
-        auto each = left / (float) open;
-        auto changed = false;
+        if (!split.settled[index])
+            shares[index] = each;
+    }
+}
 
-        for (auto index = 0; index < count; ++index)
-        {
-            if (settled[index])
-                continue;
+void shareEvenlyWithinBounds(const Vector<Size>& sizes,
+                             Vector<float>& shares,
+                             float room)
+{
+    auto count = static_cast<int>(sizes.size());
+    auto split = EvenSplit {};
+    split.settled.resize(count, 0);
+    split.left = room;
+    split.open = count;
 
-            auto clamped = std::clamp(each, sizes[index].least, sizes[index].most);
-
-            if (clamped != each)
-            {
-                shares[index] = clamped;
-                settled[index] = 1;
-                left -= clamped;
-                --open;
-                changed = true;
-            }
-        }
-
-        if (!changed)
+    for (auto round = 0; round <= count && split.open > 0; ++round)
+    {
+        if (!settleSharesOutsideTheirBounds(sizes, shares, split))
             break;
     }
 
-    if (open == 0)
-        return;
+    shareWhatIsLeftAmongUnsettled(shares, split);
+}
 
-    auto each = std::max(left, 0.f) / (float) open;
+// Everyone's least first when there is room, else in proportion to the leasts.
+void shareGrowth(const Vector<Size>& sizes, Vector<float>& shares, float room)
+{
+    auto leastSum = sumLeasts(sizes);
 
-    for (auto index = 0; index < count; ++index)
-        if (!settled[index])
-            shares[index] = each;
+    if (room <= 0.f)
+        std::fill(shares.begin(), shares.end(), 0.f);
+    else if (room < leastSum)
+        shareInProportionToLeasts(sizes, shares, room, leastSum);
+    else
+        shareEvenlyWithinBounds(sizes, shares, room);
+}
+
+float crossLengthFor(const Size& size, float fitAcross, float crossRoom)
+{
+    switch (size.kind)
+    {
+        case Size::Kind::Fixed:
+            return size.value;
+        case Size::Kind::Share:
+            return size.value * crossRoom;
+        case Size::Kind::Fit:
+            return basis(size, fitAcross);
+        case Size::Kind::Grow:
+            return std::min(std::clamp(crossRoom, size.least, size.most), crossRoom);
+    }
+
+    return 0.f;
+}
+
+bool isSharingColumn(const Node& node)
+{
+    return node.column != Node::noColumn && node.width.kind == Size::Kind::Fit;
+}
+
+Point textFit(const Text& text, const Measure& measure)
+{
+    auto width = measure(text.text, text.pointSize);
+
+    for (const auto& other: text.alsoFits)
+        width = std::max(width, measure(other, text.pointSize));
+
+    return {width, text.pointSize * text.lineHeight};
+}
+
+Point orientedPoint(Point mainAndCross, Direction direction)
+{
+    if (direction == Direction::Across)
+        return mainAndCross;
+
+    return {mainAndCross.y, mainAndCross.x};
+}
+
+Rect orientedRect(Point mainAndCrossStart,
+                  Point mainAndCrossLength,
+                  Direction direction)
+{
+    auto start = orientedPoint(mainAndCrossStart, direction);
+    auto length = orientedPoint(mainAndCrossLength, direction);
+    return {start.x, start.y, length.x, length.y};
+}
+
+float gapsTotal(float gap, int count)
+{
+    return gap * (float) std::max(count - 1, 0);
 }
 } // namespace
 
@@ -273,52 +360,39 @@ void Tree::shareColumns()
     }
 }
 
-Point Tree::fitOf(NodeId id, const Measure& measure) const
+Point Tree::childrenFit(NodeId id) const
 {
     const auto& entry = entries[id];
-    const auto& node = entry.node;
+    auto direction = entry.node.direction;
+    auto main = 0.f;
+    auto cross = 0.f;
+    auto count = 0;
+
+    for (auto child = entry.firstChild; child >= 0;
+         child = entries[child].nextSibling)
+    {
+        const auto& held = entries[child];
+        main += basis(mainSize(held.node, direction), along(held.fit, direction));
+        cross = std::max(cross,
+                         crossBasis(crossSize(held.node, direction),
+                                    across(held.fit, direction)));
+        ++count;
+    }
+
+    main += gapsTotal(entry.node.gap, count);
+    return orientedPoint({main, cross}, direction);
+}
+
+Point Tree::fitOf(NodeId id, const Measure& measure) const
+{
+    const auto& node = entries[id].node;
     auto padding = node.padding.size();
-    auto content = Point {};
-
-    if (node.text.has_value())
-    {
-        const auto& text = *node.text;
-        content.x = measure(text.text, text.pointSize);
-
-        for (const auto& other: text.alsoFits)
-            content.x = std::max(content.x, measure(other, text.pointSize));
-
-        content.y = text.pointSize * text.lineHeight;
-    }
-    else
-    {
-        auto main = 0.f;
-        auto cross = 0.f;
-        auto count = 0;
-
-        for (auto child = entry.firstChild; child >= 0;
-             child = entries[child].nextSibling)
-        {
-            const auto& held = entries[child];
-            main += basis(mainSize(held.node, node.direction),
-                          along(held.fit, node.direction));
-            cross = std::max(cross,
-                             crossBasis(crossSize(held.node, node.direction),
-                                        across(held.fit, node.direction)));
-            ++count;
-        }
-
-        main += node.gap * (float) std::max(count - 1, 0);
-        content = node.direction == Direction::Across ? Point {main, cross}
-                                                      : Point {cross, main};
-    }
-
+    auto content =
+        node.text.has_value() ? textFit(*node.text, measure) : childrenFit(id);
     auto fit = Point {content.x + padding.x, content.y + padding.y};
-    auto column = node.column;
 
-    if (column != Node::noColumn && column < columnWidths.size()
-        && node.width.kind == Size::Kind::Fit)
-        fit.x = std::max(fit.x, columnWidths[column]);
+    if (isSharingColumn(node) && node.column < columnWidths.size())
+        fit.x = std::max(fit.x, columnWidths[node.column]);
 
     return fit;
 }
@@ -337,19 +411,10 @@ void Tree::place(NodeId id, Rect area)
         placeChildren(id);
 }
 
-// Works in unsnapped points throughout; only the rects handed back are snapped.
-void Tree::placeChildren(NodeId id)
+float Tree::measureLengthsAlongParent(NodeId id, float mainRoom)
 {
     const auto& entry = entries[id];
-    const auto& node = entry.node;
-    auto direction = node.direction;
-    auto inner = entry.unsnappedRect.inset(node.padding);
-    inner.w = std::max(inner.w, 0.f);
-    inner.h = std::max(inner.h, 0.f);
-
-    auto mainRoom = direction == Direction::Across ? inner.w : inner.h;
-    auto crossRoom = direction == Direction::Across ? inner.h : inner.w;
-
+    auto direction = entry.node.direction;
     auto count = 0;
     auto used = 0.f;
     growSizes.clear();
@@ -362,77 +427,87 @@ void Tree::placeChildren(NodeId id)
         ++count;
 
         if (size.kind == Size::Kind::Grow)
-        {
             growSizes.add(size);
-            continue;
-        }
+        else if (size.kind == Size::Kind::Share)
+            held.lengthAlongParent = size.value * mainRoom;
+        else
+            held.lengthAlongParent = basis(size, along(held.fit, direction));
 
-        held.lengthAlongParent = size.kind == Size::Kind::Share
-                                     ? size.value * mainRoom
-                                     : basis(size, along(held.fit, direction));
-        used += held.lengthAlongParent;
+        if (size.kind != Size::Kind::Grow)
+            used += held.lengthAlongParent;
     }
 
-    used += node.gap * (float) std::max(count - 1, 0);
+    return used + gapsTotal(entry.node.gap, count);
+}
+
+float Tree::growChildren(NodeId id, float room)
+{
+    const auto& entry = entries[id];
+    auto direction = entry.node.direction;
     grown.clear();
     grown.resize(growSizes.size(), 0.f);
-    shareGrowth(growSizes, grown, mainRoom - used);
+    shareGrowth(growSizes, grown, room);
 
     auto growIndex = 0;
+    auto used = 0.f;
 
     for (auto child = entry.firstChild; child >= 0;
          child = entries[child].nextSibling)
     {
         auto& held = entries[child];
 
-        if (mainSize(held.node, direction).kind == Size::Kind::Grow)
-        {
-            held.lengthAlongParent = grown[growIndex++];
-            used += held.lengthAlongParent;
-        }
+        if (mainSize(held.node, direction).kind != Size::Kind::Grow)
+            continue;
+
+        held.lengthAlongParent = grown[growIndex++];
+        used += held.lengthAlongParent;
     }
 
-    if (used > mainRoom + overflowRoundingTolerance)
-        entries[id].resolved.overflow = true;
+    return used;
+}
 
-    auto mainStart = direction == Direction::Across ? inner.x : inner.y;
-    auto crossStart = direction == Direction::Across ? inner.y : inner.x;
-    auto cursor = mainStart + offsetFor(node.mainAlign, mainRoom - used);
+void Tree::placeChildrenInRoom(NodeId id, Rect inner, float used)
+{
+    const auto& entry = entries[id];
+    const auto& node = entry.node;
+    auto direction = node.direction;
+    auto room = orientedPoint({inner.w, inner.h}, direction);
+    auto start = orientedPoint({inner.x, inner.y}, direction);
+    auto cursor = start.x + offsetFor(node.mainAlign, room.x - used);
 
     for (auto child = entry.firstChild; child >= 0;
          child = entries[child].nextSibling)
     {
         const auto& held = entries[child];
-        const auto& size = crossSize(held.node, direction);
-        auto cross = 0.f;
+        auto cross = crossLengthFor(
+            crossSize(held.node, direction), across(held.fit, direction), room.y);
 
-        switch (size.kind)
-        {
-            case Size::Kind::Fixed:
-                cross = size.value;
-                break;
-            case Size::Kind::Share:
-                cross = size.value * crossRoom;
-                break;
-            case Size::Kind::Fit:
-                cross = basis(size, across(held.fit, direction));
-                break;
-            case Size::Kind::Grow:
-                cross = std::min(std::clamp(crossRoom, size.least, size.most),
-                                 crossRoom);
-                break;
-        }
-
-        if (cross > crossRoom + overflowRoundingTolerance)
+        if (cross > room.y + overflowRoundingTolerance)
             entries[id].resolved.overflow = true;
 
         auto main = held.lengthAlongParent;
-        auto crossAt = crossStart + offsetFor(node.crossAlign, crossRoom - cross);
+        auto crossAt = start.y + offsetFor(node.crossAlign, room.y - cross);
 
-        place(child,
-              direction == Direction::Across ? Rect {cursor, crossAt, main, cross}
-                                             : Rect {crossAt, cursor, cross, main});
+        place(child, orientedRect({cursor, crossAt}, {main, cross}, direction));
         cursor += main + node.gap;
     }
+}
+
+// Works in unsnapped points throughout; only the rects handed back are snapped.
+void Tree::placeChildren(NodeId id)
+{
+    const auto& node = entries[id].node;
+    auto inner = entries[id].unsnappedRect.inset(node.padding);
+    inner.w = std::max(inner.w, 0.f);
+    inner.h = std::max(inner.h, 0.f);
+
+    auto mainRoom = along({inner.w, inner.h}, node.direction);
+    auto used = measureLengthsAlongParent(id, mainRoom);
+    used += growChildren(id, mainRoom - used);
+
+    if (used > mainRoom + overflowRoundingTolerance)
+        entries[id].resolved.overflow = true;
+
+    placeChildrenInRoom(id, inner, used);
 }
 } // namespace Cows::Flex

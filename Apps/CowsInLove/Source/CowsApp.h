@@ -21,6 +21,22 @@ struct CowsApp final
     void showSettings();
     void chooseFrameRate(FrameRate rate);
     void writeSettingsFile() const;
+    void chooseMenuItem(int itemIndex);
+    void connectDressEditor();
+    void controlSceneByPointer(const ControlEvent& event);
+    void connectSettingsPanel();
+    void stepSettingsRow(int rowIndex, int steps);
+    void connectRootKeys();
+    bool escape();
+    void connectFooterAndTouchControls();
+    std::string getFooterText() const;
+    void showControlsForInputRecipient();
+    void showSelectionRingsForGamepad();
+    void useTouchHintsOnTouchScreens();
+    void drawHud(Hud& hud);
+    void drawMenuAndEditor(Hud& hud);
+    void addOverlaysToRoot();
+    void openFirstScreen();
 
     FilePath settingsFilePath = settingsFile();
     Settings savedSettings = loadSettings(settingsFilePath);

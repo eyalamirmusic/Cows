@@ -24,7 +24,7 @@ Vector<Mover::Part> baleParts()
 void addBale(Scenery& scenery, std::mt19937& random, Vec2 at)
 {
     auto heading = randomBetween(random, 0.f, twoPi);
-    auto model = lyingDrum(at, 0.f, heading, 0.f, baleRadius, baleLength);
+    auto model = lyingDrum({at, 0.f, heading, 0.f, baleRadius, baleLength});
 
     for (const auto& part: baleParts())
         scenery.batch.add(part.shape, makeInstance(model, part.material));

@@ -10,13 +10,9 @@ namespace
 constexpr auto indent = 4;
 
 template <typename Item>
-ItemClass itemClass(std::string key, std::string name, Item CowSkin::* member)
+ItemClass makeItemClass(ItemClass item, Item CowSkin::* member)
 {
     auto names = Miro::enumNames<Item>();
-
-    auto item = ItemClass {};
-    item.key = std::move(key);
-    item.name = std::move(name);
 
     for (auto enumerator: names)
         item.choices.add(spellOutEnumeratorName(enumerator));
@@ -47,8 +43,8 @@ ItemClass itemClass(std::string key, std::string name, Item CowSkin::* member)
 Vector<ItemClass> makeItemClasses()
 {
     auto classes = Vector<ItemClass> {};
-    classes.add(itemClass("hat", "Hat", &CowSkin::hat));
-    classes.add(itemClass("pants", "Pants", &CowSkin::pants));
+    classes.add(makeItemClass({.key = "hat", .name = "Hat"}, &CowSkin::hat));
+    classes.add(makeItemClass({.key = "pants", .name = "Pants"}, &CowSkin::pants));
     return classes;
 }
 

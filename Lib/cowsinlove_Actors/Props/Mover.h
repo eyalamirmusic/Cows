@@ -6,12 +6,17 @@
 namespace Cows
 {
 // Lays makeBarrel's frame (y 0 to 1, radius 0.5) on its side across `heading`.
-Maths::Mat4 lyingDrum(Maths::Vec2 at,
-                      float lift,
-                      float heading,
-                      float roll,
-                      float radius,
-                      float length);
+struct DrumPlacement final
+{
+    Maths::Vec2 at;
+    float lift = 0.f;
+    float heading = 0.f;
+    float roll = 0.f;
+    float radius = 0.f;
+    float length = 0.f;
+};
+
+Maths::Mat4 lyingDrum(const DrumPlacement& drum);
 
 // `period` in seconds; `phase` is the share of a period done at zero.
 struct Mover final

@@ -15,12 +15,12 @@ float travelled(const Mover& mover, float seconds)
 }
 } // namespace
 
-Mat4 lyingDrum(
-    Vec2 at, float lift, float heading, float roll, float radius, float length)
+Mat4 lyingDrum(const DrumPlacement& drum)
 {
-    return Mat4::translation({at.x, lift + radius, at.y}) * Mat4::rotationY(heading)
-           * Mat4::rotationZ(roll) * Mat4::rotationX(halfPi)
-           * Mat4::scale({radius * 2.f, length, radius * 2.f})
+    return Mat4::translation({drum.at.x, drum.lift + drum.radius, drum.at.y})
+           * Mat4::rotationY(drum.heading) * Mat4::rotationZ(drum.roll)
+           * Mat4::rotationX(halfPi)
+           * Mat4::scale({drum.radius * 2.f, drum.length, drum.radius * 2.f})
            * Mat4::translation({0.f, -0.5f, 0.f});
 }
 
@@ -36,6 +36,6 @@ Mat4 Mover::modelAt(float seconds) const
     auto heading = std::atan2(-track.y, track.x);
     auto at = positionAt(seconds);
 
-    return lyingDrum(at, lift, heading, -along / radius, radius, width);
+    return lyingDrum({at, lift, heading, -along / radius, radius, width});
 }
 } // namespace Cows

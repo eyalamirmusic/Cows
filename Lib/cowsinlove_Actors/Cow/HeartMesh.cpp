@@ -52,14 +52,9 @@ void smoothNormals(MeshData& mesh)
         for (auto& vertex: mesh.vertices)
             vertex.normal = -vertex.normal;
 }
-} // namespace
 
-MeshData makeHeart(float detail)
+void addPuffedLayers(MeshData& mesh, int outlineSteps, int inflateSteps)
 {
-    auto mesh = MeshData {};
-    auto outlineSteps = detailed(fullOutlineSteps, detail);
-    auto inflateSteps = detailed(fullInflateSteps, detail);
-
     for (auto layer = 0; layer <= inflateSteps; ++layer)
     {
         auto angle = pi * (float) layer / (float) inflateSteps;
@@ -77,7 +72,10 @@ MeshData makeHeart(float detail)
             mesh.vertices.add(Vertex {{point.x, point.y, puff}, {}});
         }
     }
+}
 
+void stitchLayers(MeshData& mesh, int outlineSteps, int inflateSteps)
+{
     for (auto layer = 0; layer < inflateSteps; ++layer)
         for (auto step = 0; step < outlineSteps; ++step)
         {
@@ -85,9 +83,10 @@ MeshData makeHeart(float detail)
             auto b = a + (std::uint32_t) (outlineSteps + 1);
             mesh.indices.add({a, a + 1, b + 1, a, b + 1, b});
         }
+}
 
-    smoothNormals(mesh);
-
+void flattenFaceNormals(MeshData& mesh, int outlineSteps, int inflateSteps)
+{
     auto columns = outlineSteps + 1;
 
     for (auto step = 0; step < columns; ++step)
@@ -95,7 +94,19 @@ MeshData makeHeart(float detail)
         mesh.vertices[step].normal = {0.f, 0.f, 1.f};
         mesh.vertices[inflateSteps * columns + step].normal = {0.f, 0.f, -1.f};
     }
+}
+} // namespace
 
+MeshData makeHeart(float detail)
+{
+    auto mesh = MeshData {};
+    auto outlineSteps = detailed(fullOutlineSteps, detail);
+    auto inflateSteps = detailed(fullInflateSteps, detail);
+
+    addPuffedLayers(mesh, outlineSteps, inflateSteps);
+    stitchLayers(mesh, outlineSteps, inflateSteps);
+    smoothNormals(mesh);
+    flattenFaceNormals(mesh, outlineSteps, inflateSteps);
     windOutward(mesh);
     return mesh;
 }

@@ -65,13 +65,96 @@ std::optional<std::uint32_t> readShort(Reader& reader)
     return std::nullopt;
 }
 
-std::optional<MeshGroup> readGroup(Reader& reader, Vec3 low, Vec3 high)
+struct QuantisationBounds final
 {
-    auto group = MeshGroup {};
+    Vec3 low;
+    Vec3 high;
+};
+
+std::string readGroupName(Reader& reader)
+{
+    auto name = std::string {};
     auto length = reader.read<std::uint8_t>();
 
     for (auto letter = 0; length && letter < *length; ++letter)
-        group.name += reader.read<char>().value_or('?');
+        name += reader.read<char>().value_or('?');
+
+    return name;
+}
+
+template <typename Component, std::size_t Count>
+std::array<Component, Count> readComponents(Reader& reader)
+{
+    auto components = std::array<Component, Count> {};
+
+    for (auto& axis: components)
+        axis = reader.read<Component>().value_or(0);
+
+    return components;
+}
+
+Vec3 unquantisePosition(const std::array<std::int16_t, 3>& position,
+                        const QuantisationBounds& bounds)
+{
+    return {unquantise(position[0], bounds.low.x, bounds.high.x),
+            unquantise(position[1], bounds.low.y, bounds.high.y),
+            unquantise(position[2], bounds.low.z, bounds.high.z)};
+}
+
+Vec3 unquantiseNormal(const std::array<std::int8_t, 3>& normal)
+{
+    return normalize(Vec3 {(float) normal[0] / normalScale,
+                           (float) normal[1] / normalScale,
+                           (float) normal[2] / normalScale});
+}
+
+void readVertex(Reader& reader, const QuantisationBounds& bounds, MeshGroup& group)
+{
+    auto position = readComponents<std::int16_t, 3>(reader);
+    auto normal = readComponents<std::int8_t, 3>(reader);
+
+    group.positions.add(unquantisePosition(position, bounds));
+    group.normals.add(unquantiseNormal(normal));
+}
+
+std::optional<std::uint32_t> readIndex(Reader& reader, bool wide)
+{
+    if (wide)
+        return reader.read<std::uint32_t>();
+
+    return readShort(reader);
+}
+
+bool isValidIndex(const std::optional<std::uint32_t>& index,
+                  std::uint32_t vertexCount)
+{
+    return index && *index < vertexCount;
+}
+
+bool readIndices(Reader& reader,
+                 std::uint32_t indexCount,
+                 std::uint32_t vertexCount,
+                 MeshGroup& group)
+{
+    auto wide = vertexCount >= widestShortIndex;
+
+    for (std::uint32_t index = 0; index < indexCount; ++index)
+    {
+        auto value = readIndex(reader, wide);
+
+        if (!isValidIndex(value, vertexCount))
+            return false;
+
+        group.indices.add(*value);
+    }
+
+    return true;
+}
+
+std::optional<MeshGroup> readGroup(Reader& reader, const QuantisationBounds& bounds)
+{
+    auto group = MeshGroup {};
+    group.name = readGroupName(reader);
 
     auto vertices = reader.read<std::uint32_t>();
     auto indices = reader.read<std::uint32_t>();
@@ -80,37 +163,17 @@ std::optional<MeshGroup> readGroup(Reader& reader, Vec3 low, Vec3 high)
         return std::nullopt;
 
     for (std::uint32_t vertex = 0; vertex < *vertices; ++vertex)
-    {
-        auto position = std::array<std::int16_t, 3> {};
-        auto normal = std::array<std::int8_t, 3> {};
+        readVertex(reader, bounds, group);
 
-        for (auto& axis: position)
-            axis = reader.read<std::int16_t>().value_or(0);
-
-        for (auto& axis: normal)
-            axis = reader.read<std::int8_t>().value_or(0);
-
-        group.positions.add({unquantise(position[0], low.x, high.x),
-                             unquantise(position[1], low.y, high.y),
-                             unquantise(position[2], low.z, high.z)});
-        group.normals.add(normalize(Vec3 {(float) normal[0] / normalScale,
-                                          (float) normal[1] / normalScale,
-                                          (float) normal[2] / normalScale}));
-    }
-
-    auto wide = *vertices >= widestShortIndex;
-
-    for (std::uint32_t index = 0; index < *indices; ++index)
-    {
-        auto value = wide ? reader.read<std::uint32_t>() : readShort(reader);
-
-        if (!value || *value >= *vertices)
-            return std::nullopt;
-
-        group.indices.add(*value);
-    }
+    if (!readIndices(reader, *indices, *vertices, group))
+        return std::nullopt;
 
     return group;
+}
+
+bool hasExpectedHeader(const std::array<char, 4>& header, std::uint16_t blobVersion)
+{
+    return header == magic && blobVersion == version;
 }
 } // namespace
 
@@ -123,14 +186,14 @@ Vector<MeshGroup> readMeshBlob(std::span<const std::byte> blob)
     auto low = reader.readFloats();
     auto high = reader.readFloats();
 
-    if (!high || *header != magic || *blobVersion != version)
+    if (!high || !hasExpectedHeader(*header, *blobVersion))
         return {};
 
     auto groups = Vector<MeshGroup> {};
 
     for (auto group = 0; group < *count; ++group)
     {
-        auto read = readGroup(reader, *low, *high);
+        auto read = readGroup(reader, QuantisationBounds {*low, *high});
 
         if (!read)
             return {};

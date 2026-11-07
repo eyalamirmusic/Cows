@@ -20,6 +20,7 @@ constexpr auto mooOffsetX = -64.f;
 constexpr auto mooOffsetY = -66.f;
 constexpr auto touchSlop = 12.f;
 constexpr auto backRadius = mooRadius;
+constexpr auto stickZoneTopDivisor = 3.f;
 constexpr auto backArrowHalfLength = 10.f;
 constexpr auto backArrowHeadSize = 8.f;
 constexpr auto backArrowWidth = 3.f;
@@ -70,13 +71,29 @@ void TouchControls::resized()
         stickCenter = knob = stickHome;
 }
 
+bool TouchControls::isWithinTouchOf(Point position, const Circle& button) const
+{
+    return position.distanceTo(button.center) < button.radius + touchSlop;
+}
+
+bool TouchControls::isInStickZone(Point position) const
+{
+    auto bounds = getLocalBounds();
+    return position.x < bounds.w * stickReach
+           && position.y > bounds.h / stickZoneTopDivisor;
+}
+
+bool TouchControls::canGrabStick(Point position) const
+{
+    return !pressed(Role::Stick) && isInStickZone(position);
+}
+
 TouchControls::Role TouchControls::roleAt(Point position) const
 {
-    if (position.distanceTo(backCenter) < backRadius + touchSlop)
+    if (isWithinTouchOf(position, {backCenter, backRadius}))
         return Role::Back;
 
-    auto bounds = getLocalBounds();
-    auto onJump = position.distanceTo(jumpCenter) < jumpRadius + touchSlop;
+    auto onJump = isWithinTouchOf(position, {jumpCenter, jumpRadius});
 
     if (showAgain)
         return onJump ? Role::Again : Role::Look;
@@ -84,11 +101,10 @@ TouchControls::Role TouchControls::roleAt(Point position) const
     if (onJump)
         return Role::Jump;
 
-    if (position.distanceTo(mooCenter) < mooRadius + touchSlop)
+    if (isWithinTouchOf(position, {mooCenter, mooRadius}))
         return Role::Moo;
 
-    if (!pressed(Role::Stick) && position.x < bounds.w * stickReach
-        && position.y > bounds.h / 3.f)
+    if (canGrabStick(position))
         return Role::Stick;
 
     return Role::Look;
@@ -223,13 +239,13 @@ void TouchControls::draw(Hud& hud) const
 
     if (showAgain)
     {
-        drawButton(hud, jumpCenter, jumpRadius, "Again", pressed(Role::Again));
+        drawButton(hud, {jumpCenter, jumpRadius}, "Again", pressed(Role::Again));
         return;
     }
 
     drawStick(hud);
-    drawButton(hud, mooCenter, mooRadius, "Moo", pressed(Role::Moo));
-    drawButton(hud, jumpCenter, jumpRadius, "Jump", pressed(Role::Jump));
+    drawButton(hud, {mooCenter, mooRadius}, "Moo", pressed(Role::Moo));
+    drawButton(hud, {jumpCenter, jumpRadius}, "Jump", pressed(Role::Jump));
 }
 
 void TouchControls::drawStick(Hud& hud) const
@@ -263,9 +279,12 @@ void TouchControls::drawBackButton(Hud& hud) const
     drawArrow({}, backArrowWidth, lineColor);
 }
 
-void TouchControls::drawButton(
-    Hud& hud, Point center, float radius, std::string_view label, bool down) const
+void TouchControls::drawButton(Hud& hud,
+                               const Circle& button,
+                               std::string_view label,
+                               bool down) const
 {
+    auto [center, radius] = button;
     if (down)
         hud.fillDisc(center, radius, pressedFill);
 

@@ -1,5 +1,4 @@
 #include "Snapshot.h"
-#include "UI/Hud.h"
 #include "UI/Menu.h"
 
 #include <NanoTest/NanoTest.h>
@@ -19,38 +18,12 @@ void addItems(Menu& menu)
         {.label = "Dress Your Cow", .note = "Coming Soon!", .enabled = Enabled::No});
 }
 
-bool anyDrawnIn(const Graphics::Image& image, const Graphics::Rect& area)
-{
-    for (auto y = (int) area.y; y < (int) (area.y + area.h); ++y)
-        for (auto x = (int) area.x; x < (int) (area.x + area.w); ++x)
-            if (x >= 0 && y >= 0 && x < image.width() && y < image.height()
-                && !isClearColor(image.at(x, y)))
-                return true;
-
-    return false;
-}
-
 bool inside(const Graphics::Rect& area, float width, float height)
 {
     return area.x >= 0.f && area.y >= 0.f && area.x + area.w <= width
            && area.y + area.h <= height;
 }
 
-Graphics::Image menuShot(Menu& menu, float width, float height, const char* name)
-{
-    menu.setBounds({0.f, 0.f, width, height});
-
-    auto hud = Hud {};
-    auto view = SnapshotView {};
-    view.drawOverlay = [&](Frame& frame, RenderPass& pass)
-    {
-        hud.begin(frame, pass, view.sampleCount());
-        menu.draw(hud);
-        hud.end();
-    };
-
-    return snapshot(view, width, height, name);
-}
 } // namespace
 
 auto tMenuWide = test("MenuSnapshot/wide") = []
@@ -62,7 +35,7 @@ auto tMenuWide = test("MenuSnapshot/wide") = []
     addItems(menu);
     menu.showSelection = true;
 
-    auto image = menuShot(menu, 1280.f, 800.f, "engine-menu-wide");
+    auto image = snapshotScreen(menu, 1280.f, 800.f, "engine-menu-wide");
     check(image.isValid());
 
     if (!image.isValid())
@@ -82,8 +55,8 @@ auto tMenuWide = test("MenuSnapshot/wide") = []
     check(!start.intersects(cow) && !dress.intersects(cow));
     check(start.y >= title.y + title.h && dress.y >= title.y + title.h);
     check(inside(start, 1280.f, 800.f) && inside(dress, 1280.f, 800.f));
-    check(anyDrawnIn(image, start) && anyDrawnIn(image, dress));
-    check(!anyDrawnIn(image, title));
+    check(isAnythingDrawnIn(image, start) && isAnythingDrawnIn(image, dress));
+    check(!isAnythingDrawnIn(image, title));
     check(menu.itemAt({start.x + start.w * 0.5f, start.y + start.h * 0.5f}) == 0);
 };
 
@@ -95,7 +68,7 @@ auto tMenuTall = test("MenuSnapshot/tall") = []
     auto menu = Menu {};
     addItems(menu);
 
-    auto image = menuShot(menu, 390.f, 844.f, "engine-menu-tall");
+    auto image = snapshotScreen(menu, 390.f, 844.f, "engine-menu-tall");
     check(image.isValid());
 
     if (!image.isValid())
@@ -114,7 +87,8 @@ auto tMenuTall = test("MenuSnapshot/tall") = []
     check(start.pointSize > dress.pointSize);
     check(start.area.h >= 64.f && start.area.w >= 64.f);
     check(inside(start.area, 390.f, 844.f) && inside(dress.area, 390.f, 844.f));
-    check(anyDrawnIn(image, start.area) && anyDrawnIn(image, dress.area));
+    check(isAnythingDrawnIn(image, start.area)
+          && isAnythingDrawnIn(image, dress.area));
 };
 
 namespace
@@ -128,7 +102,7 @@ void checkMainMenu(float width, float height, const char* name)
     menu.items.add({"About"});
     menu.showSelection = true;
 
-    auto image = menuShot(menu, width, height, name);
+    auto image = snapshotScreen(menu, width, height, name);
     check(image.isValid());
     check(menu.placed.size() == 4);
 

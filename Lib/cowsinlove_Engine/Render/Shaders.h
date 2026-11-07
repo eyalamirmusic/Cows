@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Camera/OrbitCamera.h"
 #include "Render/Instances.h"
 #include "Render/Lighting.h"
 #include "Render/Mesh.h"
@@ -62,6 +63,11 @@ struct GlowShader final : ShaderProgram
     GlowShader();
 
     void define() override;
+
+    void drawGlows(RenderPass& pass,
+                   const Vector<GlowInstance>& glows,
+                   const Maths::Mat4& viewProjectionMatrix,
+                   const OrbitCamera& camera);
 
     Uniform<Float4x4> viewProjection;
     Uniform<Float3> cameraRight;

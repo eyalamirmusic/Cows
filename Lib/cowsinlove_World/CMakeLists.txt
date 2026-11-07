@@ -8,6 +8,7 @@ add_library(cowsinlove_World STATIC
         Levels/Segments/MeadowSegment.cpp
         Levels/Segments/MoverSpawner.cpp
         Levels/Segments/RavineSegment.cpp
+        Levels/Templates.cpp
         Terrain/Grass.cpp
         Terrain/Ground.cpp
         Terrain/TerrainShaders.cpp)

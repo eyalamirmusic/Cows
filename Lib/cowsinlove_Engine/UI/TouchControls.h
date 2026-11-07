@@ -50,7 +50,16 @@ struct TouchControls final : Graphics::View
         Graphics::Point position;
     };
 
+    struct Circle final
+    {
+        Graphics::Point center;
+        float radius = 0.f;
+    };
+
     Role roleAt(Graphics::Point position) const;
+    bool isWithinTouchOf(Graphics::Point position, const Circle& button) const;
+    bool isInStickZone(Graphics::Point position) const;
+    bool canGrabStick(Graphics::Point position) const;
     Pointer* find(int id);
     Pointer* otherLooking(int id);
     bool pressed(Role role) const;
@@ -61,8 +70,7 @@ struct TouchControls final : Graphics::View
     void drawStick(Hud& hud) const;
     void drawBackButton(Hud& hud) const;
     void drawButton(Hud& hud,
-                    Graphics::Point center,
-                    float radius,
+                    const Circle& button,
                     std::string_view label,
                     bool down) const;
 

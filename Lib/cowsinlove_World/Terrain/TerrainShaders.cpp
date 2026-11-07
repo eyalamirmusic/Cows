@@ -58,14 +58,16 @@ GrassShader::GrassShader(int shadowTapsToUse, bool quickNoiseToUse)
     compile();
 }
 
+Float GrassShader::noiseOf(const Float3& position) const
+{
+    if (quickNoise)
+        return Shading::quickValueNoise(position);
+
+    return Shading::valueNoise(position);
+}
+
 void GrassShader::define()
 {
-    auto noiseOf = [this](const Float3& position)
-    {
-        return quickNoise ? Shading::quickValueNoise(position)
-                          : Shading::valueNoise(position);
-    };
-
     auto shape = vertexInput(&BladeVertex::shape);
     auto placement = instanceInput(&BladeInstance::placement, 1);
     auto look = instanceInput(&BladeInstance::look, 1);
@@ -111,14 +113,24 @@ void GrassShader::define()
 
     setPosition(viewProjection * float4(world, 1.f));
 
-    auto surface = varying(world);
-    auto tip = varying(along);
-    auto shade = varying(look.z());
-    auto blade = varying(float4(side, curl * 2.f, form.z(), seed));
-    auto faceDirection = varying(face);
-    auto acrossDirection = varying(across);
-    auto dryness = varying(dry);
+    shadeBlade({varying(world),
+                varying(along),
+                varying(look.z()),
+                varying(float4(side, curl * 2.f, form.z(), seed)),
+                varying(face),
+                varying(across),
+                varying(dry)});
+}
 
+void GrassShader::shadeBlade(const BladeVaryings& varyings)
+{
+    const auto& surface = varyings.surface;
+    const auto& tip = varyings.tip;
+    const auto& shade = varyings.shade;
+    const auto& blade = varyings.blade;
+    const auto& faceDirection = varyings.faceDirection;
+    const auto& acrossDirection = varyings.acrossDirection;
+    const auto& dryness = varyings.dryness;
     auto x = blade.x();
     auto toEye = normalize(eyePosition - surface);
     auto toLight = normalize(keyDirection);

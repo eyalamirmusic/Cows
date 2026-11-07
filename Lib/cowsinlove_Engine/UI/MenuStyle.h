@@ -57,13 +57,17 @@ struct ChosenShape final
 // First shape within a fifth of the best fit, so text never jumps more on resize.
 ChosenShape largestShape(const Vector<LayoutShape>& shapes,
                          const Flex::Measure& measure,
-                         float readable,
-                         float largest);
+                         const Flex::PointSizeRange& readableToLargest);
+
+struct MenuTextStyle final
+{
+    const Text::Font& font;
+    Graphics::Color fill;
+    float opacity = 1.f;
+};
 
 void drawMenuText(Hud& hud,
                   std::string_view text,
                   Graphics::Point baselineLeft,
-                  const Text::Font& font,
-                  const Graphics::Color& color,
-                  float opacity);
+                  const MenuTextStyle& style);
 } // namespace Cows
