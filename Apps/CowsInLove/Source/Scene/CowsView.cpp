@@ -333,7 +333,6 @@ void CowsView::useQuality(Quality chosen)
     auto settings = getSettingsForQuality(chosen);
 
     setSampleCount(profileSettings().samples.value_or(settings.samples));
-    setRenderScale(profileSettings().renderScale.value_or(settings.renderScale));
     grassDensity = settings.grass;
     auto detail = profileSettings().meshDetail.value_or(settings.meshDetail);
     shapes = ShapeMeshes {contentMeshes(detail), detail};
