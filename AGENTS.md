@@ -338,7 +338,8 @@ then on.
 
 ## Build Commands
 
-eacp is fetched by CPM (`CMake/Findeacp.cmake`, `eyalamirmusic/eacp#develop`).
+eacp is fetched by CPM (`CMake/Findeacp.cmake`) at a `jp/develop/<date>.<n>` tag of
+`eyalamirmusic/eacp`: develop plus one commit per open eacp pull request of Jamie's.
 To build against the local checkout instead (usually ahead of `develop`):
 
 ```bash
