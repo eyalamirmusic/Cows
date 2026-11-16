@@ -40,6 +40,8 @@ MakeASound::SessionConfig playbackSession()
     auto session = MakeASound::SessionConfig {};
     session.category = MakeASound::SessionCategory::Playback;
     session.options.mixWithOthers = true;
+    session.options.allowBluetooth = false;
+    session.options.allowAirPlay = false;
     return session;
 }
 } // namespace
