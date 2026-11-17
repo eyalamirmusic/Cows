@@ -3,6 +3,7 @@
 #include <NanoTest/NanoTest.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <thread>
 #include <vector>
@@ -141,8 +142,9 @@ auto tRenderPlaysTheMixOnce = test("SamplePlayer/renderPlaysTheMixOnce") = []
     player.play(constant(441, 1.f), {{0.f, 1.f, 1.f, -1.f, 0.f}});
 
     auto block = std::vector<float>(2 * 512, -1.f);
+    auto channels = std::array {block.data(), block.data() + 512};
     auto info = MakeASound::AudioCallbackInfo {};
-    info.outputBuffer = block.data();
+    info.outputChannels = channels.data();
     info.numOutputs = 2;
     info.numSamples = 512;
 

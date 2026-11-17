@@ -1,7 +1,7 @@
 include(CPM)
 
 # A plain value, not a cache entry, so a stale cache can never build an older eacp.
-set(COWS_EACP_TAG "jp/develop/2026-11-16.7")
+set(COWS_EACP_TAG "develop")
 set(COWS_EACP_REPOSITORY "eyalamirmusic/eacp")
 
 CPMAddPackage(
