@@ -24,7 +24,6 @@ endif ()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 
 if (ANDROID)
-
     # Play requires API 36; compileSdk matches so an older local SDK cannot slip in.
     set(COWS_ANDROID_TARGET_SDK 36 CACHE STRING "Android target/compile SDK")
     set(COWS_ANDROID_MIN_SDK 30 CACHE STRING "Oldest supported Android SDK")
